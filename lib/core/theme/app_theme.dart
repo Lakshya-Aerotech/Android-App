@@ -6,6 +6,19 @@ import '../constants/app_radius.dart';
 class AppTheme {
   AppTheme._();
 
+  static ThemeData get lightTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      primaryColor: AppColors.primary,
+      scaffoldBackgroundColor: Colors.white,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.primary,
+        brightness: Brightness.light,
+      ),
+    );
+  }
+
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
@@ -74,7 +87,7 @@ class AppTheme {
         hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textTertiary),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.card,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.radiusLg),
         elevation: 0,
@@ -89,7 +102,7 @@ class AppTheme {
         type: BottomNavigationBarType.fixed,
         elevation: 20,
       ),
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.radiusLg),
         titleTextStyle: AppTextStyles.titleLarge,
@@ -129,7 +142,7 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.card,
-        disabledColor: AppColors.card.withOpacity(0.5),
+        disabledColor: AppColors.card.withValues(alpha: 0.5),
         selectedColor: AppColors.accent,
         secondarySelectedColor: AppColors.accent,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -140,5 +153,6 @@ class AppTheme {
       ),
     );
   }
+
 
 }
