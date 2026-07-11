@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../viewmodel/auth_viewmodel.dart';
-import '../models/user_model.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 
@@ -17,53 +15,34 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkAuth();
+    _initializeData();
   }
 
-  Future<void> _checkAuth() async {
-    await Future.delayed(const Duration(seconds: 3));
-
-    if (!mounted) return;
+  Future<void> _initializeData() async {
+    // Artificial delay to show logo
+    await Future.delayed(const Duration(seconds: 2));
     
-    final user = ref.read(authStateProvider).value;
-    if (user == null) {
-      if (mounted) context.go('/login');
-      return;
-    }
-
-    final repository = ref.read(authRepositoryProvider);
-    final userData = await repository.getUserData(user.uid);
-
-    if (userData == null) {
-      if (mounted) context.go('/login');
-      return;
-    }
-
-    ref.read(userModelProvider.notifier).state = userData;
-
-    if (mounted) {
-      if (userData.role == UserRole.farmer && !userData.profileCompleted) {
-        context.go('/complete-profile');
-      } else {
-        _navigateToDashboard(userData.role);
+    // Wait for the auth state stream to emit at least once
+    // and fetch the user data if logged in
+    try {
+      final authUser = await ref.read(authStateProvider.future);
+      
+      if (authUser != null) {
+        final repository = ref.read(authRepositoryProvider);
+        final userData = await repository.getUserData(authUser.uid);
+        
+        if (userData != null) {
+          ref.read(userModelProvider.notifier).state = userData;
+        }
       }
-    }
-  }
-
-  void _navigateToDashboard(UserRole role) {
-    switch (role) {
-      case UserRole.farmer:
-        context.go('/farmer');
-        break;
-      case UserRole.pilot:
-        context.go('/pilot');
-        break;
-      case UserRole.operations:
-        context.go('/operations');
-        break;
-      case UserRole.admin:
-        context.go('/admin');
-        break;
+    } catch (e) {
+      // Handle potential initialization errors
+      debugPrint('Initialization error: $e');
+    } finally {
+      // Mark initialization as complete regardless of outcome
+      if (mounted) {
+        ref.read(isAuthInitializingProvider.notifier).state = false;
+      }
     }
   }
 

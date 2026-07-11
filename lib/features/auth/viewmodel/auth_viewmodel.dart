@@ -13,6 +13,8 @@ final authStateProvider = StreamProvider<User?>((ref) {
 
 final userModelProvider = StateProvider<UserModel?>((ref) => null);
 
+final isAuthInitializingProvider = StateProvider<bool>((ref) => true);
+
 enum AuthStatus { initial, loading, otpSent, authenticated, unauthenticated, error }
 
 class AuthState {

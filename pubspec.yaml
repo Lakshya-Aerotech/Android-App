@@ -40,6 +40,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/icons/
 
   # Uncomment when you add custom fonts
   # fonts:
