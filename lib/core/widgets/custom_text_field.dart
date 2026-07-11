@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
 class CustomTextField extends StatelessWidget {
@@ -11,6 +12,7 @@ class CustomTextField extends StatelessWidget {
   final Widget? suffixIcon;
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
+  final bool enabled;
 
   const CustomTextField({
     super.key,
@@ -23,6 +25,7 @@ class CustomTextField extends StatelessWidget {
     this.suffixIcon,
     this.validator,
     this.onChanged,
+    this.enabled = true,
   });
 
   @override
@@ -33,7 +36,9 @@ class CustomTextField extends StatelessWidget {
         if (label != null) ...[
           Text(
             label!,
-            style: AppTextStyles.labelLarge,
+            style: AppTextStyles.labelLarge.copyWith(
+              color: enabled ? null : AppColors.textTertiary,
+            ),
           ),
           const SizedBox(height: 8),
         ],
@@ -43,7 +48,10 @@ class CustomTextField extends StatelessWidget {
           obscureText: obscureText,
           validator: validator,
           onChanged: onChanged,
-          style: AppTextStyles.bodyLarge,
+          enabled: enabled,
+          style: AppTextStyles.bodyLarge.copyWith(
+            color: enabled ? null : AppColors.textTertiary,
+          ),
           decoration: InputDecoration(
             hintText: hintText,
             prefixIcon: prefixIcon,
