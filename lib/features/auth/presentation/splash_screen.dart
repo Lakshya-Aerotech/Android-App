@@ -21,8 +21,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _checkAuth() async {
-    // Wait for a second to show the splash logo
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 3));
+
+    if (!mounted) return;
     
     final user = ref.read(authStateProvider).value;
     if (user == null) {
@@ -32,7 +33,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     final repository = ref.read(authRepositoryProvider);
     final userData = await repository.getUserData(user.uid);
-    
+
     if (userData == null) {
       if (mounted) context.go('/login');
       return;
@@ -51,40 +52,71 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   void _navigateToDashboard(UserRole role) {
     switch (role) {
-      case UserRole.farmer: context.go('/farmer'); break;
-      case UserRole.pilot: context.go('/pilot'); break;
-      case UserRole.operations: context.go('/operations'); break;
-      case UserRole.admin: context.go('/admin'); break;
+      case UserRole.farmer:
+        context.go('/farmer');
+        break;
+      case UserRole.pilot:
+        context.go('/pilot');
+        break;
+      case UserRole.operations:
+        context.go('/operations');
+        break;
+      case UserRole.admin:
+        context.go('/admin');
+        break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Assuming the logo is in assets. Using a placeholder for now.
-            const Icon(Icons.airplanemode_active, size: 80, color: AppColors.accent),
-            const SizedBox(height: 24),
-            Text(
-              'LAKSHYA\nAEROTECH',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.displayMedium.copyWith(
-                letterSpacing: 4,
-                height: 1.2,
+      backgroundColor: const Color(0xFF001B39), // Dark Navy for Splash
+      body: Stack(
+        children: [
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/lakshya_logo.png',
+                  height: 140,
+                  width: 140,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'LAKSHYA\nAEROTECH',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.displayMedium.copyWith(
+                    color: Colors.white,
+                    letterSpacing: 4,
+                    height: 1.1,
+                    fontSize: 32,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Smart Drone Solutions\nfor Modern Agriculture',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.success,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            bottom: 60,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Image.asset(
+                'assets/images/login_drone.png',
+                width: MediaQuery.of(context).size.width * 0.6,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Smart Drone Solutions\nfor Modern Agriculture',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.accent),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

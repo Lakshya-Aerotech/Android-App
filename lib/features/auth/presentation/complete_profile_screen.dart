@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../viewmodel/auth_viewmodel.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/constants/app_spacing.dart';
+import '../../../core/constants/app_sizes.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
 
@@ -11,7 +13,8 @@ class CompleteProfileScreen extends ConsumerStatefulWidget {
   const CompleteProfileScreen({super.key});
 
   @override
-  ConsumerState<CompleteProfileScreen> createState() => _CompleteProfileScreenState();
+  ConsumerState<CompleteProfileScreen> createState() =>
+      _CompleteProfileScreenState();
 }
 
 class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
@@ -31,9 +34,9 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
   }
 
   void _onSave() {
-    if (_nameController.text.isEmpty || 
-        _villageController.text.isEmpty || 
-        _districtController.text.isEmpty || 
+    if (_nameController.text.isEmpty ||
+        _villageController.text.isEmpty ||
+        _districtController.text.isEmpty ||
         _stateController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all fields')),
@@ -42,12 +45,12 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
     }
 
     ref.read(authViewModelProvider.notifier).completeProfile(
-      name: _nameController.text.trim(),
-      village: _villageController.text.trim(),
-      district: _districtController.text.trim(),
-      stateName: _stateController.text.trim(),
-      language: _selectedLanguage,
-    );
+          name: _nameController.text.trim(),
+          village: _villageController.text.trim(),
+          district: _districtController.text.trim(),
+          stateName: _stateController.text.trim(),
+          language: _selectedLanguage,
+        );
   }
 
   @override
@@ -60,26 +63,44 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
         context.go('/farmer');
       } else if (next.status == AuthStatus.error && next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.errorMessage!), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text(next.errorMessage!),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     });
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Complete Profile'),
-        backgroundColor: Colors.transparent,
+        title: Text(
+          'Complete Profile',
+          style: AppTextStyles.titleLarge.copyWith(color: AppColors.primary),
+        ),
+        backgroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.primary),
+          onPressed: () => context.pop(),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.symmetric(horizontal: AppSizes.screenPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Final Step!', style: AppTextStyles.headlineLarge),
-            Text('Tell us a bit more about yourself', style: AppTextStyles.bodyMedium),
+            const SizedBox(height: 20),
+            Text(
+              'Final Step!',
+              style: AppTextStyles.headlineLarge.copyWith(fontSize: 28),
+            ),
+            AppSpacing.verticalXs,
+            Text(
+              'Tell us a bit more about yourself',
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+            ),
             const SizedBox(height: 32),
-            
             CustomTextField(
               label: 'Phone Number',
               hintText: '',
@@ -111,50 +132,51 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
               controller: _stateController,
             ),
             const SizedBox(height: 16),
-            
-            Text('Preferred Language', style: AppTextStyles.labelLarge),
+            Text(
+              'Preferred Language',
+              style: AppTextStyles.labelLarge,
+            ),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: AppColors.card,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: _selectedLanguage,
                   isExpanded: true,
-                  dropdownColor: AppColors.surface,
-                  items: ['English', 'Hindi', 'Marathi', 'Gujarati'].map((String value) {
+                  dropdownColor: Colors.white,
+                  items: ['English', 'Hindi', 'Marathi', 'Gujarati']
+                      .map((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
-                      child: Text(value, style: AppTextStyles.bodyLarge),
+                      child: Text(
+                        value,
+                        style: AppTextStyles.bodyLarge.copyWith(color: AppColors.primary),
+                      ),
                     );
                   }).toList(),
                   onChanged: (newValue) {
-                    if (newValue != null) setState(() => _selectedLanguage = newValue);
+                    if (newValue != null) {
+                      setState(() => _selectedLanguage = newValue);
+                    }
                   },
                 ),
               ),
             ),
-            
             const SizedBox(height: 48),
             PrimaryButton(
               text: 'Save & Continue',
               isLoading: state.status == AuthStatus.loading,
               onPressed: _onSave,
             ),
+            const SizedBox(height: 40),
           ],
         ),
       ),
     );
-  }
-}
-
-// Small fix for CustomTextField enabled property if not exists
-extension on CustomTextField {
-  Widget get _textField {
-    // This is just a conceptual note, I should check if CustomTextField has enabled
-    return Container(); 
   }
 }

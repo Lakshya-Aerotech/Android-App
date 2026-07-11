@@ -12,7 +12,7 @@ class MyApp extends ConsumerWidget {
     
     return MaterialApp.router(
       title: 'Lakshya Aerotech',
-      theme: AppTheme.darkTheme, // Using darkTheme as per design system earlier
+      theme: AppTheme.lightTheme,
       debugShowCheckedModeBanner: false,
       routerConfig: router,
     );

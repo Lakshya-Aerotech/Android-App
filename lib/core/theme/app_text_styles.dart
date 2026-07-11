@@ -19,7 +19,7 @@ class AppTextStyles {
 
   static TextStyle get headlineLarge => GoogleFonts.poppins(
         fontSize: 24,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.bold,
         color: AppColors.textPrimary,
       );
 
@@ -31,13 +31,13 @@ class AppTextStyles {
 
   static TextStyle get titleMedium => GoogleFonts.poppins(
         fontSize: 18,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w600,
         color: AppColors.textPrimary,
       );
 
   static TextStyle get bodyLarge => GoogleFonts.poppins(
         fontSize: 16,
-        fontWeight: FontWeight.normal,
+        fontWeight: FontWeight.w500,
         color: AppColors.textPrimary,
       );
 
@@ -55,13 +55,13 @@ class AppTextStyles {
 
   static TextStyle get labelLarge => GoogleFonts.poppins(
         fontSize: 14,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w600,
         color: AppColors.textPrimary,
       );
 
   static TextStyle get labelSmall => GoogleFonts.poppins(
         fontSize: 11,
-        fontWeight: FontWeight.w400,
+        fontWeight: FontWeight.w500,
         color: AppColors.textTertiary,
       );
 }
