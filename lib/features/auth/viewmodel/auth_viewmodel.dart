@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../repository/auth_repository.dart';
@@ -83,7 +84,11 @@ class AuthViewModel extends StateNotifier<AuthState> {
   Future<void> loginEmployee(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading);
     try {
-      final credential = await _repository.loginEmployee(email: email, password: password);
+      final processedEmail = email.trim().toLowerCase();
+      final credential = await _repository.loginEmployee(
+        email: processedEmail,
+        password: password,
+      );
       await _handleUserSignIn(credential.user);
     } on FirebaseAuthException catch (e) {
       state = state.copyWith(status: AuthStatus.error, errorMessage: _getAuthErrorMessage(e));
@@ -100,10 +105,21 @@ class AuthViewModel extends StateNotifier<AuthState> {
 
     final userData = await _repository.getUserData(user.uid);
     if (userData == null) {
-      // New Farmer
+      // If user signed in with Email but has no Firestore doc, it's an unauthorized employee
+      if (user.email != null && user.phoneNumber == null) {
+        await _repository.logout();
+        state = state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: 'Unauthorized: Employee record not found in Firestore.',
+        );
+        return;
+      }
+
+      // New Farmer (signed in via Phone)
       final newUser = UserModel(
         uid: user.uid,
         phoneNumber: user.phoneNumber,
+        email: user.email,
         role: UserRole.farmer,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -113,6 +129,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
     } else {
       if (!userData.isActive) {
         await _repository.logout();
+        _ref.read(userModelProvider.notifier).state = null;
         state = state.copyWith(
           status: AuthStatus.error,
           errorMessage: 'Your account has been disabled. Please contact the administrator.',
@@ -160,14 +177,19 @@ class AuthViewModel extends StateNotifier<AuthState> {
   }
 
   String _getAuthErrorMessage(FirebaseAuthException e) {
+    // Logging as requested
+    debugPrint("Firebase Code: ${e.code}");
+    debugPrint("Firebase Message: ${e.message}");
+    
     switch (e.code) {
       case 'invalid-email':
         return 'The email address is badly formatted.';
       case 'user-not-found':
         return 'No user found with this email.';
       case 'wrong-password':
+        return 'Incorrect password.';
       case 'invalid-credential':
-        return 'Wrong password provided for that user.';
+        return 'Invalid credentials. Please check your email and password.';
       case 'user-disabled':
         return 'Your account has been disabled. Please contact the administrator.';
       case 'too-many-requests':

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/splash_screen.dart';
@@ -8,6 +7,9 @@ import '../../features/auth/presentation/complete_profile_screen.dart';
 import '../../features/auth/viewmodel/auth_viewmodel.dart';
 import '../../features/auth/models/user_model.dart';
 import '../../features/farmer/home/farmer_home_screen.dart';
+import '../../features/admin/presentation/admin_dashboard.dart';
+import '../../features/pilot/presentation/pilot_dashboard.dart';
+import '../../features/operations/presentation/operations_dashboard.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final user = ref.watch(userModelProvider);
@@ -76,22 +78,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const FarmerHomeScreen(),
       ),
       
-      // Pilot Placeholder
+      // Pilot Dashboard
       GoRoute(
         path: '/pilot',
-        builder: (context, state) => _placeholderDashboard('Pilot Dashboard', context),
+        builder: (context, state) => const PilotDashboard(),
       ),
       
-      // Operations Placeholder
+      // Operations Dashboard
       GoRoute(
         path: '/operations',
-        builder: (context, state) => _placeholderDashboard('Operations Dashboard', context),
+        builder: (context, state) => const OperationsDashboard(),
       ),
       
-      // Admin Placeholder
+      // Admin Dashboard
       GoRoute(
         path: '/admin',
-        builder: (context, state) => _placeholderDashboard('Admin Dashboard', context),
+        builder: (context, state) => const AdminDashboard(),
       ),
       
       GoRoute(
@@ -111,31 +113,4 @@ String _getRoleDashboard(UserRole role) {
   }
 }
 
-Widget _placeholderDashboard(String title, BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(title: Text(title)),
-    body: Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          const Text('Placeholder for Developer Implementation'),
-          const SizedBox(height: 32),
-          // Logout button to test auth flow
-          Consumer(
-            builder: (context, ref, child) {
-              return ElevatedButton(
-                onPressed: () {
-                  ref.read(authViewModelProvider.notifier).logout();
-                  // Router will automatically redirect to login because user becomes null
-                },
-                child: const Text('Logout'),
-              );
-            },
-          ),
-        ],
-      ),
-    ),
-  );
-}
+
