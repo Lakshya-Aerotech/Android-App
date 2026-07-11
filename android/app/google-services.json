@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "417156507014",
+    "project_id": "lakshya-aerotech",
+    "storage_bucket": "lakshya-aerotech.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:417156507014:android:99ac4a5a7a01c885d6b807",
+        "android_client_info": {
+          "package_name": "com.lakshyaaerotech.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBwbj4cHqSoO0vS9CtnDls47rkaXbVTAYE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

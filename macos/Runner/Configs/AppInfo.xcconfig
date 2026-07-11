@@ -8,7 +8,7 @@
 PRODUCT_NAME = lakshya_aerotech
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.lakshyaAerotech
+PRODUCT_BUNDLE_IDENTIFIER = com.lakshyaaerotech.app
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.

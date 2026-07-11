@@ -1,5 +1,5 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/auth/presentation/login_screen.dart'; // Placeholder
 
 class AppRouter {
   static final router = GoRouter(
@@ -7,7 +7,16 @@ class AppRouter {
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) => const Placeholder(), // Initial route
+        builder:
+            (context, state) => const Scaffold(
+              body: Center(
+                child: Text(
+                  'Firebase connected!\nWelcome to Lakshya Aerotech',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18),
+                ),
+              ),
+            ),
       ),
     ],
   );
