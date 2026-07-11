@@ -26,6 +26,8 @@ dependencies:
 
   # Fonts
   google_fonts: ^6.2.1
+  pinput: ^5.0.0
+  shared_preferences: ^2.3.5
 
 dev_dependencies:
   flutter_test:

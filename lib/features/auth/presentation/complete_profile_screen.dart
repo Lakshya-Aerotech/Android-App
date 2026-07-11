@@ -49,7 +49,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
           village: _villageController.text.trim(),
           district: _districtController.text.trim(),
           stateName: _stateController.text.trim(),
-          language: _selectedLanguage,
+          language: _selectedLanguage == 'English' ? 'en' : 'te',
         );
   }
 
@@ -102,7 +102,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
             ),
             const SizedBox(height: 32),
             CustomTextField(
-              label: 'Phone Number',
+              label: 'Mobile Number',
               hintText: '',
               controller: TextEditingController(text: user?.phoneNumber ?? ''),
               enabled: false,
@@ -149,7 +149,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                   value: _selectedLanguage,
                   isExpanded: true,
                   dropdownColor: Colors.white,
-                  items: ['English', 'Hindi', 'Marathi', 'Gujarati']
+                  items: ['English', 'Telugu']
                       .map((String value) {
                     return DropdownMenuItem<String>(
                       value: value,

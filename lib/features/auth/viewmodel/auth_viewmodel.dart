@@ -54,7 +54,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
           state = state.copyWith(status: AuthStatus.otpSent, verificationId: verificationId);
         },
         verificationFailed: (e) {
-          state = state.copyWith(status: AuthStatus.error, errorMessage: e.message);
+          state = state.copyWith(status: AuthStatus.error, errorMessage: _getAuthErrorMessage(e));
         },
       );
     } catch (e) {
@@ -109,6 +109,14 @@ class AuthViewModel extends StateNotifier<AuthState> {
       await _repository.createFarmerProfile(newUser);
       _ref.read(userModelProvider.notifier).state = newUser;
     } else {
+      if (!userData.isActive) {
+        await _repository.logout();
+        state = state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: 'Your account has been disabled. Please contact the administrator.',
+        );
+        return;
+      }
       _ref.read(userModelProvider.notifier).state = userData;
     }
     state = state.copyWith(status: AuthStatus.authenticated);
@@ -151,14 +159,25 @@ class AuthViewModel extends StateNotifier<AuthState> {
 
   String _getAuthErrorMessage(FirebaseAuthException e) {
     switch (e.code) {
-      case 'invalid-phone-number': return 'The phone number is invalid.';
-      case 'invalid-verification-code': return 'The OTP entered is incorrect.';
-      case 'user-disabled': return 'This user account has been disabled.';
-      case 'user-not-found': return 'No employee found with this email.';
-      case 'wrong-password': return 'Incorrect password.';
-      case 'too-many-requests': return 'Too many attempts. Please try again later.';
-      case 'network-request-failed': return 'Network error. Please check your connection.';
-      default: return e.message ?? 'An unknown error occurred.';
+      case 'invalid-email':
+        return 'The email address is badly formatted.';
+      case 'user-not-found':
+        return 'No user found with this email.';
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Wrong password provided for that user.';
+      case 'user-disabled':
+        return 'Your account has been disabled. Please contact the administrator.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      case 'network-request-failed':
+        return 'Network request failed. Please check your connection.';
+      case 'invalid-phone-number':
+        return 'The phone number is invalid.';
+      case 'invalid-verification-code':
+        return 'The OTP entered is incorrect.';
+      default:
+        return e.message ?? 'An unknown error occurred.';
     }
   }
 }

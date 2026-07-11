@@ -1,91 +1,77 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:pinput/pinput.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
-import '../constants/app_radius.dart';
 
-class OTPTextField extends StatefulWidget {
+class OTPTextField extends StatelessWidget {
   final int length;
   final Function(String) onCompleted;
+  final TextEditingController? controller;
 
   const OTPTextField({
     super.key,
-    this.length = 4,
+    this.length = 6,
     required this.onCompleted,
+    this.controller,
   });
 
   @override
-  State<OTPTextField> createState() => _OTPTextFieldState();
-}
-
-class _OTPTextFieldState extends State<OTPTextField> {
-  late List<TextEditingController> controllers;
-  late List<FocusNode> focusNodes;
-
-  @override
-  void initState() {
-    super.initState();
-    controllers = List.generate(widget.length, (index) => TextEditingController());
-    focusNodes = List.generate(widget.length, (index) => FocusNode());
-  }
-
-  @override
-  void dispose() {
-    for (var controller in controllers) {
-      controller.dispose();
-    }
-    for (var node in focusNodes) {
-      node.dispose();
-    }
-    super.dispose();
-  }
-
-  void _onChanged(String value, int index) {
-    if (value.length == 1 && index < widget.length - 1) {
-      focusNodes[index + 1].requestFocus();
-    }
-    if (value.isEmpty && index > 0) {
-      focusNodes[index - 1].requestFocus();
-    }
-
-    String otp = controllers.map((e) => e.text).join();
-    if (otp.length == widget.length) {
-      widget.onCompleted(otp);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: List.generate(
-        widget.length,
-        (index) => SizedBox(
-          width: 60,
-          height: 60,
-          child: TextFormField(
-            controller: controllers[index],
-            focusNode: focusNodes[index],
-            textAlign: TextAlign.center,
-            keyboardType: TextInputType.number,
-            maxLength: 1,
-            style: AppTextStyles.titleLarge,
-            onChanged: (value) => _onChanged(value, index),
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(
-              counterText: "",
-              filled: true,
-              fillColor: AppColors.card,
-              border: OutlineInputBorder(
-                borderRadius: AppRadius.radiusMd,
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: AppRadius.radiusMd,
-                borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
-              ),
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Calculate box width based on screen size to prevent overflow
+    // 40 is a safe minimum width for OTP boxes
+    final boxWidth = ((screenWidth - 60) / length).clamp(40.0, 56.0);
+
+    final defaultPinTheme = PinTheme(
+      width: boxWidth,
+      height: 56,
+      textStyle: AppTextStyles.titleLarge.copyWith(
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.transparent),
+      ),
+    );
+
+    final focusedPinTheme = defaultPinTheme.copyWith(
+      decoration: defaultPinTheme.decoration!.copyWith(
+        border: Border.all(color: AppColors.success, width: 2),
+      ),
+    );
+
+    final submittedPinTheme = defaultPinTheme.copyWith(
+      decoration: defaultPinTheme.decoration!.copyWith(
+        color: AppColors.primary,
+      ),
+    );
+
+    return Container(
+      width: double.infinity,
+      alignment: Alignment.center,
+      child: Pinput(
+        length: length,
+        controller: controller,
+        defaultPinTheme: defaultPinTheme,
+        focusedPinTheme: focusedPinTheme,
+        submittedPinTheme: submittedPinTheme,
+        onCompleted: onCompleted,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        // Using separatorBuilder to have consistent spacing
+        separatorBuilder: (index) => const SizedBox(width: 8),
+        cursor: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(bottom: 9),
+              width: 2,
+              height: 28,
+              color: AppColors.success,
             ),
-          ),
+          ],
         ),
       ),
     );

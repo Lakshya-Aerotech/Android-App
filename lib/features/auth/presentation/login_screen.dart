@@ -216,8 +216,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 textAlign: TextAlign.center,
                 text: TextSpan(
                   style: AppTextStyles.bodySmall.copyWith(fontSize: 11),
-                  children: [
-                    const TextSpan(text: 'By continuing, you agree to our\n'),
+                  children: const [
+                    TextSpan(text: 'By continuing, you agree to our\n'),
                     TextSpan(
                       text: 'Terms & Conditions',
                       style: TextStyle(
@@ -225,7 +225,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const TextSpan(text: ' and '),
+                    TextSpan(text: ' and '),
                     TextSpan(
                       text: 'Privacy Policy',
                       style: TextStyle(

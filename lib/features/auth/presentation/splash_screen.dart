@@ -71,52 +71,37 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF001B39), // Dark Navy for Splash
-      body: Stack(
-        children: [
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  'assets/images/lakshya_logo.png',
-                  height: 140,
-                  width: 140,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'LAKSHYA\nAEROTECH',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.displayMedium.copyWith(
-                    color: Colors.white,
-                    letterSpacing: 4,
-                    height: 1.1,
-                    fontSize: 32,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Smart Drone Solutions\nfor Modern Agriculture',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.success,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              'assets/images/lakshya_logo.png',
+              height: 140,
+              width: 140,
             ),
-          ),
-          Positioned(
-            bottom: 60,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Image.asset(
-                'assets/images/login_drone.png',
-                width: MediaQuery.of(context).size.width * 0.6,
+            const SizedBox(height: 24),
+            Text(
+              'LAKSHYA\nAEROTECH',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.displayMedium.copyWith(
+                color: Colors.white,
+                letterSpacing: 4,
+                height: 1.1,
+                fontSize: 32,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Text(
+              'Smart Drone Solutions\nfor Modern Agriculture',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.success,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

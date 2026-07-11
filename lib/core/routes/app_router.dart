@@ -35,25 +35,25 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Farmer Placeholder
       GoRoute(
         path: '/farmer',
-        builder: (context, state) => _placeholderDashboard('Farmer Dashboard'),
+        builder: (context, state) => _placeholderDashboard('Farmer Dashboard', context),
       ),
       
       // Pilot Placeholder
       GoRoute(
         path: '/pilot',
-        builder: (context, state) => _placeholderDashboard('Pilot Dashboard'),
+        builder: (context, state) => _placeholderDashboard('Pilot Dashboard', context),
       ),
       
       // Operations Placeholder
       GoRoute(
         path: '/operations',
-        builder: (context, state) => _placeholderDashboard('Operations Dashboard'),
+        builder: (context, state) => _placeholderDashboard('Operations Dashboard', context),
       ),
       
       // Admin Placeholder
       GoRoute(
         path: '/admin',
-        builder: (context, state) => _placeholderDashboard('Admin Dashboard'),
+        builder: (context, state) => _placeholderDashboard('Admin Dashboard', context),
       ),
       
       // Root redirect logic
@@ -79,7 +79,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-Widget _placeholderDashboard(String title) {
+Widget _placeholderDashboard(String title, BuildContext context) {
   return Scaffold(
     appBar: AppBar(title: Text(title)),
     body: Center(
@@ -107,4 +107,3 @@ Widget _placeholderDashboard(String title) {
     ),
   );
 }
-
