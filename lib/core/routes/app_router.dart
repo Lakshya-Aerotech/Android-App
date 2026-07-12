@@ -6,6 +6,7 @@ import '../../features/auth/presentation/otp_screen.dart';
 import '../../features/auth/presentation/complete_profile_screen.dart';
 import '../../features/auth/viewmodel/auth_viewmodel.dart';
 import '../../features/auth/models/user_model.dart';
+import '../../features/drone_pilot/home/drone_pilot_home_screen.dart';
 import '../../features/farmer/home/farmer_home_screen.dart';
 import '../../features/admin/presentation/admin_dashboard.dart';
 import '../../features/pilot/presentation/pilot_dashboard.dart';
@@ -16,10 +17,10 @@ final routerProvider = Provider<GoRouter>((ref) {
   final isInitializing = ref.watch(isAuthInitializingProvider);
 
   return GoRouter(
-    initialLocation: '/splash',
+    initialLocation: '/drone-pilot/home',
     redirect: (context, state) {
-      final isAuthPath = state.matchedLocation == '/login' || 
-                         state.matchedLocation == '/otp';
+      final isAuthPath =
+          state.matchedLocation == '/login' || state.matchedLocation == '/otp';
       final isSplash = state.matchedLocation == '/splash';
 
       // 1. If still initializing (checking Firebase + Firestore), stay on splash
@@ -45,7 +46,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // 4. Farmer profile completion guard
-      if (user.role == UserRole.farmer && !user.profileCompleted && state.matchedLocation != '/complete-profile') {
+      if (user.role == UserRole.farmer &&
+          !user.profileCompleted &&
+          state.matchedLocation != '/complete-profile') {
         return '/complete-profile';
       }
 
@@ -56,10 +59,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
       ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/otp',
         builder: (context, state) {
@@ -71,34 +71,39 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/complete-profile',
         builder: (context, state) => const CompleteProfileScreen(),
       ),
-      
+
       // Farmer Dashboard
       GoRoute(
         path: '/farmer',
         builder: (context, state) => const FarmerHomeScreen(),
       ),
-      
+
       // Pilot Dashboard
       GoRoute(
         path: '/pilot',
         builder: (context, state) => const PilotDashboard(),
       ),
-      
+      GoRoute(
+        path: '/drone-pilot/home',
+        builder: (context, state) => const DronePilotHomeScreen(),
+      ),
+
       // Operations Dashboard
       GoRoute(
         path: '/operations',
         builder: (context, state) => const OperationsDashboard(),
       ),
-      
+
       // Admin Dashboard
       GoRoute(
         path: '/admin',
         builder: (context, state) => const AdminDashboard(),
       ),
-      
+
       GoRoute(
         path: '/',
-        builder: (context, state) => const SplashScreen(), // Should be caught by redirect
+        builder: (context, state) =>
+            const SplashScreen(), // Should be caught by redirect
       ),
     ],
   );
@@ -106,11 +111,13 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 String _getRoleDashboard(UserRole role) {
   switch (role) {
-    case UserRole.farmer: return '/farmer';
-    case UserRole.pilot: return '/pilot';
-    case UserRole.operations: return '/operations';
-    case UserRole.admin: return '/admin';
+    case UserRole.farmer:
+      return '/farmer';
+    case UserRole.pilot:
+      return '/pilot';
+    case UserRole.operations:
+      return '/operations';
+    case UserRole.admin:
+      return '/admin';
   }
 }
-
-
