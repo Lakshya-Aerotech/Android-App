@@ -150,22 +150,50 @@ class _PilotHomeContent extends ConsumerWidget {
                 AppSpacing.verticalMd,
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final useSingleColumn = constraints.maxWidth < 360;
-                    return GridView.builder(
-                      itemCount: pilotOverviewMetrics.length,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: useSingleColumn ? 1 : 3,
-                        mainAxisSpacing: AppSpacing.md,
-                        crossAxisSpacing: AppSpacing.md,
-                        childAspectRatio: useSingleColumn ? 3.2 : 0.55,
-                      ),
-                      itemBuilder: (context, index) {
-                        return PilotOverviewCard(
-                          metric: pilotOverviewMetrics[index],
+                    final overviewCardHeight =
+                        (constraints.maxWidth < 360 ? 100.0 : 110.0).clamp(
+                          120.0,
+                          150.0,
                         );
-                      },
+                    final useSingleColumn = constraints.maxWidth < 360;
+
+                    if (useSingleColumn) {
+                      return Wrap(
+                        spacing: AppSpacing.md,
+                        runSpacing: AppSpacing.md,
+                        children: [
+                          for (final metric in pilotOverviewMetrics)
+                            SizedBox(
+                              width: constraints.maxWidth,
+                              height: overviewCardHeight,
+                              child: PilotOverviewCard(
+                                metric: metric,
+                                height: overviewCardHeight,
+                              ),
+                            ),
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        for (
+                          int index = 0;
+                          index < pilotOverviewMetrics.length;
+                          index++
+                        ) ...[
+                          if (index > 0) SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: SizedBox(
+                              height: overviewCardHeight,
+                              child: PilotOverviewCard(
+                                metric: pilotOverviewMetrics[index],
+                                height: overviewCardHeight,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     );
                   },
                 ),
