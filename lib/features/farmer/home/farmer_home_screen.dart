@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/app_spacing.dart';
@@ -10,9 +11,7 @@ import '../../../core/widgets/section_header.dart';
 import 'farmer_home_data.dart';
 import 'widgets/farmer_home_header.dart';
 import 'widgets/quick_action_card.dart';
-
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../profile/presentation/farmer_profile_screen.dart';
+import '../../profile/presentation/profile_screen.dart';
 
 class FarmerHomeScreen extends ConsumerStatefulWidget {
   const FarmerHomeScreen({super.key});
@@ -28,7 +27,7 @@ class _FarmerHomeScreenState extends ConsumerState<FarmerHomeScreen> {
     const _FarmerHomeContent(),
     const Center(child: Text('Bookings coming soon')),
     const Center(child: Text('Farms coming soon')),
-    const FarmerProfileScreen(),
+    const ProfileScreen(),
   ];
 
   @override
@@ -88,79 +87,75 @@ class _FarmerHomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      bottom: false,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            FarmerHomeHeader(
-              farmerName: mockFarmerName,
-              onBookNow: () => _showComingSoon(context, 'Booking feature'),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FarmerHomeHeader(
+            farmerName: mockFarmerName,
+            onBookNow: () => _showComingSoon(context, 'Booking feature'),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.screenPadding,
+              AppSpacing.lg,
+              AppSizes.screenPadding,
+              AppSpacing.xxl,
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSizes.screenPadding,
-                AppSpacing.lg,
-                AppSizes.screenPadding,
-                AppSpacing.xxl,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SectionHeader(
-                    title: 'Quick Actions',
-                    titleStyle: AppTextStyles.titleMedium.copyWith(
-                      color: AppColors.textDark,
-                      fontWeight: FontWeight.bold,
-                    ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SectionHeader(
+                  title: 'Quick Actions',
+                  titleStyle: AppTextStyles.titleMedium.copyWith(
+                    color: AppColors.textDark,
+                    fontWeight: FontWeight.bold,
                   ),
-                  AppSpacing.verticalMd,
-                  GridView.builder(
-                    itemCount: farmerQuickActions.length,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: AppSpacing.md,
-                          crossAxisSpacing: AppSpacing.md,
-                          childAspectRatio: 1.22,
-                        ),
-                    itemBuilder: (context, index) {
-                      final action = farmerQuickActions[index];
-                      return QuickActionCard(
-                        label: action.label,
-                        icon: action.icon,
-                        iconColor: action.iconColor,
-                        assetPath: _quickActionAssetPath(action.label),
-                        onTap: () => _showComingSoon(context, action.label),
-                      );
-                    },
+                ),
+                AppSpacing.verticalMd,
+                GridView.builder(
+                  itemCount: farmerQuickActions.length,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: AppSpacing.md,
+                        crossAxisSpacing: AppSpacing.md,
+                        childAspectRatio: 1.22,
+                      ),
+                  itemBuilder: (context, index) {
+                    final action = farmerQuickActions[index];
+                    return QuickActionCard(
+                      label: action.label,
+                      icon: action.icon,
+                      iconColor: action.iconColor,
+                      assetPath: _quickActionAssetPath(action.label),
+                      onTap: () => _showComingSoon(context, action.label),
+                    );
+                  },
+                ),
+                AppSpacing.verticalXl,
+                SectionHeader(
+                  title: 'Upcoming Booking',
+                  titleStyle: AppTextStyles.titleMedium.copyWith(
+                    color: AppColors.textDark,
+                    fontWeight: FontWeight.bold,
                   ),
-                  AppSpacing.verticalXl,
-                  SectionHeader(
-                    title: 'Upcoming Booking',
-                    titleStyle: AppTextStyles.titleMedium.copyWith(
-                      color: AppColors.textDark,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  AppSpacing.verticalMd,
-                  BookingCard(
-                    dateTime: mockUpcomingBooking.dateTime,
-                    farmName: mockUpcomingBooking.farmName,
-                    cropInfo: mockUpcomingBooking.cropInfo,
-                    status: mockUpcomingBooking.status,
-                    onTap: () => _showComingSoon(context, 'Booking details'),
-                  ),
-                ],
-              ),
+                ),
+                AppSpacing.verticalMd,
+                BookingCard(
+                  dateTime: mockUpcomingBooking.dateTime,
+                  farmName: mockUpcomingBooking.farmName,
+                  cropInfo: mockUpcomingBooking.cropInfo,
+                  status: mockUpcomingBooking.status,
+                  onTap: () => _showComingSoon(context, 'Booking details'),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
-

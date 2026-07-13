@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
-import 'dashboard/admin_dashboard_screen.dart';
-import 'employees/employee_list_screen.dart';
-import 'placeholders/admin_placeholders.dart';
+import 'dashboard/operations_dashboard_screen.dart';
+import 'placeholders/operations_placeholders.dart';
 import '../../profile/presentation/profile_screen.dart';
 
-class AdminMainScreen extends ConsumerStatefulWidget {
-  const AdminMainScreen({super.key});
+class OperationsMainScreen extends ConsumerStatefulWidget {
+  const OperationsMainScreen({super.key});
 
   @override
-  ConsumerState<AdminMainScreen> createState() => _AdminMainScreenState();
+  ConsumerState<OperationsMainScreen> createState() => _OperationsMainScreenState();
 }
 
-class _AdminMainScreenState extends ConsumerState<AdminMainScreen> {
+class _OperationsMainScreenState extends ConsumerState<OperationsMainScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = [
-    const AdminDashboardScreen(),
-    const EmployeeListScreen(),
-    const BookingsPlaceholder(),
+    const OperationsDashboardScreen(),
+    const OpsBookingsPlaceholder(),
+    const OpsAssignmentsPlaceholder(),
     const ProfileScreen(),
   ];
 
@@ -50,14 +49,14 @@ class _AdminMainScreenState extends ConsumerState<AdminMainScreen> {
               label: 'Dashboard',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              activeIcon: Icon(Icons.people),
-              label: 'Employees',
-            ),
-            BottomNavigationBarItem(
               icon: Icon(Icons.calendar_month_outlined),
               activeIcon: Icon(Icons.calendar_month),
               label: 'Bookings',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.assignment_ind_outlined),
+              activeIcon: Icon(Icons.assignment_ind),
+              label: 'Assignments',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),

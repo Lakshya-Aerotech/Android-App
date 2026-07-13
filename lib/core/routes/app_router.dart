@@ -12,7 +12,8 @@ import '../../features/admin/presentation/employees/employee_list_screen.dart';
 import '../../features/admin/presentation/employees/add_employee_screen.dart';
 import '../../features/admin/presentation/placeholders/admin_placeholders.dart';
 import '../../features/pilot/presentation/pilot_dashboard.dart';
-import '../../features/operations/presentation/operations_dashboard.dart';
+import '../../features/operations/presentation/operations_main_screen.dart';
+import '../../features/operations/presentation/placeholders/operations_placeholders.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final user = ref.watch(userModelProvider);
@@ -88,7 +89,21 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Operations Dashboard
       GoRoute(
         path: '/operations',
-        builder: (context, state) => const OperationsDashboard(),
+        builder: (context, state) => const OperationsMainScreen(),
+        routes: [
+          GoRoute(
+            path: 'bookings',
+            builder: (context, state) => const OpsBookingsPlaceholder(),
+          ),
+          GoRoute(
+            path: 'assignments',
+            builder: (context, state) => const OpsAssignmentsPlaceholder(),
+          ),
+          GoRoute(
+            path: 'track-jobs',
+            builder: (context, state) => const OpsTrackJobsPlaceholder(),
+          ),
+        ],
       ),
 
       // Admin Module
