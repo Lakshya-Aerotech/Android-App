@@ -23,4 +23,5 @@ class AppSpacing {
   static const Widget verticalMd = SizedBox(height: md);
   static const Widget verticalLg = SizedBox(height: lg);
   static const Widget verticalXl = SizedBox(height: xl);
+  static const Widget verticalXxl = SizedBox(height: xxl);
 }

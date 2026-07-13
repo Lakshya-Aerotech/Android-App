@@ -11,8 +11,64 @@ import 'farmer_home_data.dart';
 import 'widgets/farmer_home_header.dart';
 import 'widgets/quick_action_card.dart';
 
-class FarmerHomeScreen extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../profile/presentation/farmer_profile_screen.dart';
+
+class FarmerHomeScreen extends ConsumerStatefulWidget {
   const FarmerHomeScreen({super.key});
+
+  @override
+  ConsumerState<FarmerHomeScreen> createState() => _FarmerHomeScreenState();
+}
+
+class _FarmerHomeScreenState extends ConsumerState<FarmerHomeScreen> {
+  int _currentIndex = 0;
+
+  final List<Widget> _screens = [
+    const _FarmerHomeContent(),
+    const Center(child: Text('Bookings coming soon')),
+    const Center(child: Text('Farms coming soon')),
+    const FarmerProfileScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.lightBackground,
+      body: _screens[_currentIndex],
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            bottomNavigationBarTheme: BottomNavigationBarThemeData(
+              backgroundColor: AppColors.primary,
+              selectedItemColor: AppColors.accent,
+              unselectedItemColor: AppColors.textSecondary,
+              selectedLabelStyle: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.accent,
+                fontWeight: FontWeight.w600,
+              ),
+              unselectedLabelStyle: AppTextStyles.bodySmall,
+              type: BottomNavigationBarType.fixed,
+              elevation: 0,
+            ),
+          ),
+          child: CustomBottomNavBar(
+            currentIndex: _currentIndex,
+            onTap: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FarmerHomeContent extends StatelessWidget {
+  const _FarmerHomeContent();
 
   String? _quickActionAssetPath(String label) {
     return switch (label) {
@@ -32,110 +88,79 @@ class FarmerHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      body: SafeArea(
-        bottom: false,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              FarmerHomeHeader(
-                farmerName: mockFarmerName,
-                onBookNow: () => _showComingSoon(context, 'Booking feature'),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSizes.screenPadding,
-                  AppSpacing.lg,
-                  AppSizes.screenPadding,
-                  AppSpacing.xxl,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SectionHeader(
-                      title: 'Quick Actions',
-                      titleStyle: AppTextStyles.titleMedium.copyWith(
-                        color: AppColors.textDark,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    AppSpacing.verticalMd,
-                    GridView.builder(
-                      itemCount: farmerQuickActions.length,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: AppSpacing.md,
-                            crossAxisSpacing: AppSpacing.md,
-                            childAspectRatio: 1.22,
-                          ),
-                      itemBuilder: (context, index) {
-                        final action = farmerQuickActions[index];
-                        return QuickActionCard(
-                          label: action.label,
-                          icon: action.icon,
-                          iconColor: action.iconColor,
-                          assetPath: _quickActionAssetPath(action.label),
-                          onTap: () => _showComingSoon(context, action.label),
-                        );
-                      },
-                    ),
-                    AppSpacing.verticalXl,
-                    SectionHeader(
-                      title: 'Upcoming Booking',
-                      titleStyle: AppTextStyles.titleMedium.copyWith(
-                        color: AppColors.textDark,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    AppSpacing.verticalMd,
-                    BookingCard(
-                      dateTime: mockUpcomingBooking.dateTime,
-                      farmName: mockUpcomingBooking.farmName,
-                      cropInfo: mockUpcomingBooking.cropInfo,
-                      status: mockUpcomingBooking.status,
-                      onTap: () => _showComingSoon(context, 'Booking details'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Theme(
-          data: Theme.of(context).copyWith(
-            bottomNavigationBarTheme: BottomNavigationBarThemeData(
-              backgroundColor: AppColors.primary,
-              selectedItemColor: AppColors.accent,
-              unselectedItemColor: AppColors.textSecondary,
-              selectedLabelStyle: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.accent,
-                fontWeight: FontWeight.w600,
-              ),
-              unselectedLabelStyle: AppTextStyles.bodySmall,
-              type: BottomNavigationBarType.fixed,
-              elevation: 0,
+    return SafeArea(
+      bottom: false,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FarmerHomeHeader(
+              farmerName: mockFarmerName,
+              onBookNow: () => _showComingSoon(context, 'Booking feature'),
             ),
-          ),
-          child: CustomBottomNavBar(
-            currentIndex: 0,
-            onTap: (index) {
-              if (index == 0) {
-                return;
-              }
-              const labels = ['Home', 'Bookings', 'Farms', 'Profile'];
-              _showComingSoon(context, labels[index]);
-            },
-          ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSizes.screenPadding,
+                AppSpacing.lg,
+                AppSizes.screenPadding,
+                AppSpacing.xxl,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SectionHeader(
+                    title: 'Quick Actions',
+                    titleStyle: AppTextStyles.titleMedium.copyWith(
+                      color: AppColors.textDark,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  AppSpacing.verticalMd,
+                  GridView.builder(
+                    itemCount: farmerQuickActions.length,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: AppSpacing.md,
+                          crossAxisSpacing: AppSpacing.md,
+                          childAspectRatio: 1.22,
+                        ),
+                    itemBuilder: (context, index) {
+                      final action = farmerQuickActions[index];
+                      return QuickActionCard(
+                        label: action.label,
+                        icon: action.icon,
+                        iconColor: action.iconColor,
+                        assetPath: _quickActionAssetPath(action.label),
+                        onTap: () => _showComingSoon(context, action.label),
+                      );
+                    },
+                  ),
+                  AppSpacing.verticalXl,
+                  SectionHeader(
+                    title: 'Upcoming Booking',
+                    titleStyle: AppTextStyles.titleMedium.copyWith(
+                      color: AppColors.textDark,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  AppSpacing.verticalMd,
+                  BookingCard(
+                    dateTime: mockUpcomingBooking.dateTime,
+                    farmName: mockUpcomingBooking.farmName,
+                    cropInfo: mockUpcomingBooking.cropInfo,
+                    status: mockUpcomingBooking.status,
+                    onTap: () => _showComingSoon(context, 'Booking details'),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
