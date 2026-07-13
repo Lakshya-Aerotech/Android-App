@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/app_spacing.dart';
@@ -131,7 +132,13 @@ class _FarmerHomeContent extends StatelessWidget {
                       icon: action.icon,
                       iconColor: action.iconColor,
                       assetPath: _quickActionAssetPath(action.label),
-                      onTap: () => _showComingSoon(context, action.label),
+                      onTap: () {
+                        if (action.label == 'My Farms') {
+                          context.push('/my-farms');
+                        } else {
+                          _showComingSoon(context, action.label);
+                        }
+                      },
                     );
                   },
                 ),

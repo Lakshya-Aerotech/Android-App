@@ -7,6 +7,10 @@ import '../../features/auth/presentation/complete_profile_screen.dart';
 import '../../features/auth/viewmodel/auth_viewmodel.dart';
 import '../../features/auth/models/user_model.dart';
 import '../../features/farmer/home/farmer_home_screen.dart';
+import '../../features/farm/presentation/my_farms/my_farms_screen.dart';
+import '../../features/farm/presentation/add_farm/add_farm_screen.dart';
+import '../../features/farm/presentation/farm_details/farm_details_screen.dart';
+import '../../features/farm/models/farm_model.dart';
 import '../../features/admin/presentation/admin_main_screen.dart';
 import '../../features/admin/presentation/employees/employee_list_screen.dart';
 import '../../features/admin/presentation/employees/add_employee_screen.dart';
@@ -78,6 +82,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/farmer',
         builder: (context, state) => const FarmerHomeScreen(),
+      ),
+
+      // Farm Management
+      GoRoute(
+        path: '/my-farms',
+        builder: (context, state) => const MyFarmsScreen(),
+      ),
+      GoRoute(
+        path: '/add-farm',
+        builder: (context, state) => const AddFarmScreen(),
+      ),
+      GoRoute(
+        path: '/farm-details',
+        builder: (context, state) {
+          final farm = state.extra as FarmModel;
+          return FarmDetailsScreen(farm: farm);
+        },
       ),
 
       // Pilot Dashboard
