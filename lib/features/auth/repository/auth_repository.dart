@@ -20,7 +20,10 @@ abstract class AuthRepository {
   Future<void> logout();
   Future<UserModel?> getUserData(String uid);
   Future<void> createFarmerProfile(UserModel user);
-  Future<void> updateProfile(String uid, Map<String, dynamic> data);
+  Future<void> updateProfile(String docId, Map<String, dynamic> data);
+  Future<UserModel?> findUserByEmail(String email);
+  Future<void> linkAuthWithEmployee(String docId, String uid);
+  Future<void> updateLastLogin(String docId);
 }
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -77,22 +80,59 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<UserModel?> getUserData(String uid) async {
-    final doc = await _firestore.collection('users').doc(uid).get();
-    if (doc.exists) {
-      return UserModel.fromMap(doc.data()!);
+    final query = await _firestore
+        .collection('users')
+        .where('uid', isEqualTo: uid)
+        .limit(1)
+        .get();
+    
+    if (query.docs.isNotEmpty) {
+      return UserModel.fromMap(query.docs.first.data(), docId: query.docs.first.id);
     }
     return null;
   }
 
   @override
   Future<void> createFarmerProfile(UserModel user) async {
+    // For farmers, we use the UID as the document ID for simplicity and performance
     await _firestore.collection('users').doc(user.uid).set(user.toMap());
   }
 
   @override
-  Future<void> updateProfile(String uid, Map<String, dynamic> data) async {
-    await _firestore.collection('users').doc(uid).update({
+  Future<void> updateProfile(String docId, Map<String, dynamic> data) async {
+    await _firestore.collection('users').doc(docId).update({
       ...data,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  @override
+  Future<UserModel?> findUserByEmail(String email) async {
+    final query = await _firestore
+        .collection('users')
+        .where('email', isEqualTo: email.trim().toLowerCase())
+        .limit(1)
+        .get();
+    if (query.docs.isNotEmpty) {
+      return UserModel.fromMap(query.docs.first.data(), docId: query.docs.first.id);
+    }
+    return null;
+  }
+
+  @override
+  Future<void> linkAuthWithEmployee(String docId, String uid) async {
+    await _firestore.collection('users').doc(docId).update({
+      'uid': uid,
+      'authCreated': true,
+      'lastLogin': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  @override
+  Future<void> updateLastLogin(String docId) async {
+    await _firestore.collection('users').doc(docId).update({
+      'lastLogin': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

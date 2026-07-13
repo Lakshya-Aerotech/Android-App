@@ -7,7 +7,10 @@ import '../../features/auth/presentation/complete_profile_screen.dart';
 import '../../features/auth/viewmodel/auth_viewmodel.dart';
 import '../../features/auth/models/user_model.dart';
 import '../../features/farmer/home/farmer_home_screen.dart';
-import '../../features/admin/presentation/admin_dashboard.dart';
+import '../../features/admin/presentation/admin_main_screen.dart';
+import '../../features/admin/presentation/employees/employee_list_screen.dart';
+import '../../features/admin/presentation/employees/add_employee_screen.dart';
+import '../../features/admin/presentation/placeholders/admin_placeholders.dart';
 import '../../features/pilot/presentation/pilot_dashboard.dart';
 import '../../features/operations/presentation/operations_dashboard.dart';
 
@@ -27,20 +30,16 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // 2. If no user is logged in
       if (user == null) {
-        // If not on an auth page, go to login
         if (!isAuthPath && !isSplash) return '/login';
-        // If on splash after initialization, go to login
         if (isSplash) return '/login';
         return null;
       }
 
       // 3. If user is logged in and on an auth page or splash, redirect to dashboard
       if (isAuthPath || isSplash || state.matchedLocation == '/') {
-        // Check profile completion for farmers
         if (user.role == UserRole.farmer && !user.profileCompleted) {
           return '/complete-profile';
         }
-        // Redirect to their respective dashboard
         return _getRoleDashboard(user.role);
       }
 
@@ -90,15 +89,33 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const OperationsDashboard(),
       ),
       
-      // Admin Dashboard
+      // Admin Module
       GoRoute(
         path: '/admin',
-        builder: (context, state) => const AdminDashboard(),
+        builder: (context, state) => const AdminMainScreen(),
+        routes: [
+          GoRoute(
+            path: 'employees',
+            builder: (context, state) => const EmployeeListScreen(),
+          ),
+          GoRoute(
+            path: 'add-employee',
+            builder: (context, state) => const AddEmployeeScreen(),
+          ),
+          GoRoute(
+            path: 'drones',
+            builder: (context, state) => const DronesPlaceholder(),
+          ),
+          GoRoute(
+            path: 'settings',
+            builder: (context, state) => const SettingsPlaceholder(),
+          ),
+        ],
       ),
       
       GoRoute(
         path: '/',
-        builder: (context, state) => const SplashScreen(), // Should be caught by redirect
+        builder: (context, state) => const SplashScreen(),
       ),
     ],
   );
@@ -112,5 +129,3 @@ String _getRoleDashboard(UserRole role) {
     case UserRole.admin: return '/admin';
   }
 }
-
-

@@ -57,7 +57,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
           state = state.copyWith(status: AuthStatus.otpSent, verificationId: verificationId);
         },
         verificationFailed: (e) {
-          state = state.copyWith(status: AuthStatus.error, errorMessage: _getAuthErrorMessage(e));
+          state = state.copyWith(status: AuthStatus.error, errorMessage: e.message);
         },
       );
     } catch (e) {
@@ -103,21 +103,36 @@ class AuthViewModel extends StateNotifier<AuthState> {
       return;
     }
 
-    final userData = await _repository.getUserData(user.uid);
+    // Attempt to find user by UID first
+    var userData = await _repository.getUserData(user.uid);
+    
+    // First Login Workflow for Employees (Email Login)
+    // If not found by UID, try finding by email
+    if (userData == null && user.email != null) {
+      final employeeRecord = await _repository.findUserByEmail(user.email!);
+      if (employeeRecord != null) {
+        // Link the Firebase UID to the existing Firestore record using its unique document ID
+        await _repository.linkAuthWithEmployee(employeeRecord.docId!, user.uid);
+        // Fetch the linked data
+        userData = await _repository.getUserData(user.uid);
+      }
+    }
+
     if (userData == null) {
-      // If user signed in with Email but has no Firestore doc, it's an unauthorized employee
-      if (user.email != null && user.phoneNumber == null) {
+      // If it's an email login but still no userData, it's unauthorized
+      if (user.email != null) {
         await _repository.logout();
         state = state.copyWith(
           status: AuthStatus.error,
-          errorMessage: 'Unauthorized: Employee record not found in Firestore.',
+          errorMessage: 'Unauthorized employee.',
         );
         return;
       }
 
-      // New Farmer (signed in via Phone)
+      // New Farmer (Phone Login)
       final newUser = UserModel(
         uid: user.uid,
+        docId: user.uid, // For farmers, we use UID as DocID
         phoneNumber: user.phoneNumber,
         email: user.email,
         role: UserRole.farmer,
@@ -136,7 +151,13 @@ class AuthViewModel extends StateNotifier<AuthState> {
         );
         return;
       }
-      _ref.read(userModelProvider.notifier).state = userData;
+      
+      // Update last login for existing user using document ID
+      await _repository.updateLastLogin(userData.docId!);
+      
+      // Refresh user data to get updated lastLogin
+      final refreshedUser = await _repository.getUserData(user.uid);
+      _ref.read(userModelProvider.notifier).state = refreshedUser;
     }
     state = state.copyWith(status: AuthStatus.authenticated);
   }
@@ -155,11 +176,11 @@ class AuthViewModel extends StateNotifier<AuthState> {
     required String language,
   }) async {
     final user = _ref.read(userModelProvider);
-    if (user == null) return;
+    if (user == null || user.docId == null) return;
 
     state = state.copyWith(status: AuthStatus.loading);
     try {
-      await _repository.updateProfile(user.uid, {
+      await _repository.updateProfile(user.docId!, {
         'name': name,
         'village': village,
         'district': district,
@@ -168,7 +189,8 @@ class AuthViewModel extends StateNotifier<AuthState> {
         'profileCompleted': true,
       });
       
-      final updatedUser = await _repository.getUserData(user.uid);
+      // Refresh data using UID
+      final updatedUser = await _repository.getUserData(user.uid!);
       _ref.read(userModelProvider.notifier).state = updatedUser;
       state = state.copyWith(status: AuthStatus.authenticated);
     } catch (e) {
@@ -177,7 +199,6 @@ class AuthViewModel extends StateNotifier<AuthState> {
   }
 
   String _getAuthErrorMessage(FirebaseAuthException e) {
-    // Logging as requested
     debugPrint("Firebase Code: ${e.code}");
     debugPrint("Firebase Message: ${e.message}");
     
