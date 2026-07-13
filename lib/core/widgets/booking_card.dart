@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../constants/app_radius.dart';
+import '../../shared/enums/booking_status.dart';
 import 'status_chip.dart';
 
 class BookingCard extends StatelessWidget {
@@ -54,7 +55,7 @@ class BookingCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   farmName,
-                  style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+                  style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ],
             ),
@@ -65,7 +66,7 @@ class BookingCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   cropInfo,
-                  style: AppTextStyles.bodyMedium,
+                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
                 ),
               ],
             ),

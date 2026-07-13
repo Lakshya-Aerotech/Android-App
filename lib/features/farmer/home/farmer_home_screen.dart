@@ -13,6 +13,8 @@ import 'farmer_home_data.dart';
 import 'widgets/farmer_home_header.dart';
 import 'widgets/quick_action_card.dart';
 import '../../profile/presentation/profile_screen.dart';
+import '../../farm/presentation/my_farms/my_farms_screen.dart';
+import '../../booking/presentation/booking_history/my_bookings_screen.dart';
 
 class FarmerHomeScreen extends ConsumerStatefulWidget {
   const FarmerHomeScreen({super.key});
@@ -26,8 +28,8 @@ class _FarmerHomeScreenState extends ConsumerState<FarmerHomeScreen> {
 
   final List<Widget> _screens = [
     const _FarmerHomeContent(),
-    const Center(child: Text('Bookings coming soon')),
-    const Center(child: Text('Farms coming soon')),
+    const MyBookingsScreen(),
+    const MyFarmsScreen(),
     const ProfileScreen(),
   ];
 
@@ -94,7 +96,7 @@ class _FarmerHomeContent extends StatelessWidget {
         children: [
           FarmerHomeHeader(
             farmerName: mockFarmerName,
-            onBookNow: () => _showComingSoon(context, 'Booking feature'),
+            onBookNow: () => context.push('/book-service'),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(
@@ -135,6 +137,10 @@ class _FarmerHomeContent extends StatelessWidget {
                       onTap: () {
                         if (action.label == 'My Farms') {
                           context.push('/my-farms');
+                        } else if (action.label == 'Book New Service') {
+                          context.push('/book-service');
+                        } else if (action.label == 'My Bookings') {
+                          context.push('/my-bookings');
                         } else {
                           _showComingSoon(context, action.label);
                         }
@@ -156,7 +162,7 @@ class _FarmerHomeContent extends StatelessWidget {
                   farmName: mockUpcomingBooking.farmName,
                   cropInfo: mockUpcomingBooking.cropInfo,
                   status: mockUpcomingBooking.status,
-                  onTap: () => _showComingSoon(context, 'Booking details'),
+                  onTap: () => context.push('/my-bookings'),
                 ),
               ],
             ),

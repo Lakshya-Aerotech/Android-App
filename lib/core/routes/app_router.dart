@@ -11,6 +11,11 @@ import '../../features/farm/presentation/my_farms/my_farms_screen.dart';
 import '../../features/farm/presentation/add_farm/add_farm_screen.dart';
 import '../../features/farm/presentation/farm_details/farm_details_screen.dart';
 import '../../features/farm/models/farm_model.dart';
+import '../../features/booking/presentation/book_service/book_service_screen.dart';
+import '../../features/booking/presentation/booking_history/my_bookings_screen.dart';
+import '../../features/booking/presentation/booking_details/booking_details_screen.dart';
+import '../../features/booking/presentation/success/booking_success_screen.dart';
+import '../../features/booking/models/booking_model.dart';
 import '../../features/admin/presentation/admin_main_screen.dart';
 import '../../features/admin/presentation/employees/employee_list_screen.dart';
 import '../../features/admin/presentation/employees/add_employee_screen.dart';
@@ -98,6 +103,30 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final farm = state.extra as FarmModel;
           return FarmDetailsScreen(farm: farm);
+        },
+      ),
+
+      // Booking Module
+      GoRoute(
+        path: '/book-service',
+        builder: (context, state) => const BookServiceScreen(),
+      ),
+      GoRoute(
+        path: '/my-bookings',
+        builder: (context, state) => const MyBookingsScreen(),
+      ),
+      GoRoute(
+        path: '/booking-details',
+        builder: (context, state) {
+          final booking = state.extra as BookingModel;
+          return BookingDetailsScreen(booking: booking);
+        },
+      ),
+      GoRoute(
+        path: '/booking-success',
+        builder: (context, state) {
+          final bookingId = state.extra as String;
+          return BookingSuccessScreen(bookingId: bookingId);
         },
       ),
 

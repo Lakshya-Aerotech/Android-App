@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../constants/app_radius.dart';
-
-enum BookingStatus { assigned, inProgress, completed, pending }
+import '../../shared/enums/booking_status.dart';
 
 class StatusChip extends StatelessWidget {
   final String label;
@@ -42,6 +41,18 @@ class StatusChip extends StatelessWidget {
           label: 'Pending',
           backgroundColor: Color(0xFFFFF5F5),
           textColor: Color(0xFFE53E3E),
+        );
+      case BookingStatus.accepted:
+        return const StatusChip(
+          label: 'Accepted',
+          backgroundColor: Color(0xFFE9D8FD),
+          textColor: Color(0xFF805AD5),
+        );
+      case BookingStatus.cancelled:
+        return const StatusChip(
+          label: 'Cancelled',
+          backgroundColor: Color(0xFFEDF2F7),
+          textColor: Color(0xFF4A5568),
         );
     }
   }
