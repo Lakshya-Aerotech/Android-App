@@ -1,25 +1,31 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../shared/enums/booking_status.dart';
+import 'package:lakshya_aerotech/core/theme/app_colors.dart';
+import 'package:lakshya_aerotech/core/theme/app_text_styles.dart';
+import 'package:lakshya_aerotech/shared/enums/booking_status.dart';
 
-class BookingTimeline extends StatelessWidget {
+class FullBookingTimeline extends StatelessWidget {
   final BookingStatus currentStatus;
 
-  const BookingTimeline({super.key, required this.currentStatus});
+  const FullBookingTimeline({super.key, required this.currentStatus});
 
   @override
   Widget build(BuildContext context) {
-    final stages = <Map<String, dynamic>>[
+    final stages = [
       {'label': 'Pending', 'status': BookingStatus.pending},
       {'label': 'Reviewed', 'status': BookingStatus.reviewed},
-      {'label': 'Assigned', 'status': BookingStatus.pilotAssigned},
+      {'label': 'Pilot Assigned', 'status': BookingStatus.pilotAssigned},
+      {'label': 'Drone Assigned', 'status': BookingStatus.droneAssigned},
       {'label': 'Accepted', 'status': BookingStatus.accepted},
+      {'label': 'En Route', 'status': BookingStatus.enRoute},
       {'label': 'In Progress', 'status': BookingStatus.inProgress},
       {'label': 'Completed', 'status': BookingStatus.completed},
+      {'label': 'Farmer Confirmed', 'status': BookingStatus.farmerConfirmed},
     ];
 
-    int activeIndex = _getSelectedIndex(currentStatus, stages);
+    int activeIndex = stages.indexWhere((s) => s['status'] == currentStatus);
+    if (activeIndex == -1 && currentStatus == BookingStatus.cancelled) {
+        activeIndex = 0;
+    }
 
     return Column(
       children: List.generate(stages.length, (index) {
@@ -79,7 +85,7 @@ class BookingTimeline extends StatelessWidget {
                   ),
                   if (isActive)
                     Text(
-                      isCancelled ? 'Booking was cancelled.' : 'Current status of your booking.',
+                      isCancelled ? 'Booking was cancelled.' : 'Current stage.',
                       style: AppTextStyles.bodySmall.copyWith(fontSize: 10),
                     ),
                 ],
@@ -89,15 +95,5 @@ class BookingTimeline extends StatelessWidget {
         );
       }),
     );
-  }
-
-  int _getSelectedIndex(BookingStatus status, List<Map<String, dynamic>> stages) {
-    if (status == BookingStatus.cancelled) {
-      return 0; 
-    }
-    for (int i = 0; i < stages.length; i++) {
-      if (stages[i]['status'] == status) return i;
-    }
-    return 0;
   }
 }

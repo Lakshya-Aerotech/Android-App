@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../../features/auth/viewmodel/auth_viewmodel.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/constants/app_sizes.dart';
-import '../../../../core/constants/app_spacing.dart';
-import '../../../../shared/components/dashboard_header.dart';
-import '../../viewmodels/operations_viewmodel.dart';
-import '../widgets/operations_statistic_card.dart';
-import '../widgets/operations_quick_action_card.dart';
-import '../widgets/active_service_card.dart';
-import '../widgets/pending_assignment_card.dart';
+import 'package:lakshya_aerotech/features/auth/viewmodel/auth_viewmodel.dart';
+import 'package:lakshya_aerotech/core/theme/app_colors.dart';
+import 'package:lakshya_aerotech/core/theme/app_text_styles.dart';
+import 'package:lakshya_aerotech/core/constants/app_sizes.dart';
+import 'package:lakshya_aerotech/core/constants/app_spacing.dart';
+import 'package:lakshya_aerotech/shared/components/dashboard_header.dart';
+import 'package:lakshya_aerotech/features/operations/viewmodels/operations_viewmodel.dart';
+import 'package:lakshya_aerotech/features/operations/models/operations_models.dart' as ops_models;
+import 'package:lakshya_aerotech/features/operations/presentation/widgets/operations_statistic_card.dart';
+import 'package:lakshya_aerotech/features/operations/presentation/widgets/operations_quick_action_card.dart';
+import 'package:lakshya_aerotech/features/operations/presentation/widgets/active_service_card.dart';
+import 'package:lakshya_aerotech/features/operations/presentation/widgets/pending_assignment_card.dart';
 
 class OperationsDashboardScreen extends ConsumerWidget {
   const OperationsDashboardScreen({super.key});
@@ -115,6 +116,37 @@ class OperationsDashboardScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 32),
 
+                  // Recent Pending Bookings
+                  _buildSectionTitle('Recent Pending Bookings'),
+                  const SizedBox(height: 16),
+                  ref.watch(pendingBookingsStreamProvider).when(
+                    data: (bookings) {
+                      if (bookings.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Text('No pending bookings awaiting review.'),
+                        );
+                      }
+                      return Column(
+                        children: bookings.take(3).map((b) => ActiveServiceCard(
+                          service: ops_models.ActiveService(
+                            bookingId: b.bookingId,
+                            farmerName: b.farmerName ?? 'Unknown',
+                            pilotName: 'Unassigned',
+                            droneId: 'Unassigned',
+                            village: b.village ?? 'N/A',
+                            status: b.status.name.toUpperCase(),
+                            statusColor: Colors.orange,
+                          ),
+                          onActionPressed: () => context.push('/ops-booking-details', extra: b),
+                        )).toList(),
+                      );
+                    },
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Text('Error: $e'),
+                  ),
+                  const SizedBox(height: 32),
+
                   // Active Services
                   _buildSectionTitle('Active Services'),
                   const SizedBox(height: 16),
@@ -149,7 +181,7 @@ class OperationsDashboardScreen extends ConsumerWidget {
                   _buildSectionTitle('Recent Activity'),
                   const SizedBox(height: 16),
                   activitiesAsync.when(
-                    data: (activities) => Container(
+                    data: (List<ops_models.OperationsActivity> activities) => Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: Colors.white,

@@ -18,9 +18,9 @@ class StatusChip extends StatelessWidget {
 
   factory StatusChip.fromStatus(BookingStatus status) {
     switch (status) {
-      case BookingStatus.assigned:
+      case BookingStatus.pilotAssigned:
         return const StatusChip(
-          label: 'Assigned',
+          label: 'Pilot Assigned',
           backgroundColor: Color(0xFFEBF8FF),
           textColor: Color(0xFF3182CE),
         );
@@ -53,6 +53,12 @@ class StatusChip extends StatelessWidget {
           label: 'Cancelled',
           backgroundColor: Color(0xFFEDF2F7),
           textColor: Color(0xFF4A5568),
+        );
+      default:
+        return StatusChip(
+          label: status.name.toUpperCase(),
+          backgroundColor: AppColors.accent.withValues(alpha: 0.1),
+          textColor: AppColors.accent,
         );
     }
   }

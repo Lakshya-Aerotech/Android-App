@@ -60,7 +60,7 @@ const mockUpcomingBooking = FarmerUpcomingBooking(
   dateTime: 'Tomorrow, 10:00 AM',
   farmName: 'Farm - Green Valley',
   cropInfo: 'Cotton • 5 Acres',
-  status: BookingStatus.assigned,
+  status: BookingStatus.pilotAssigned,
 );
 
 // TODO: Replace mockUpcomingBooking with the farmer's nearest active Firestore booking.

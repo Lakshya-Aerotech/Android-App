@@ -1,1 +1,12 @@
-enum BookingStatus { pending, assigned, accepted, inProgress, completed, cancelled }
+enum BookingStatus {
+  pending,
+  reviewed,
+  pilotAssigned,
+  droneAssigned,
+  accepted,
+  enRoute,
+  inProgress,
+  completed,
+  farmerConfirmed,
+  cancelled
+}

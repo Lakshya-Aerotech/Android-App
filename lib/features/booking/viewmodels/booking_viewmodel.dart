@@ -30,6 +30,10 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
     required DateTime bookingDate,
     required String preferredTime,
     required double estimatedArea,
+    required String? village,
+    required String? district,
+    required double? latitude,
+    required double? longitude,
     String? remarks,
   }) async {
     state = const AsyncLoading();
@@ -44,8 +48,11 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
     final booking = BookingModel(
       bookingId: bookingId,
       farmerUid: user.uid!,
+      farmerName: user.name,
       farmId: farmId,
       farmName: farmName,
+      village: village,
+      district: district,
       cropType: cropType,
       serviceType: serviceType,
       bookingDate: bookingDate,
@@ -53,6 +60,8 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
       estimatedArea: estimatedArea,
       status: BookingStatus.pending,
       remarks: remarks,
+      latitude: latitude,
+      longitude: longitude,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );

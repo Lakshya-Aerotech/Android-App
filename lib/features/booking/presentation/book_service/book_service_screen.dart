@@ -128,6 +128,10 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
       bookingDate: _selectedDate,
       preferredTime: formattedTime,
       estimatedArea: double.parse(_areaController.text),
+      village: _selectedFarm!.village,
+      district: _selectedFarm!.district,
+      latitude: _selectedFarm!.latitude,
+      longitude: _selectedFarm!.longitude,
       remarks: _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
     );
   }

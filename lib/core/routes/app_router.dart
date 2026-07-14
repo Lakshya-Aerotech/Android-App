@@ -1,28 +1,30 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/auth/presentation/splash_screen.dart';
-import '../../features/auth/presentation/login_screen.dart';
-import '../../features/auth/presentation/otp_screen.dart';
-import '../../features/auth/presentation/complete_profile_screen.dart';
-import '../../features/auth/viewmodel/auth_viewmodel.dart';
-import '../../features/auth/models/user_model.dart';
-import '../../features/farmer/home/farmer_home_screen.dart';
-import '../../features/farm/presentation/my_farms/my_farms_screen.dart';
-import '../../features/farm/presentation/add_farm/add_farm_screen.dart';
-import '../../features/farm/presentation/farm_details/farm_details_screen.dart';
-import '../../features/farm/models/farm_model.dart';
-import '../../features/booking/presentation/book_service/book_service_screen.dart';
-import '../../features/booking/presentation/booking_history/my_bookings_screen.dart';
-import '../../features/booking/presentation/booking_details/booking_details_screen.dart';
-import '../../features/booking/presentation/success/booking_success_screen.dart';
-import '../../features/booking/models/booking_model.dart';
-import '../../features/admin/presentation/admin_main_screen.dart';
-import '../../features/admin/presentation/employees/employee_list_screen.dart';
-import '../../features/admin/presentation/employees/add_employee_screen.dart';
-import '../../features/admin/presentation/placeholders/admin_placeholders.dart';
-import '../../features/pilot/presentation/pilot_dashboard.dart';
-import '../../features/operations/presentation/operations_main_screen.dart';
-import '../../features/operations/presentation/placeholders/operations_placeholders.dart';
+import 'package:lakshya_aerotech/features/auth/presentation/splash_screen.dart';
+import 'package:lakshya_aerotech/features/auth/presentation/login_screen.dart';
+import 'package:lakshya_aerotech/features/auth/presentation/otp_screen.dart';
+import 'package:lakshya_aerotech/features/auth/presentation/complete_profile_screen.dart';
+import 'package:lakshya_aerotech/features/auth/viewmodel/auth_viewmodel.dart';
+import 'package:lakshya_aerotech/features/auth/models/user_model.dart';
+import 'package:lakshya_aerotech/features/farmer/home/farmer_home_screen.dart';
+import 'package:lakshya_aerotech/features/farm/presentation/my_farms/my_farms_screen.dart';
+import 'package:lakshya_aerotech/features/farm/presentation/add_farm/add_farm_screen.dart';
+import 'package:lakshya_aerotech/features/farm/presentation/farm_details/farm_details_screen.dart';
+import 'package:lakshya_aerotech/features/farm/models/farm_model.dart';
+import 'package:lakshya_aerotech/features/booking/presentation/book_service/book_service_screen.dart';
+import 'package:lakshya_aerotech/features/booking/presentation/booking_history/my_bookings_screen.dart';
+import 'package:lakshya_aerotech/features/booking/presentation/booking_details/booking_details_screen.dart';
+import 'package:lakshya_aerotech/features/booking/presentation/success/booking_success_screen.dart';
+import 'package:lakshya_aerotech/features/booking/models/booking_model.dart';
+import 'package:lakshya_aerotech/features/admin/presentation/admin_main_screen.dart';
+import 'package:lakshya_aerotech/features/admin/presentation/employees/employee_list_screen.dart';
+import 'package:lakshya_aerotech/features/admin/presentation/employees/add_employee_screen.dart';
+import 'package:lakshya_aerotech/features/admin/presentation/placeholders/admin_placeholders.dart';
+import 'package:lakshya_aerotech/features/pilot/presentation/pilot_dashboard.dart';
+import 'package:lakshya_aerotech/features/operations/presentation/operations_main_screen.dart';
+import 'package:lakshya_aerotech/features/operations/presentation/placeholders/operations_placeholders.dart';
+import 'package:lakshya_aerotech/features/operations/presentation/pending_bookings/ops_pending_bookings_screen.dart';
+import 'package:lakshya_aerotech/features/operations/presentation/booking_details/ops_booking_details_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final user = ref.watch(userModelProvider);
@@ -35,17 +37,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/login' || state.matchedLocation == '/otp';
       final isSplash = state.matchedLocation == '/splash';
 
-      // 1. If still initializing (checking Firebase + Firestore), stay on splash
       if (isInitializing) return '/splash';
 
-      // 2. If no user is logged in
       if (user == null) {
         if (!isAuthPath && !isSplash) return '/login';
         if (isSplash) return '/login';
         return null;
       }
 
-      // 3. If user is logged in and on an auth page or splash, redirect to dashboard
       if (isAuthPath || isSplash || state.matchedLocation == '/') {
         if (user.role == UserRole.farmer && !user.profileCompleted) {
           return '/complete-profile';
@@ -53,7 +52,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         return _getRoleDashboard(user.role);
       }
 
-      // 4. Farmer profile completion guard
       if (user.role == UserRole.farmer &&
           !user.profileCompleted &&
           state.matchedLocation != '/complete-profile') {
@@ -143,7 +141,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: 'bookings',
-            builder: (context, state) => const OpsBookingsPlaceholder(),
+            builder: (context, state) => const OpsPendingBookingsScreen(),
           ),
           GoRoute(
             path: 'assignments',
@@ -154,6 +152,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const OpsTrackJobsPlaceholder(),
           ),
         ],
+      ),
+      GoRoute(
+        path: '/ops-booking-details',
+        builder: (context, state) {
+          final booking = state.extra as BookingModel;
+          return OpsBookingDetailsScreen(booking: booking);
+        },
       ),
 
       // Admin Module

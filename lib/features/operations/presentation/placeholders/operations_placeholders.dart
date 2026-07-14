@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../features/auth/viewmodel/auth_viewmodel.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
+import 'package:lakshya_aerotech/features/auth/viewmodel/auth_viewmodel.dart';
+import 'package:lakshya_aerotech/core/theme/app_colors.dart';
+import 'package:lakshya_aerotech/core/theme/app_text_styles.dart';
 
 class ModulePlaceholder extends StatelessWidget {
   final String title;
@@ -30,12 +30,6 @@ class ModulePlaceholder extends StatelessWidget {
       ),
     );
   }
-}
-
-class OpsBookingsPlaceholder extends StatelessWidget {
-  const OpsBookingsPlaceholder({super.key});
-  @override
-  Widget build(BuildContext context) => const ModulePlaceholder(title: 'Booking Management');
 }
 
 class OpsAssignmentsPlaceholder extends StatelessWidget {
@@ -82,4 +76,3 @@ class OperationsProfilePlaceholder extends ConsumerWidget {
     );
   }
 }
-

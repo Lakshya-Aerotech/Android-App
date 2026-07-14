@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../../core/constants/app_radius.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/status_chip.dart';
 import '../../models/operations_models.dart';
 
 class ActiveServiceCard extends StatelessWidget {
@@ -21,40 +21,70 @@ class ActiveServiceCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.radiusLg,
         border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Booking #${service.bookingId}',
-                style: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.bold),
+                service.bookingId,
+                style: AppTextStyles.labelSmall.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
               ),
-              StatusChip(
-                label: service.status,
-                backgroundColor: service.statusColor.withValues(alpha: 0.1),
-                textColor: service.statusColor,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: service.statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  service.status,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: service.statusColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          _buildInfoRow(Icons.person_outline, 'Farmer', service.farmerName),
-          _buildInfoRow(Icons.flight_takeoff, 'Pilot', service.pilotName),
-          _buildInfoRow(Icons.precision_manufacturing_outlined, 'Drone', service.droneId),
-          _buildInfoRow(Icons.location_on_outlined, 'Village', service.village),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildInfoColumn('Farmer', service.farmerName),
+              ),
+              Expanded(
+                child: _buildInfoColumn('Village', service.village),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildInfoColumn('Pilot', service.pilotName),
+              ),
+              Expanded(
+                child: _buildInfoColumn('Drone', service.droneId),
+              ),
+            ],
+          ),
+          const Divider(height: 24),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
               onPressed: onActionPressed,
               style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('Track Job'),
+              child: const Text('View Live Progress', style: TextStyle(fontSize: 12)),
             ),
           ),
         ],
@@ -62,17 +92,13 @@ class ActiveServiceCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: AppColors.textSecondary),
-          const SizedBox(width: 8),
-          Text('$label: ', style: AppTextStyles.bodySmall),
-          Text(value, style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-        ],
-      ),
+  Widget _buildInfoColumn(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.bodySmall.copyWith(fontSize: 10, color: AppColors.textSecondary)),
+        Text(value, style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+      ],
     );
   }
 }
