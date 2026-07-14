@@ -25,6 +25,8 @@ import 'package:lakshya_aerotech/features/operations/presentation/operations_mai
 import 'package:lakshya_aerotech/features/operations/presentation/placeholders/operations_placeholders.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/pending_bookings/ops_pending_bookings_screen.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/booking_details/ops_booking_details_screen.dart';
+import 'package:lakshya_aerotech/features/operations/presentation/assignments/ops_assignments_screen.dart';
+import 'package:lakshya_aerotech/features/operations/presentation/assignments/ops_assign_booking_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final user = ref.watch(userModelProvider);
@@ -65,10 +67,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
       ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/otp',
         builder: (context, state) {
@@ -145,7 +144,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: 'assignments',
-            builder: (context, state) => const OpsAssignmentsPlaceholder(),
+            builder: (context, state) => const OpsAssignmentsScreen(),
+            routes: [
+              GoRoute(
+                path: 'assign',
+                builder: (context, state) {
+                  final booking = state.extra as BookingModel;
+                  return OpsAssignBookingScreen(booking: booking);
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: 'track-jobs',
@@ -185,10 +193,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const SplashScreen(),
-      ),
+      GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
     ],
   );
 });

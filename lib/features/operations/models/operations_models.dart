@@ -79,3 +79,87 @@ class OperationsActivity {
     required this.iconColor,
   });
 }
+
+class OpsPilotResource {
+  final String uid;
+  final String documentId;
+  final String name;
+  final String? phoneNumber;
+  final String? profileImageUrl;
+  final String role;
+  final bool isActive;
+  final bool isAvailable;
+  final int? currentWorkload;
+  final Map<String, dynamic> details;
+
+  const OpsPilotResource({
+    required this.uid,
+    required this.documentId,
+    required this.name,
+    this.phoneNumber,
+    this.profileImageUrl,
+    required this.role,
+    required this.isActive,
+    required this.isAvailable,
+    this.currentWorkload,
+    this.details = const {},
+  });
+
+  bool get canSelect => isActive && isAvailable;
+}
+
+class OpsDroneResource {
+  final String id;
+  final String code;
+  final String name;
+  final int? batteryPercentage;
+  final String operationalStatus;
+  final bool isActive;
+  final bool isAvailable;
+  final bool isDeleted;
+  final String? activeBookingId;
+
+  const OpsDroneResource({
+    required this.id,
+    required this.code,
+    required this.name,
+    this.batteryPercentage,
+    required this.operationalStatus,
+    required this.isActive,
+    required this.isAvailable,
+    required this.isDeleted,
+    this.activeBookingId,
+  });
+
+  bool get canSelect =>
+      isActive &&
+      isAvailable &&
+      !isDeleted &&
+      (activeBookingId == null || activeBookingId!.isEmpty);
+
+  String? get unavailableReason {
+    if (isDeleted) return 'Removed from fleet';
+    if (!isActive) return 'Inactive';
+    if (!isAvailable) return 'Unavailable';
+    if (activeBookingId != null && activeBookingId!.isNotEmpty) {
+      return 'Assigned to active job';
+    }
+    return null;
+  }
+}
+
+class OpsAssignmentRequest {
+  final String bookingDocId;
+  final String bookingNumber;
+  final String farmerId;
+  final OpsPilotResource pilot;
+  final OpsDroneResource drone;
+
+  const OpsAssignmentRequest({
+    required this.bookingDocId,
+    required this.bookingNumber,
+    required this.farmerId,
+    required this.pilot,
+    required this.drone,
+  });
+}
