@@ -10,6 +10,8 @@ import '../../../../core/widgets/confirmation_dialog.dart';
 import '../../../../shared/enums/booking_status.dart';
 import '../../models/booking_model.dart';
 import '../../viewmodels/booking_viewmodel.dart';
+import '../../widgets/booking_summary_card.dart';
+import '../../widgets/booking_timeline.dart';
 
 class BookingDetailsScreen extends ConsumerWidget {
   final BookingModel booking;
@@ -20,7 +22,7 @@ class BookingDetailsScreen extends ConsumerWidget {
     final bookingState = ref.watch(bookingViewModelProvider);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.lightBackground,
       appBar: AppBar(
         title: const Text('Booking Details'),
         backgroundColor: Colors.white,
@@ -33,45 +35,95 @@ class BookingDetailsScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Booking ID', style: AppTextStyles.bodySmall),
-                    Text(
-                      booking.bookingId,
-                      style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold, letterSpacing: 1.1),
-                    ),
-                  ],
-                ),
-                StatusChip.fromStatus(booking.status),
-              ],
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Booking ID', style: AppTextStyles.bodySmall),
+                          Text(
+                            booking.bookingId,
+                            style: AppTextStyles.titleMedium.copyWith(
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.1,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      StatusChip.fromStatus(booking.status),
+                    ],
+                  ),
+                  const Divider(height: 32),
+                  _buildQuickInfo(context),
+                ],
+              ),
             ),
-            const Divider(height: 48),
-            
-            _buildSectionHeader('Farm Information'),
-            _buildDetailItem('Farm Name', booking.farmName, Icons.landscape_outlined),
-            _buildDetailItem('Crop Type', booking.cropType, Icons.spa_outlined),
-            
             const SizedBox(height: 24),
-            _buildSectionHeader('Service Details'),
-            _buildDetailItem('Service', booking.serviceType, Icons.settings_suggest_outlined),
-            _buildDetailItem('Area', '${booking.estimatedArea} Acres', Icons.crop_free),
             
+            Text('Farm & Service', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            BookingSummaryCard(
+              label: 'Farm Name',
+              value: booking.farmName,
+              icon: Icons.landscape_outlined,
+            ),
+            BookingSummaryCard(
+              label: 'Service Type',
+              value: booking.serviceType,
+              icon: Icons.settings_suggest_outlined,
+            ),
+            BookingSummaryCard(
+              label: 'Estimated Area',
+              value: '${booking.estimatedArea} Acres',
+              icon: Icons.crop_free,
+            ),
+
             const SizedBox(height: 24),
-            _buildSectionHeader('Schedule'),
-            _buildDetailItem('Date', DateFormat('EEEE, dd MMM yyyy').format(booking.bookingDate), Icons.calendar_today_outlined),
-            _buildDetailItem('Preferred Time', booking.preferredTime, Icons.access_time_outlined),
+            Text('Service Status', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: BookingTimeline(currentStatus: booking.status),
+            ),
 
             if (booking.remarks != null) ...[
               const SizedBox(height: 24),
-              _buildSectionHeader('Additional Notes'),
-              Text(booking.remarks!, style: AppTextStyles.bodyMedium),
+              Text('Additional Notes', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+                ),
+                child: Text(booking.remarks!, style: AppTextStyles.bodyMedium),
+              ),
             ],
 
-            const Divider(height: 64),
+            const SizedBox(height: 40),
             
             if (booking.status == BookingStatus.pending) ...[
               PrimaryButton(
@@ -82,45 +134,44 @@ class BookingDetailsScreen extends ConsumerWidget {
               const SizedBox(height: 16),
             ],
             
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => context.pop(),
-                child: const Text('Back to History'),
-              ),
-            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Text(
-        title,
-        style: AppTextStyles.labelLarge.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
-      ),
+  Widget _buildQuickInfo(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        _buildInfoColumn(
+          Icons.calendar_today_outlined,
+          'Date',
+          DateFormat('dd MMM').format(booking.bookingDate),
+        ),
+        _buildInfoColumn(
+          Icons.access_time_outlined,
+          'Time',
+          booking.preferredTime,
+        ),
+        _buildInfoColumn(
+          Icons.grass_outlined,
+          'Crop',
+          booking.cropType,
+        ),
+      ],
     );
   }
 
-  Widget _buildDetailItem(String label, String value, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: AppColors.textSecondary),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: AppTextStyles.bodySmall.copyWith(fontSize: 10)),
-              Text(value, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600)),
-            ],
-          ),
-        ],
-      ),
+  Widget _buildInfoColumn(IconData icon, String label, String value) {
+    return Column(
+      children: [
+        Icon(icon, size: 20, color: AppColors.textSecondary),
+        const SizedBox(height: 4),
+        Text(label, style: AppTextStyles.bodySmall.copyWith(fontSize: 10)),
+        Text(value, style: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.bold)),
+      ],
     );
   }
 

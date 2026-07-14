@@ -13,68 +13,84 @@ class BookingSuccessScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Spacer(),
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.success,
+                    size: 80,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.check_circle_rounded,
-                  color: AppColors.success,
-                  size: 100,
+                const SizedBox(height: 32),
+                Text(
+                  'Booking Submitted\nSuccessfully!',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.headlineLarge.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 32),
-              Text(
-                'Booking Submitted Successfully!',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.headlineLarge.copyWith(color: AppColors.primary),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Your service request has been received and is currently being reviewed by our operations team.',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.bodyMedium,
-              ),
-              const SizedBox(height: 32),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.lightBackground,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
+                const SizedBox(height: 16),
+                Text(
+                  'Your request is currently being reviewed.\nEstimated review time: 15-30 mins.',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
                 ),
-                child: Column(
-                  children: [
-                    Text('Booking ID', style: AppTextStyles.bodySmall),
-                    Text(
-                      bookingId,
-                      style: AppTextStyles.titleMedium.copyWith(
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
+                const SizedBox(height: 48),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  decoration: BoxDecoration(
+                    color: AppColors.lightBackground,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Booking ID',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        bookingId,
+                        style: AppTextStyles.titleLarge.copyWith(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 48),
-              PrimaryButton(
-                text: 'Go to Booking History',
-                onPressed: () => context.go('/my-bookings'),
-              ),
-              const SizedBox(height: 12),
-              SecondaryButton(
-                text: 'Back to Dashboard',
-                onPressed: () => context.go('/farmer'),
-              ),
-            ],
+                const Spacer(),
+                PrimaryButton(
+                  text: 'View Booking History',
+                  onPressed: () => context.go('/my-bookings'),
+                ),
+                const SizedBox(height: 12),
+                SecondaryButton(
+                  text: 'Back to Dashboard',
+                  onPressed: () => context.go('/farmer'),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         ),
       ),

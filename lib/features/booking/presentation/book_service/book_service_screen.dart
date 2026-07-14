@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/constants/app_sizes.dart';
-import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/primary_button.dart';
-import '../../../../core/widgets/custom_text_field.dart';
-import '../../../../shared/components/dashboard_header.dart';
+import '../../../../core/widgets/step_indicator.dart';
+import '../../../../core/widgets/section_header.dart';
 import '../../../farm/models/farm_model.dart';
 import '../../../farm/viewmodels/farm_viewmodel.dart';
 import '../../viewmodels/booking_viewmodel.dart';
+import '../../widgets/farm_selection_card.dart';
+import '../../widgets/service_selection_card.dart';
+import '../../widgets/booking_summary_card.dart';
 
 class BookServiceScreen extends ConsumerStatefulWidget {
   const BookServiceScreen({super.key});
@@ -21,78 +22,109 @@ class BookServiceScreen extends ConsumerStatefulWidget {
 }
 
 class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
-  final _formKey = GlobalKey<FormState>();
-  
+  final PageController _pageController = PageController();
+  int _currentStep = 0;
+
   FarmModel? _selectedFarm;
-  String _selectedService = 'Pesticide Spraying';
+  
+  final List<Map<String, String>> _services = [
+    {
+      'title': 'Pesticide Spraying',
+      'icon': '🌿',
+      'desc': 'Targeted pest control for healthy crops.',
+      'duration': 'Est. 15-20 min/acre'
+    },
+    {
+      'title': 'Fertilizer Spraying',
+      'icon': '🌾',
+      'desc': 'Efficient nutrient distribution.',
+      'duration': 'Est. 10-15 min/acre'
+    },
+    {
+      'title': 'Micronutrient Spraying',
+      'icon': '💧',
+      'desc': 'Enhanced growth supplements.',
+      'duration': 'Est. 12-18 min/acre'
+    },
+    {
+      'title': 'Survey Mapping',
+      'icon': '🛰',
+      'desc': 'High-res multispectral mapping.',
+      'duration': 'Est. 30-40 min/farm'
+    },
+    {
+      'title': 'Seed Broadcasting',
+      'icon': '🌱',
+      'desc': 'Precise uniform seed distribution.',
+      'duration': 'Est. 20-30 min/acre'
+    },
+  ];
+  String? _selectedService;
+  
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 0);
   final TextEditingController _areaController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
 
-  final List<String> _services = [
-    'Pesticide Spraying',
-    'Fertilizer Spraying',
-    'Micronutrient Spraying',
-    'Survey Mapping',
-    'Seed Broadcasting',
-  ];
+  final List<String> _stepTitles = ['Farm', 'Service', 'Schedule', 'Review'];
 
   @override
   void dispose() {
+    _pageController.dispose();
     _areaController.dispose();
     _remarksController.dispose();
     super.dispose();
   }
 
-  Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 90)),
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() => _selectedDate = picked);
-    }
-  }
-
-  Future<void> _selectTime() async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedTime,
-    );
-    if (picked != null && picked != _selectedTime) {
-      setState(() => _selectedTime = picked);
-    }
-  }
-
-  void _onFarmSelected(FarmModel? farm) {
-    setState(() {
-      _selectedFarm = farm;
-      if (farm != null) {
-        _areaController.text = farm.area.toString();
+  void _nextPage() {
+    if (_currentStep < 3) {
+      if (_currentStep == 0 && _selectedFarm == null) {
+        _showError('Please select a farm');
+        return;
       }
-    });
+      if (_currentStep == 1 && _selectedService == null) {
+        _showError('Please select a service');
+        return;
+      }
+      if (_currentStep == 2 && _areaController.text.isEmpty) {
+        _showError('Please enter the area');
+        return;
+      }
+
+      setState(() => _currentStep++);
+      _pageController.animateToPage(
+        _currentStep,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _previousPage() {
+    if (_currentStep > 0) {
+      setState(() => _currentStep--);
+      _pageController.animateToPage(
+        _currentStep,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppColors.error),
+    );
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || _selectedFarm == null) {
-      if (_selectedFarm == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a farm')),
-        );
-      }
-      return;
-    }
-
     final formattedTime = '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}';
 
     await ref.read(bookingViewModelProvider.notifier).createBooking(
       farmId: _selectedFarm!.docId!,
       farmName: _selectedFarm!.farmName,
       cropType: _selectedFarm!.cropType,
-      serviceType: _selectedService,
+      serviceType: _selectedService!,
       bookingDate: _selectedDate,
       preferredTime: formattedTime,
       estimatedArea: double.parse(_areaController.text),
@@ -109,191 +141,317 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
       if (next is AsyncData && next.value != null) {
         context.go('/booking-success', extra: next.value);
       } else if (next is AsyncError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${next.error}'), backgroundColor: AppColors.error),
-        );
+        _showError('Error: ${next.error}');
       }
     });
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            DashboardHeader(userName: 'Farmer', subtitle: 'Book a new drone service.'),
-            Padding(
-              padding: const EdgeInsets.all(AppSizes.screenPadding),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Service Details',
-                      style: AppTextStyles.headlineLarge.copyWith(
-                        color: AppColors.textDark,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    AppSpacing.verticalLg,
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+          onPressed: () => _currentStep == 0 ? context.pop() : _previousPage(),
+        ),
+        title: Text(
+          'Book New Service',
+          style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: StepIndicator(currentStep: _currentStep, steps: _stepTitles),
+          ),
+          const SizedBox(height: 32),
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                _buildFarmStep(farmsAsync),
+                _buildServiceStep(),
+                _buildScheduleStep(),
+                _buildReviewStep(),
+              ],
+            ),
+          ),
+          _buildBottomActionBar(bookingState is AsyncLoading),
+        ],
+      ),
+    );
+  }
 
-                    // Farm Selection
-                    Text('Select Farm *', style: AppTextStyles.labelLarge),
-                    const SizedBox(height: 8),
-                    farmsAsync.when(
-                      data: (farms) => _buildDropdown<FarmModel>(
-                        value: _selectedFarm,
-                        items: farms,
-                        hint: 'Choose a farm',
-                        onChanged: _onFarmSelected,
-                        labelBuilder: (farm) => '${farm.farmName} (${farm.village})',
-                      ),
-                      loading: () => const LinearProgressIndicator(),
-                      error: (e, _) => Text('Error loading farms: $e'),
-                    ),
-                    if (_selectedFarm != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        'Crop: ${_selectedFarm!.cropType} | Area: ${_selectedFarm!.area} ${_selectedFarm!.unit}',
-                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.success, fontWeight: FontWeight.bold),
+  Widget _buildFarmStep(AsyncValue<List<FarmModel>> farmsAsync) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeader(title: 'Select Farm'),
+          const SizedBox(height: 16),
+          farmsAsync.when(
+            data: (farms) {
+              if (farms.isEmpty) {
+                return Center(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 40),
+                      const Icon(Icons.landscape_outlined, size: 64, color: AppColors.border),
+                      const SizedBox(height: 16),
+                      const Text('No farms registered yet.'),
+                      TextButton(
+                        onPressed: () => context.push('/add-farm'),
+                        child: const Text('Add a Farm First'),
                       ),
                     ],
-                    AppSpacing.verticalMd,
+                  ),
+                );
+              }
+              return Column(
+                children: farms.map((farm) => FarmSelectionCard(
+                  farm: farm,
+                  isSelected: _selectedFarm?.docId == farm.docId,
+                  onTap: () {
+                    setState(() {
+                      _selectedFarm = farm;
+                      _areaController.text = farm.area.toString();
+                    });
+                  },
+                )).toList(),
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Text('Error: $e'),
+          ),
+        ],
+      ),
+    );
+  }
 
-                    // Service Type
-                    Text('Service Type *', style: AppTextStyles.labelLarge),
-                    const SizedBox(height: 8),
-                    _buildDropdown<String>(
-                      value: _selectedService,
-                      items: _services,
-                      onChanged: (v) => setState(() => _selectedService = v!),
-                      labelBuilder: (v) => v,
-                    ),
-                    AppSpacing.verticalMd,
+  Widget _buildServiceStep() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeader(title: 'Select Service'),
+          const SizedBox(height: 16),
+          ..._services.map((s) => ServiceSelectionCard(
+            title: s['title']!,
+            icon: s['icon']!,
+            description: s['desc']!,
+            duration: s['duration']!,
+            isSelected: _selectedService == s['title'],
+            onTap: () => setState(() => _selectedService = s['title']),
+          )),
+        ],
+      ),
+    );
+  }
 
-                    // Date and Time
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Preferred Date *', style: AppTextStyles.labelLarge),
-                              const SizedBox(height: 8),
-                              InkWell(
-                                onTap: _selectDate,
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: AppColors.border),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(DateFormat('dd MMM yyyy').format(_selectedDate)),
-                                      const Icon(Icons.calendar_today, size: 18, color: AppColors.primary),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Preferred Time *', style: AppTextStyles.labelLarge),
-                              const SizedBox(height: 8),
-                              InkWell(
-                                onTap: _selectTime,
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: AppColors.border),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(_selectedTime.format(context)),
-                                      const Icon(Icons.access_time, size: 18, color: AppColors.primary),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    AppSpacing.verticalMd,
+  Widget _buildScheduleStep() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeader(title: 'Schedule Service'),
+          const SizedBox(height: 16),
+          
+          _buildClickableCard(
+            label: 'Preferred Date',
+            value: DateFormat('EEEE, dd MMM yyyy').format(_selectedDate),
+            icon: Icons.calendar_today_outlined,
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _selectedDate,
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 90)),
+              );
+              if (picked != null) setState(() => _selectedDate = picked);
+            },
+          ),
+          
+          _buildClickableCard(
+            label: 'Preferred Time',
+            value: _selectedTime.format(context),
+            icon: Icons.access_time_outlined,
+            onTap: () async {
+              final picked = await showTimePicker(context: context, initialTime: _selectedTime);
+              if (picked != null) setState(() => _selectedTime = picked);
+            },
+          ),
 
-                    // Estimated Area
-                    CustomTextField(
-                      label: 'Estimated Area (to be sprayed) *',
+          const SizedBox(height: 24),
+          const Text('Estimated Area', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.lightBackground,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _areaController,
+                    keyboardType: TextInputType.number,
+                    style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold),
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
                       hintText: '0.0',
-                      controller: _areaController,
-                      keyboardType: TextInputType.number,
-                      validator: (v) => v!.isEmpty ? 'Area is required' : null,
                     ),
-                    AppSpacing.verticalMd,
-
-                    // Additional Notes
-                    CustomTextField(
-                      label: 'Additional Notes (Optional)',
-                      hintText: 'Any special instructions...',
-                      controller: _remarksController,
-                    ),
-                    
-                    const SizedBox(height: 48),
-                    PrimaryButton(
-                      text: 'Submit Booking',
-                      onPressed: _submit,
-                      isLoading: bookingState is AsyncLoading,
-                    ),
-                    const SizedBox(height: 40),
-                  ],
+                  ),
                 ),
+                Text('Acres', style: AppTextStyles.titleMedium.copyWith(color: AppColors.textSecondary)),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+          const Text('Additional Notes', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.lightBackground,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: TextField(
+              controller: _remarksController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                hintText: 'Any special instructions...',
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewStep() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeader(title: 'Review Booking'),
+          const SizedBox(height: 16),
+          BookingSummaryCard(
+            label: 'Farm',
+            value: _selectedFarm?.farmName ?? '',
+            icon: Icons.landscape_outlined,
+          ),
+          BookingSummaryCard(
+            label: 'Service',
+            value: _selectedService ?? '',
+            icon: Icons.settings_suggest_outlined,
+          ),
+          BookingSummaryCard(
+            label: 'Date',
+            value: DateFormat('dd MMM yyyy').format(_selectedDate),
+            icon: Icons.calendar_today_outlined,
+          ),
+          BookingSummaryCard(
+            label: 'Time',
+            value: _selectedTime.format(context),
+            icon: Icons.access_time_outlined,
+          ),
+          BookingSummaryCard(
+            label: 'Estimated Area',
+            value: '${_areaController.text} Acres',
+            icon: Icons.crop_free,
+          ),
+          if (_remarksController.text.isNotEmpty)
+            BookingSummaryCard(
+              label: 'Notes',
+              value: _remarksController.text,
+              icon: Icons.notes,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClickableCard({required String label, required String value, required IconData icon, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.primary, size: 20),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: AppTextStyles.bodySmall.copyWith(fontSize: 10)),
+                  Text(value, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+            const Icon(Icons.edit_outlined, size: 16, color: AppColors.textSecondary),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDropdown<T>({
-    required T? value,
-    required List<T> items,
-    String? hint,
-    required void Function(T?) onChanged,
-    required String Function(T) labelBuilder,
-  }) {
+  Widget _buildBottomActionBar(bool isLoading) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: value,
-          hint: hint != null ? Text(hint) : null,
-          isExpanded: true,
-          onChanged: onChanged,
-          items: items.map((T item) {
-            return DropdownMenuItem<T>(
-              value: item,
-              child: Text(labelBuilder(item), style: AppTextStyles.bodyLarge),
-            );
-          }).toList(),
-        ),
+      child: Row(
+        children: [
+          if (_currentStep > 0) ...[
+            Expanded(
+              child: OutlinedButton(
+                onPressed: isLoading ? null : _previousPage,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 56),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Previous'),
+              ),
+            ),
+            const SizedBox(width: 16),
+          ],
+          Expanded(
+            flex: 2,
+            child: PrimaryButton(
+              text: _currentStep == 3 ? 'Confirm & Book' : 'Next →',
+              onPressed: isLoading ? null : (_currentStep == 3 ? _submit : _nextPage),
+              isLoading: isLoading,
+            ),
+          ),
+        ],
       ),
     );
   }
