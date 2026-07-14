@@ -54,9 +54,17 @@ class OpsBookingCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Farmer: ${booking.farmerName ?? 'Unknown'}',
-                      style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600),
+                      'Farmer: ${booking.farmerName ?? 'Not Provided'}',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
+                    if (booking.farmerPhone != null)
+                      Text(
+                        booking.farmerPhone!,
+                        style: AppTextStyles.bodySmall.copyWith(fontSize: 10),
+                      ),
                   ],
                 ),
                 StatusChip.fromStatus(booking.status),
@@ -75,9 +83,13 @@ class OpsBookingCard extends StatelessWidget {
               children: [
                 const Icon(Icons.landscape_outlined, size: 14, color: AppColors.textSecondary),
                 const SizedBox(width: 4),
-                Text(
-                  '${booking.farmName} (${booking.village ?? 'N/A'})',
-                  style: AppTextStyles.bodySmall,
+                Expanded(
+                  child: Text(
+                    '${booking.farmName} (${booking.village ?? 'N/A'}, ${booking.district ?? 'N/A'})',
+                    style: AppTextStyles.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -93,6 +105,23 @@ class OpsBookingCard extends StatelessWidget {
                 const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
               ],
             ),
+            if (booking.remarks != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.lightBackground,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Note: ${booking.remarks}',
+                  style: AppTextStyles.bodySmall.copyWith(fontStyle: FontStyle.italic, fontSize: 10),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ],
         ),
       ),

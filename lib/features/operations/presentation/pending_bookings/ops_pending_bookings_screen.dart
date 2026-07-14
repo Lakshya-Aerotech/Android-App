@@ -7,7 +7,7 @@ import 'package:lakshya_aerotech/core/theme/app_text_styles.dart';
 import 'package:lakshya_aerotech/core/widgets/empty_state.dart';
 import 'package:lakshya_aerotech/shared/components/dashboard_header.dart';
 import 'package:lakshya_aerotech/features/operations/viewmodels/operations_viewmodel.dart';
-import 'package:lakshya_aerotech/features/operations/widgets/ops_booking_card.dart';
+import 'package:lakshya_aerotech/features/operations/widgets/ops_hydrated_booking_card.dart';
 
 class OpsPendingBookingsScreen extends ConsumerStatefulWidget {
   const OpsPendingBookingsScreen({super.key});
@@ -19,7 +19,9 @@ class OpsPendingBookingsScreen extends ConsumerStatefulWidget {
 class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  final bool _isNewestFirst = true;
+  String? _selectedService;
+  String? _selectedCrop;
+  bool _isNewestFirst = true;
 
   @override
   void dispose() {
@@ -63,16 +65,33 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                     ],
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: _searchController,
-                    onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
-                    decoration: InputDecoration(
-                      hintText: 'Search...',
-                      prefixIcon: const Icon(Icons.search),
-                      fillColor: Colors.white,
-                      filled: true,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
+                          decoration: InputDecoration(
+                            hintText: 'Search ID, Farmer, Farm...',
+                            prefixIcon: const Icon(Icons.search),
+                            fillColor: Colors.white,
+                            filled: true,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          onPressed: _showFilterDialog,
+                          icon: const Icon(Icons.filter_list, color: AppColors.primary),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
                   bookingsAsync.when(
@@ -80,8 +99,13 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                       var filtered = bookings.where((b) {
                         final matchesSearch = b.bookingId.toLowerCase().contains(_searchQuery) ||
                                               (b.farmerName?.toLowerCase() ?? '').contains(_searchQuery) ||
-                                              b.farmName.toLowerCase().contains(_searchQuery);
-                        return matchesSearch;
+                                              b.farmName.toLowerCase().contains(_searchQuery) ||
+                                              (b.village?.toLowerCase() ?? '').contains(_searchQuery);
+                        
+                        final matchesService = _selectedService == null || b.serviceType == _selectedService;
+                        final matchesCrop = _selectedCrop == null || b.cropType == _selectedCrop;
+                        
+                        return matchesSearch && matchesService && matchesCrop;
                       }).toList();
 
                       if (!_isNewestFirst) filtered = filtered.reversed.toList();
@@ -99,7 +123,7 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: filtered.length,
                         itemBuilder: (context, index) {
-                          return OpsBookingCard(
+                          return OpsHydratedBookingCard(
                             booking: filtered[index],
                             onTap: () => context.push('/ops-booking-details', extra: filtered[index]),
                           );
@@ -115,6 +139,109 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
           ],
         ),
       ),
+    );
+  }
+
+  void _showFilterDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Filter & Sort', style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 24),
+                  
+                  Text('Sort By', style: AppTextStyles.labelLarge),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Newest First'),
+                        selected: _isNewestFirst,
+                        onSelected: (v) {
+                          setModalState(() => _isNewestFirst = true);
+                          setState(() {});
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('Oldest First'),
+                        selected: !_isNewestFirst,
+                        onSelected: (v) {
+                          setModalState(() => _isNewestFirst = false);
+                          setState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  Text('Service Type', style: AppTextStyles.labelLarge),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: ['Pesticide Spraying', 'Fertilizer Spraying', 'Survey Mapping', 'Seed Broadcasting'].map((s) {
+                      return ChoiceChip(
+                        label: Text(s),
+                        selected: _selectedService == s,
+                        onSelected: (selected) {
+                          setModalState(() => _selectedService = selected ? s : null);
+                          setState(() {});
+                        },
+                      );
+                    }).toList(),
+                  ),
+
+                  const SizedBox(height: 24),
+                  Text('Crop Type', style: AppTextStyles.labelLarge),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: ['Cotton', 'Paddy', 'Chilli', 'Maize', 'Soya'].map((c) {
+                      return ChoiceChip(
+                        label: Text(c),
+                        selected: _selectedCrop == c,
+                        onSelected: (selected) {
+                          setModalState(() => _selectedCrop = selected ? c : null);
+                          setState(() {});
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setModalState(() {
+                          _selectedService = null;
+                          _selectedCrop = null;
+                          _isNewestFirst = true;
+                        });
+                        setState(() {});
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Reset All'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            );
+          }
+        );
+      },
     );
   }
 }

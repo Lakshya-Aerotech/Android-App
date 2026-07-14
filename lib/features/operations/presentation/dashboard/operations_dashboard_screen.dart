@@ -9,11 +9,9 @@ import 'package:lakshya_aerotech/core/constants/app_sizes.dart';
 import 'package:lakshya_aerotech/core/constants/app_spacing.dart';
 import 'package:lakshya_aerotech/shared/components/dashboard_header.dart';
 import 'package:lakshya_aerotech/features/operations/viewmodels/operations_viewmodel.dart';
-import 'package:lakshya_aerotech/features/operations/models/operations_models.dart' as ops_models;
 import 'package:lakshya_aerotech/features/operations/presentation/widgets/operations_statistic_card.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/widgets/operations_quick_action_card.dart';
-import 'package:lakshya_aerotech/features/operations/presentation/widgets/active_service_card.dart';
-import 'package:lakshya_aerotech/features/operations/presentation/widgets/pending_assignment_card.dart';
+import 'package:lakshya_aerotech/features/operations/widgets/ops_hydrated_booking_card.dart';
 
 class OperationsDashboardScreen extends ConsumerWidget {
   const OperationsDashboardScreen({super.key});
@@ -21,10 +19,8 @@ class OperationsDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userModelProvider);
-    final statsAsync = ref.watch(operationsStatisticsProvider);
-    final activeServicesAsync = ref.watch(activeServicesProvider);
-    final pendingAssignmentsAsync = ref.watch(pendingAssignmentsProvider);
-    final activitiesAsync = ref.watch(recentActivitiesProvider);
+    final statsAsync = ref.watch(dashboardStatsStreamProvider);
+    final recentBookingsAsync = ref.watch(recentBookingsStreamProvider);
     
     final today = DateFormat('EEEE, d MMMM').format(DateTime.now());
 
@@ -116,29 +112,21 @@ class OperationsDashboardScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 32),
 
-                  // Recent Pending Bookings
-                  _buildSectionTitle('Recent Pending Bookings'),
+                  // Recent Bookings
+                  _buildSectionTitle('Recent Bookings'),
                   const SizedBox(height: 16),
-                  ref.watch(pendingBookingsStreamProvider).when(
+                  recentBookingsAsync.when(
                     data: (bookings) {
                       if (bookings.isEmpty) {
                         return const Padding(
                           padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Text('No pending bookings awaiting review.'),
+                          child: Text('No bookings found.'),
                         );
                       }
                       return Column(
-                        children: bookings.take(3).map((b) => ActiveServiceCard(
-                          service: ops_models.ActiveService(
-                            bookingId: b.bookingId,
-                            farmerName: b.farmerName ?? 'Unknown',
-                            pilotName: 'Unassigned',
-                            droneId: 'Unassigned',
-                            village: b.village ?? 'N/A',
-                            status: b.status.name.toUpperCase(),
-                            statusColor: Colors.orange,
-                          ),
-                          onActionPressed: () => context.push('/ops-booking-details', extra: b),
+                        children: bookings.map((b) => OpsHydratedBookingCard(
+                          booking: b,
+                          onTap: () => context.push('/ops-booking-details', extra: b),
                         )).toList(),
                       );
                     },
@@ -147,77 +135,61 @@ class OperationsDashboardScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 32),
 
-                  // Active Services
-                  _buildSectionTitle('Active Services'),
-                  const SizedBox(height: 16),
-                  activeServicesAsync.when(
-                    data: (services) => Column(
-                      children: services.map((s) => ActiveServiceCard(
-                        service: s,
-                        onActionPressed: () {},
-                      )).toList(),
-                    ),
-                    loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Text('Error loading services: $e'),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Pending Assignments
-                  _buildSectionTitle('Pending Assignments'),
-                  const SizedBox(height: 16),
-                  pendingAssignmentsAsync.when(
-                    data: (assignments) => Column(
-                      children: assignments.map((a) => PendingAssignmentCard(
-                        assignment: a,
-                        onAssignPressed: () {},
-                      )).toList(),
-                    ),
-                    loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Text('Error loading assignments: $e'),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Recent Activity
+                  // Recent Activity (derived from recent bookings for now)
                   _buildSectionTitle('Recent Activity'),
                   const SizedBox(height: 16),
-                  activitiesAsync.when(
-                    data: (List<ops_models.OperationsActivity> activities) => Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
-                      ),
-                      child: Column(
-                        children: activities.map((activity) => Padding(
-                          padding: const EdgeInsets.only(bottom: 16.0),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: activity.iconColor.withValues(alpha: 0.1),
-                                  shape: BoxShape.circle,
+                  recentBookingsAsync.when(
+                    data: (bookings) {
+                      if (bookings.isEmpty) return const Text('No recent activity.');
+                      return Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+                        ),
+                        child: Column(
+                          children: bookings.take(5).map((b) => Padding(
+                            padding: const EdgeInsets.only(bottom: 16.0),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: b.status.color.withValues(alpha: 0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(b.status.icon, size: 18, color: b.status.color),
                                 ),
-                                child: Icon(activity.icon, size: 18, color: activity.iconColor),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(activity.title, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w500)),
-                                    Text(activity.time, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
-                                  ],
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Booking ${b.bookingId} - ${b.status.displayName}',
+                                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w500),
+                                      ),
+                                      if (b.farmerName != null)
+                                        Text(
+                                          'Farmer: ${b.farmerName}',
+                                          style: AppTextStyles.bodySmall.copyWith(fontSize: 10, color: AppColors.textSecondary),
+                                        ),
+                                      Text(
+                                        DateFormat('dd MMM, hh:mm a').format(b.updatedAt),
+                                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        )).toList(),
-                      ),
-                    ),
+                              ],
+                            ),
+                          )).toList(),
+                        ),
+                      );
+                    },
                     loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Text('Error loading activities: $e'),
+                    error: (e, _) => Text('Error: $e'),
                   ),
                   const SizedBox(height: 40),
                 ],

@@ -37,7 +37,7 @@ class BookingRepositoryImpl implements BookingRepository {
   @override
   Future<void> cancelBooking(String docId) async {
     await _firestore.collection('bookings').doc(docId).update({
-      'status': BookingStatus.cancelled.name,
+      'status': BookingStatus.cancelled.toFirestore(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

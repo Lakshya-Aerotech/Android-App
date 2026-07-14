@@ -10,6 +10,7 @@ import '../../../../core/widgets/section_header.dart';
 import '../../../farm/models/farm_model.dart';
 import '../../../farm/viewmodels/farm_viewmodel.dart';
 import '../../viewmodels/booking_viewmodel.dart';
+import '../../../auth/viewmodel/auth_viewmodel.dart';
 import '../../widgets/farm_selection_card.dart';
 import '../../widgets/service_selection_card.dart';
 import '../../widgets/booking_summary_card.dart';
@@ -130,6 +131,8 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
       estimatedArea: double.parse(_areaController.text),
       village: _selectedFarm!.village,
       district: _selectedFarm!.district,
+      stateName: _selectedFarm!.state,
+      farmArea: _selectedFarm!.area,
       latitude: _selectedFarm!.latitude,
       longitude: _selectedFarm!.longitude,
       remarks: _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
@@ -345,6 +348,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
   }
 
   Widget _buildReviewStep() {
+    final user = ref.watch(userModelProvider);
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -352,6 +356,11 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
         children: [
           const SectionHeader(title: 'Review Booking'),
           const SizedBox(height: 16),
+          BookingSummaryCard(
+            label: 'Farmer',
+            value: user?.name ?? 'Not Set',
+            icon: Icons.person_outline,
+          ),
           BookingSummaryCard(
             label: 'Farm',
             value: _selectedFarm?.farmName ?? '',

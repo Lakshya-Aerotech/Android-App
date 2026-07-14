@@ -104,7 +104,7 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
                       final filtered = bookings.where((b) {
                         final matchesSearch = b.farmName.toLowerCase().contains(_searchQuery) ||
                             b.bookingId.toLowerCase().contains(_searchQuery);
-                        final matchesStatus = _selectedStatus == null || b.status.name == _selectedStatus;
+                        final matchesStatus = _selectedStatus == null || b.status.toFirestore() == _selectedStatus;
                         return matchesSearch && matchesStatus;
                       }).toList();
 
