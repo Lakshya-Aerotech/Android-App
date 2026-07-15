@@ -17,6 +17,7 @@ import 'package:lakshya_aerotech/features/booking/presentation/booking_details/b
 import 'package:lakshya_aerotech/features/booking/presentation/success/booking_success_screen.dart';
 import 'package:lakshya_aerotech/features/booking/models/booking_model.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/admin_main_screen.dart';
+import 'package:lakshya_aerotech/features/admin/presentation/analytics/admin_analytics_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/employees/employee_list_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/employees/add_employee_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/placeholders/admin_placeholders.dart';
@@ -195,6 +196,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'drones',
             builder: (context, state) => const DronesPlaceholder(),
+          ),
+          GoRoute(
+            path: 'analytics',
+            builder: (context, state) => const AdminAnalyticsScreen(),
           ),
           GoRoute(
             path: 'settings',

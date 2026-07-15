@@ -49,7 +49,9 @@ class AdminDashboardScreen extends ConsumerWidget {
                     builder: (context, constraints) {
                       final double width = constraints.maxWidth;
                       final double itemWidth = (width - 16) / 2;
-                      final double textScale = MediaQuery.textScalerOf(context).scale(1.0);
+                      final double textScale = MediaQuery.textScalerOf(
+                        context,
+                      ).scale(1.0);
                       final double minItemHeight = 135.0 * textScale;
                       final double ratio = itemWidth / minItemHeight;
 
@@ -100,6 +102,14 @@ class AdminDashboardScreen extends ConsumerWidget {
                     subtitle: 'Register and track drone fleet',
                     onTap: () => context.push('/admin/drones'),
                   ),
+                  const SizedBox(height: 12),
+                  QuickActionCard(
+                    icon: Icons.analytics_outlined,
+                    title: 'Analytics & Reports',
+                    subtitle: 'View business insights and download reports',
+                    iconColor: AppColors.info,
+                    onTap: () => context.push('/admin/analytics'),
+                  ),
                   const SizedBox(height: 32),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -118,15 +128,23 @@ class AdminDashboardScreen extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+                      border: Border.all(
+                        color: AppColors.border.withValues(alpha: 0.5),
+                      ),
                     ),
                     child: Column(
                       children: [
-                        const Icon(Icons.history, size: 48, color: AppColors.textTertiary),
+                        const Icon(
+                          Icons.history,
+                          size: 48,
+                          color: AppColors.textTertiary,
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           'No recent activity',
-                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
