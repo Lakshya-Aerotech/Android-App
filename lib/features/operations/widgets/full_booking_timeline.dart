@@ -25,8 +25,16 @@ class FullBookingTimeline extends StatelessWidget {
     ];
 
     int activeIndex = stages.indexWhere((s) => s['status'] == currentStatus);
-    if (activeIndex == -1 && currentStatus == BookingStatus.cancelled) {
-      activeIndex = 0;
+    
+    final isCancelled = currentStatus == BookingStatus.cancelled;
+    final isIssueReported = currentStatus == BookingStatus.issueReported;
+
+    if (activeIndex == -1) {
+       if (isCancelled || isIssueReported) {
+         // Show progress up to where it was, but we don't have the previous status easily here without history
+         // For now, let's just highlight the error status if it's not in the main path
+         activeIndex = 0; 
+       }
     }
 
     return Column(
@@ -34,11 +42,12 @@ class FullBookingTimeline extends StatelessWidget {
         final isLast = index == stages.length - 1;
         final isCompleted = index < activeIndex;
         final isActive = index == activeIndex;
-        final isCancelled = currentStatus == BookingStatus.cancelled;
 
         Color color =
             isCompleted || isActive ? AppColors.accent : AppColors.border;
-        if (isCancelled && isActive) color = Colors.red;
+        
+        if (isActive && isIssueReported) color = Colors.red.shade700;
+        if (isActive && isCancelled) color = Colors.red;
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,7 +79,7 @@ class FullBookingTimeline extends StatelessWidget {
                 if (!isLast)
                   Container(
                     width: 2,
-                    height: 30, // Reduced height for more stages
+                    height: 30,
                     color: isCompleted ? AppColors.accent : AppColors.border,
                   ),
               ],
@@ -81,9 +90,9 @@ class FullBookingTimeline extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isCancelled && isActive
-                        ? 'Cancelled'
-                        : stages[index]['label'] as String,
+                    isActive && isIssueReported ? 'Issue Reported' : 
+                    isActive && isCancelled ? 'Cancelled' :
+                    stages[index]['label'] as String,
                     style: AppTextStyles.bodyMedium.copyWith(
                       fontWeight:
                           isActive || isCompleted
@@ -97,7 +106,9 @@ class FullBookingTimeline extends StatelessWidget {
                   ),
                   if (isActive)
                     Text(
-                      isCancelled ? 'Booking was cancelled.' : 'Current stage.',
+                      isCancelled ? 'Booking was cancelled.' : 
+                      isIssueReported ? 'Farmer reported an issue.' :
+                      'Current stage.',
                       style: AppTextStyles.bodySmall.copyWith(fontSize: 10),
                     ),
                 ],

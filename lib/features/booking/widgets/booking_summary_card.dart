@@ -48,6 +48,8 @@ class BookingSummaryCard extends StatelessWidget {
                 Text(
                   value,
                   style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

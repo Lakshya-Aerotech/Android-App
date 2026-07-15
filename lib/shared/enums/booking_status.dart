@@ -12,41 +12,8 @@ enum BookingStatus {
   completed,
   farmerConfirmed,
   closed,
+  issueReported,
   cancelled;
-
-  /// Returns the enum value from a string, with safety fallbacks
-  static BookingStatus fromString(String? status) {
-    if (status == null || status.isEmpty) return BookingStatus.pending;
-
-    // Normalize string: lowercase and remove underscores
-    final normalized = status.toLowerCase().replaceAll('_', '');
-
-    // Exact match search
-    for (var value in BookingStatus.values) {
-      if (value.name.toLowerCase() == normalized) return value;
-    }
-
-    // Explicit snake_case mappings
-    switch (status.toLowerCase()) {
-      case 'approved':
-        return BookingStatus.reviewed;
-      case 'pilot_assigned':
-        return BookingStatus.pilotAssigned;
-      case 'drone_assigned':
-        return BookingStatus.droneAssigned;
-      case 'en_route':
-        return BookingStatus.enRoute;
-      case 'in_progress':
-        return BookingStatus.inProgress;
-      case 'farmer_confirmed':
-        return BookingStatus.farmerConfirmed;
-    }
-
-    debugPrint(
-      'Warning: Unknown BookingStatus string received: $status. Defaulting to pending.',
-    );
-    return BookingStatus.pending;
-  }
 
   /// Returns a user-friendly display name
   String get displayName {
@@ -73,6 +40,8 @@ enum BookingStatus {
         return 'Confirmed';
       case BookingStatus.closed:
         return 'Closed';
+      case BookingStatus.issueReported:
+        return 'Issue Reported';
       case BookingStatus.cancelled:
         return 'Cancelled';
     }
@@ -103,6 +72,8 @@ enum BookingStatus {
         return Colors.green.shade700;
       case BookingStatus.closed:
         return Colors.grey;
+      case BookingStatus.issueReported:
+        return Colors.red.shade700;
       case BookingStatus.cancelled:
         return Colors.red;
     }
@@ -133,6 +104,8 @@ enum BookingStatus {
         return Icons.verified_user_outlined;
       case BookingStatus.closed:
         return Icons.archive_outlined;
+      case BookingStatus.issueReported:
+        return Icons.report_problem_outlined;
       case BookingStatus.cancelled:
         return Icons.cancel_outlined;
     }
@@ -140,4 +113,31 @@ enum BookingStatus {
 
   /// Serialization for Firestore
   String toFirestore() => name;
+
+  /// Deserialization from Firestore
+  static BookingStatus fromString(String? status) {
+    if (status == null || status.isEmpty) return BookingStatus.pending;
+
+    // Exact match
+    for (var value in BookingStatus.values) {
+      if (value.name == status) return value;
+    }
+
+    // Normalization fallback (for robustness)
+    final normalized = status.toLowerCase().replaceAll('_', '');
+    for (var value in BookingStatus.values) {
+      if (value.name.toLowerCase() == normalized) return value;
+    }
+
+    // Explicit snake_case mappings
+    if (status == 'approved') return BookingStatus.reviewed;
+    if (status == 'pilot_assigned') return BookingStatus.pilotAssigned;
+    if (status == 'drone_assigned') return BookingStatus.droneAssigned;
+    if (status == 'en_route') return BookingStatus.enRoute;
+    if (status == 'in_progress') return BookingStatus.inProgress;
+    if (status == 'farmer_confirmed') return BookingStatus.farmerConfirmed;
+    if (status == 'issue_reported') return BookingStatus.issueReported;
+
+    return BookingStatus.pending;
+  }
 }

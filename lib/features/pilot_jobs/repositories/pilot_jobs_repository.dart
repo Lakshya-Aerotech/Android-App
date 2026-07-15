@@ -5,8 +5,9 @@ import '../../../shared/enums/booking_status.dart';
 abstract class PilotJobsRepository {
   Stream<List<BookingModel>> getJobsByStatus(String pilotId, List<BookingStatus> statuses);
   Stream<List<BookingModel>> getAllPilotJobsStream(String pilotId);
-  Future<void> updateJobStatus(String bookingDocId, BookingStatus status, {String? rejectionReason});
-  Future<void> completeMission(String bookingDocId, Map<String, dynamic> completionData, String droneDocId);
+  Future<void> updateJobStatus(String bookingDocId, BookingStatus status, StatusHistoryEntry historyEntry, {String? rejectionReason});
+  Future<void> completeMission(String bookingDocId, Map<String, dynamic> completionData, String droneDocId, StatusHistoryEntry historyEntry);
+  Stream<BookingModel> getJobStream(String bookingDocId);
 }
 
 class PilotJobsRepositoryImpl implements PilotJobsRepository {
@@ -38,10 +39,11 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
   }
 
   @override
-  Future<void> updateJobStatus(String bookingDocId, BookingStatus status, {String? rejectionReason}) async {
+  Future<void> updateJobStatus(String bookingDocId, BookingStatus status, StatusHistoryEntry historyEntry, {String? rejectionReason}) async {
     final Map<String, dynamic> updates = {
       'status': status.toFirestore(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'statusHistory': FieldValue.arrayUnion([historyEntry.toMap()]),
     };
 
     if (rejectionReason != null) {
@@ -52,7 +54,7 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
   }
 
   @override
-  Future<void> completeMission(String bookingDocId, Map<String, dynamic> completionData, String droneDocId) async {
+  Future<void> completeMission(String bookingDocId, Map<String, dynamic> completionData, String droneDocId, StatusHistoryEntry historyEntry) async {
     final batch = _firestore.batch();
 
     // 1. Update Booking
@@ -61,12 +63,10 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
       ...completionData,
       'status': BookingStatus.completed.toFirestore(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'statusHistory': FieldValue.arrayUnion([historyEntry.toMap()]),
     });
 
     // 2. Release Drone
-    // We need the document ID of the drone. If it's not provided, we'd have to find it.
-    // The model uses droneId which might be the code, not docId. 
-    // Assuming droneDocId is passed correctly.
     final droneRef = _firestore.collection('drones').doc(droneDocId);
     batch.update(droneRef, {
       'status': 'available',
@@ -76,5 +76,14 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
     });
 
     await batch.commit();
+  }
+
+  @override
+  Stream<BookingModel> getJobStream(String bookingDocId) {
+    return _firestore
+        .collection('bookings')
+        .doc(bookingDocId)
+        .snapshots()
+        .map((doc) => BookingModel.fromMap(doc.data()!, doc.id));
   }
 }

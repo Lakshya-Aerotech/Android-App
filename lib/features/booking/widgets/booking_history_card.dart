@@ -41,13 +41,18 @@ class BookingHistoryCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  booking.bookingId,
-                  style: AppTextStyles.labelSmall.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.1,
+                Expanded(
+                  child: Text(
+                    booking.bookingId,
+                    style: AppTextStyles.labelSmall.copyWith(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.1,
+                      color: AppColors.primary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 8),
                 StatusChip.fromStatus(booking.status),
               ],
             ),
@@ -60,10 +65,32 @@ class BookingHistoryCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              'Farm: ${booking.farmName}',
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+            Row(
+              children: [
+                const Icon(Icons.landscape_outlined, size: 14, color: AppColors.textSecondary),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    booking.farmName,
+                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
+            if (booking.assignedPilotName != null) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.person_outline, size: 14, color: AppColors.accent),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Pilot: ${booking.assignedPilotName}',
+                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.accent, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ],
             const Divider(height: 24),
             Row(
               children: [

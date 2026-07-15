@@ -1,39 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/enums/booking_status.dart';
+import '../models/booking_model.dart';
 
 class BookingTimeline extends StatelessWidget {
-  final BookingStatus currentStatus;
+  final BookingModel booking;
 
-  const BookingTimeline({super.key, required this.currentStatus});
+  const BookingTimeline({super.key, required this.booking});
 
   @override
   Widget build(BuildContext context) {
     final stages = <Map<String, dynamic>>[
-      {'label': 'Pending', 'status': BookingStatus.pending},
+      {'label': 'Booking Submitted', 'status': BookingStatus.pending},
       {'label': 'Reviewed', 'status': BookingStatus.reviewed},
       {'label': 'Pilot Assigned', 'status': BookingStatus.pilotAssigned},
       {'label': 'Drone Assigned', 'status': BookingStatus.droneAssigned},
-      {'label': 'Accepted', 'status': BookingStatus.accepted},
-      {'label': 'En Route', 'status': BookingStatus.enRoute},
-      {'label': 'Arrived', 'status': BookingStatus.arrived},
-      {'label': 'In Progress', 'status': BookingStatus.inProgress},
-      {'label': 'Completed', 'status': BookingStatus.completed},
-      {'label': 'Confirmed', 'status': BookingStatus.farmerConfirmed},
+      {'label': 'Pilot Accepted', 'status': BookingStatus.accepted},
+      {'label': 'Pilot En Route', 'status': BookingStatus.enRoute},
+      {'label': 'Arrived At Farm', 'status': BookingStatus.arrived},
+      {'label': 'Mission Started', 'status': BookingStatus.inProgress},
+      {'label': 'Mission Completed', 'status': BookingStatus.completed},
+      {'label': 'Farmer Confirmed', 'status': BookingStatus.farmerConfirmed},
     ];
 
-    int activeIndex = _getSelectedIndex(currentStatus, stages);
-
+    // Find the latest completed stage from statusHistory
+    final history = booking.statusHistory;
+    
     return Column(
       children: List.generate(stages.length, (index) {
+        final stageStatus = stages[index]['status'] as BookingStatus;
         final isLast = index == stages.length - 1;
-        final isCompleted = index < activeIndex;
-        final isActive = index == activeIndex;
-        final isCancelled = currentStatus == BookingStatus.cancelled;
+        
+        // Find if this stage has an entry in history
+        final historyEntry = history.cast<StatusHistoryEntry?>().firstWhere(
+          (e) => e?.status == stageStatus,
+          orElse: () => null,
+        );
+
+        final isCompleted = historyEntry != null;
+        final isActive = booking.status == stageStatus;
+        final isCancelled = booking.status == BookingStatus.cancelled;
+        final isIssueReported = booking.status == BookingStatus.issueReported;
 
         Color color = isCompleted || isActive ? AppColors.accent : AppColors.border;
         if (isCancelled && isActive) color = Colors.red;
+        if (isIssueReported && isActive) color = Colors.red.shade700;
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,7 +77,7 @@ class BookingTimeline extends StatelessWidget {
                 if (!isLast)
                   Container(
                     width: 2,
-                    height: 35,
+                    height: 40,
                     color: isCompleted ? AppColors.accent : AppColors.border,
                   ),
               ],
@@ -74,18 +87,38 @@ class BookingTimeline extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    isCancelled && isActive ? 'Cancelled' : stages[index]['label'] as String,
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      fontWeight: isActive || isCompleted ? FontWeight.bold : FontWeight.normal,
-                      color: isActive || isCompleted ? AppColors.textPrimary : AppColors.textSecondary,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        stages[index]['label'] as String,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: isActive || isCompleted ? FontWeight.bold : FontWeight.normal,
+                          color: isActive || isCompleted ? AppColors.textPrimary : AppColors.textSecondary,
+                        ),
+                      ),
+                      if (historyEntry != null)
+                        Text(
+                          DateFormat('hh:mm a').format(historyEntry.timestamp),
+                          style: AppTextStyles.bodySmall.copyWith(fontSize: 10),
+                        ),
+                    ],
                   ),
-                  if (isActive)
+                  if (isActive) ...[
                     Text(
-                      isCancelled ? 'Booking was cancelled.' : 'Current status of your booking.',
+                      _getStatusSubtitle(booking.status),
                       style: AppTextStyles.bodySmall.copyWith(fontSize: 10),
                     ),
+                  ],
+                  if (historyEntry != null && historyEntry.remarks != null && historyEntry.remarks!.isNotEmpty && isActive)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        historyEntry.remarks!,
+                        style: AppTextStyles.bodySmall.copyWith(fontStyle: FontStyle.italic, color: AppColors.accent),
+                      ),
+                    ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -95,17 +128,34 @@ class BookingTimeline extends StatelessWidget {
     );
   }
 
-  int _getSelectedIndex(BookingStatus status, List<Map<String, dynamic>> stages) {
-    if (status == BookingStatus.cancelled) {
-      return 0; 
+  String _getStatusSubtitle(BookingStatus status) {
+    switch (status) {
+      case BookingStatus.pending:
+        return 'Waiting for operations to review your booking.';
+      case BookingStatus.reviewed:
+        return 'Booking approved! Assigning pilot and drone.';
+      case BookingStatus.pilotAssigned:
+        return 'Pilot has been assigned to your booking.';
+      case BookingStatus.droneAssigned:
+        return 'Drone has been allocated for the service.';
+      case BookingStatus.accepted:
+        return 'Pilot has accepted the job.';
+      case BookingStatus.enRoute:
+        return 'Pilot is on the way to your farm.';
+      case BookingStatus.arrived:
+        return 'Pilot has arrived at the farm.';
+      case BookingStatus.inProgress:
+        return 'Drone mission is currently in progress.';
+      case BookingStatus.completed:
+        return 'Service completed! Please verify and confirm.';
+      case BookingStatus.farmerConfirmed:
+        return 'You have confirmed the service completion.';
+      case BookingStatus.issueReported:
+        return 'An issue has been reported. We will follow up soon.';
+      case BookingStatus.cancelled:
+        return 'This booking was cancelled.';
+      default:
+        return 'Current status of your booking.';
     }
-    
-    for (int i = 0; i < stages.length; i++) {
-      if (stages[i]['status'] == status) return i;
-    }
-
-    if (status == BookingStatus.closed) return stages.length - 1;
-
-    return 0;
   }
 }

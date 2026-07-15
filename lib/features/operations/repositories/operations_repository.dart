@@ -7,7 +7,8 @@ abstract class OperationsRepository {
   Stream<List<BookingModel>> getBookingsByStatus(List<BookingStatus> statuses);
   Future<void> updateBookingStatus(
     String docId,
-    BookingStatus status, {
+    BookingStatus status,
+    StatusHistoryEntry historyEntry, {
     OperationsRemark? remark,
   });
   Stream<List<BookingModel>> getAllBookingsStream();
@@ -16,9 +17,9 @@ abstract class OperationsRepository {
   Stream<List<BookingModel>> getApprovedUnassignedBookingsStream();
   Stream<List<OpsPilotResource>> getAvailablePilotsStream();
   Stream<List<OpsDroneResource>> getDronesStream();
-  Future<void> assignPilot(String bookingDocId, String pilotId, String pilotName);
-  Future<void> assignDrone(String bookingDocId, String droneId, String droneName);
-  Future<void> assignPilotAndDrone(OpsAssignmentRequest request);
+  Future<void> assignPilot(String bookingDocId, String pilotId, String pilotName, StatusHistoryEntry historyEntry);
+  Future<void> assignDrone(String bookingDocId, String droneId, String droneName, StatusHistoryEntry historyEntry);
+  Future<void> assignPilotAndDrone(OpsAssignmentRequest request, StatusHistoryEntry historyEntry);
 }
 
 class OperationsRepositoryImpl implements OperationsRepository {
@@ -41,12 +42,14 @@ class OperationsRepositoryImpl implements OperationsRepository {
   @override
   Future<void> updateBookingStatus(
     String docId,
-    BookingStatus status, {
+    BookingStatus status,
+    StatusHistoryEntry historyEntry, {
     OperationsRemark? remark,
   }) async {
     final updates = <String, dynamic>{
       'status': status.toFirestore(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'statusHistory': FieldValue.arrayUnion([historyEntry.toMap()]),
     };
     if (remark != null) {
       updates['operationsRemarks'] = FieldValue.arrayUnion([remark.toMap()]);
@@ -94,6 +97,7 @@ class OperationsRepositoryImpl implements OperationsRepository {
       int completedToday = 0;
       int cancelled = 0;
       int todayBookings = 0;
+      int issueReported = 0;
 
       for (var doc in bookingSnapshot.docs) {
         final data = doc.data();
@@ -106,6 +110,7 @@ class OperationsRepositoryImpl implements OperationsRepository {
         if (status == BookingStatus.pilotAssigned) pilotAssigned++;
         if (status == BookingStatus.droneAssigned) droneAssigned++;
         if (status == BookingStatus.cancelled) cancelled++;
+        if (status == BookingStatus.issueReported) issueReported++;
 
         if (createdAt != null && createdAt.isAfter(todayStart)) {
           todayBookings++;
@@ -140,6 +145,7 @@ class OperationsRepositoryImpl implements OperationsRepository {
         'availableDrones': availableDrones,
         'busyDrones': busyDrones,
         'maintenanceDrones': maintenanceDrones,
+        'issueReported': issueReported,
       };
     });
   }
@@ -234,27 +240,29 @@ class OperationsRepositoryImpl implements OperationsRepository {
   }
 
   @override
-  Future<void> assignPilot(String bookingDocId, String pilotId, String pilotName) async {
+  Future<void> assignPilot(String bookingDocId, String pilotId, String pilotName, StatusHistoryEntry historyEntry) async {
     await _firestore.collection('bookings').doc(bookingDocId).update({
       'assignedPilotId': pilotId,
       'assignedPilotName': pilotName,
       'status': BookingStatus.pilotAssigned.toFirestore(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'statusHistory': FieldValue.arrayUnion([historyEntry.toMap()]),
     });
   }
 
   @override
-  Future<void> assignDrone(String bookingDocId, String droneId, String droneName) async {
+  Future<void> assignDrone(String bookingDocId, String droneId, String droneName, StatusHistoryEntry historyEntry) async {
     await _firestore.collection('bookings').doc(bookingDocId).update({
       'assignedDroneId': droneId,
       'assignedDroneName': droneName,
       'status': BookingStatus.droneAssigned.toFirestore(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'statusHistory': FieldValue.arrayUnion([historyEntry.toMap()]),
     });
   }
 
   @override
-  Future<void> assignPilotAndDrone(OpsAssignmentRequest request) async {
+  Future<void> assignPilotAndDrone(OpsAssignmentRequest request, StatusHistoryEntry historyEntry) async {
     final bookingRef = _firestore.collection('bookings').doc(request.bookingDocId);
     final droneRef = _firestore.collection('drones').doc(request.drone.id);
     final assignmentRef = _firestore.collection('job_assignments').doc(request.bookingDocId);
@@ -269,6 +277,7 @@ class OperationsRepositoryImpl implements OperationsRepository {
         'assignedDroneName': request.drone.name,
         'status': BookingStatus.droneAssigned.toFirestore(),
         'updatedAt': timestamp,
+        'statusHistory': FieldValue.arrayUnion([historyEntry.toMap()]),
       });
 
       transaction.set(assignmentRef, {
@@ -391,13 +400,4 @@ class OperationsRepositoryImpl implements OperationsRepository {
       activeBookingId: activeBookingId?.toString(),
     );
   }
-}
-
-class OpsAssignmentException implements Exception {
-  final String message;
-
-  const OpsAssignmentException(this.message);
-
-  @override
-  String toString() => message;
 }

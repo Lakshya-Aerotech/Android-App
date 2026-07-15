@@ -22,6 +22,7 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
   String? _selectedService;
   String? _selectedCrop;
   bool _isNewestFirst = true;
+  int _selectedTab = 0; // 0 for Pending, 1 for Reported Issues
 
   @override
   void dispose() {
@@ -31,7 +32,8 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
 
   @override
   Widget build(BuildContext context) {
-    final bookingsAsync = ref.watch(pendingBookingsStreamProvider);
+    final pendingAsync = ref.watch(pendingBookingsStreamProvider);
+    final issuesAsync = ref.watch(reportedIssuesStreamProvider);
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
@@ -41,7 +43,7 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
           children: [
             DashboardHeader(
               userName: 'Operations',
-              subtitle: 'Review pending requests.',
+              subtitle: 'Manage and review bookings.',
             ),
             Padding(
               padding: const EdgeInsets.all(AppSizes.screenPadding),
@@ -52,18 +54,42 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Pending Bookings',
+                        _selectedTab == 0 ? 'Pending Bookings' : 'Reported Issues',
                         style: AppTextStyles.headlineLarge.copyWith(
                           color: AppColors.textDark,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       IconButton(
-                        onPressed: () => ref.invalidate(pendingBookingsStreamProvider),
+                        onPressed: () {
+                          ref.invalidate(pendingBookingsStreamProvider);
+                          ref.invalidate(reportedIssuesStreamProvider);
+                        },
                         icon: const Icon(Icons.refresh, color: AppColors.primary),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  
+                  // Tab Switcher
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildTab(0, 'Pending', Icons.pending_actions),
+                        ),
+                        Expanded(
+                          child: _buildTab(1, 'Issues', Icons.report_problem_outlined),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -94,7 +120,8 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                     ],
                   ),
                   const SizedBox(height: 24),
-                  bookingsAsync.when(
+                  
+                  (_selectedTab == 0 ? pendingAsync : issuesAsync).when(
                     data: (bookings) {
                       var filtered = bookings.where((b) {
                         final matchesSearch = b.bookingId.toLowerCase().contains(_searchQuery) ||
@@ -111,10 +138,10 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                       if (!_isNewestFirst) filtered = filtered.reversed.toList();
 
                       if (filtered.isEmpty) {
-                        return const EmptyState(
-                          title: 'No pending bookings.',
-                          message: 'All requests have been reviewed.',
-                          icon: Icons.done_all_rounded,
+                        return EmptyState(
+                          title: _selectedTab == 0 ? 'No pending bookings.' : 'No reported issues.',
+                          message: _selectedTab == 0 ? 'All requests have been reviewed.' : 'Great job! No issues reported.',
+                          icon: _selectedTab == 0 ? Icons.done_all_rounded : Icons.check_circle_outline,
                         );
                       }
 
@@ -130,10 +157,42 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                         },
                       );
                     },
-                    loading: () => const Center(child: CircularProgressIndicator()),
+                    loading: () => const Center(child: Padding(
+                      padding: EdgeInsets.only(top: 80),
+                      child: CircularProgressIndicator(),
+                    )),
                     error: (e, _) => Center(child: Text('Error: $e')),
                   ),
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTab(int index, String label, IconData icon) {
+    final isSelected = _selectedTab == index;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedTab = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: isSelected ? Colors.white : AppColors.textSecondary, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: isSelected ? Colors.white : AppColors.textSecondary,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ],

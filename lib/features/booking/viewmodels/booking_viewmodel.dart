@@ -10,6 +10,10 @@ final bookingRepositoryProvider = Provider<BookingRepository>((ref) {
   return BookingRepositoryImpl();
 });
 
+final singleBookingStreamProvider = StreamProvider.family<BookingModel?, String>((ref, docId) {
+  return ref.watch(bookingRepositoryProvider).getBookingStream(docId);
+});
+
 final farmerBookingsStreamProvider = StreamProvider<List<BookingModel>>((ref) {
   final user = ref.watch(userModelProvider);
   if (user == null || user.uid == null) return Stream.value([]);
@@ -80,10 +84,64 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
     }
   }
 
-  Future<void> cancelBooking(String docId) async {
+  Future<void> cancelBooking(String docId, {String? remarks}) async {
+    state = const AsyncLoading();
+    final user = _ref.read(userModelProvider);
+    try {
+      final historyEntry = StatusHistoryEntry(
+        status: BookingStatus.cancelled,
+        updatedBy: user?.name ?? 'Farmer',
+        updatedByRole: 'farmer',
+        timestamp: DateTime.now(),
+        remarks: remarks ?? 'Booking cancelled by farmer.',
+      );
+      await _repository.cancelBooking(docId, historyEntry);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
+  Future<void> confirmService(String docId) async {
+    state = const AsyncLoading();
+    final user = _ref.read(userModelProvider);
+    try {
+      final historyEntry = StatusHistoryEntry(
+        status: BookingStatus.farmerConfirmed,
+        updatedBy: user?.name ?? 'Farmer',
+        updatedByRole: 'farmer',
+        timestamp: DateTime.now(),
+        remarks: 'Service confirmed as completed by farmer.',
+      );
+      await _repository.confirmService(docId, historyEntry);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
+  Future<void> submitRating(String docId, double rating, String feedback) async {
     state = const AsyncLoading();
     try {
-      await _repository.cancelBooking(docId);
+      await _repository.submitRating(docId, rating, feedback);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
+  Future<void> reportIssue(String docId, String category, String description) async {
+    state = const AsyncLoading();
+    final user = _ref.read(userModelProvider);
+    try {
+      final historyEntry = StatusHistoryEntry(
+        status: BookingStatus.issueReported,
+        updatedBy: user?.name ?? 'Farmer',
+        updatedByRole: 'farmer',
+        timestamp: DateTime.now(),
+        remarks: 'Issue reported: $category - $description',
+      );
+      await _repository.reportIssue(docId, category, description, historyEntry);
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);

@@ -10,7 +10,6 @@ import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/status_chip.dart';
 import '../../../../shared/enums/booking_status.dart';
 import '../../../booking/models/booking_model.dart';
-import '../../../operations/viewmodels/operations_viewmodel.dart';
 import '../../viewmodels/pilot_jobs_viewmodel.dart';
 import '../../widgets/mission_completion_dialog.dart';
 import '../../../operations/widgets/full_booking_timeline.dart';
@@ -102,8 +101,8 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Hydrate booking for maps/farmer info if missing
-    final jobAsync = ref.watch(hydratedBookingProvider(widget.job));
+    // Watch real-time stream using docId as family key for stable updates
+    final jobAsync = ref.watch(pilotJobDetailsProvider(widget.job.docId!));
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,

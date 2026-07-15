@@ -226,6 +226,18 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
                   child: FullBookingTimeline(currentStatus: booking.status),
                 ),
 
+                if (booking.status == BookingStatus.issueReported) ...[
+                  const SizedBox(height: 24),
+                  _buildSectionTitle('Reported Issue'),
+                  _buildInfoCard(
+                    items: [
+                      {'label': 'Category', 'value': booking.issueCategory ?? 'N/A', 'icon': Icons.category_outlined},
+                      {'label': 'Description', 'value': booking.issueDescription ?? 'N/A', 'icon': Icons.description_outlined},
+                      {'label': 'Reported At', 'value': booking.issueReportedAt != null ? DateFormat('dd MMM yyyy, hh:mm a').format(booking.issueReportedAt!) : 'N/A', 'icon': Icons.access_time},
+                    ],
+                  ),
+                ],
+
                 const SizedBox(height: 24),
                 _buildActionSection(booking),
                 const SizedBox(height: 40),
@@ -378,7 +390,7 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
             ),
           ),
           const SizedBox(width: 8),
-          StatusChip.fromStatus(booking.status),
+          Flexible(child: StatusChip.fromStatus(booking.status)),
         ],
       ),
     );

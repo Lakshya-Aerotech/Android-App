@@ -43,6 +43,8 @@ class StatusChip extends StatelessWidget {
           color: textColor ?? AppColors.accent,
           fontWeight: FontWeight.w600,
         ),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       ),
     );
   }

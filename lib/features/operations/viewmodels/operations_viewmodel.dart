@@ -78,6 +78,12 @@ final dashboardStatsStreamProvider = StreamProvider<List<OperationsStatistic>>((
         title: "Today's Bookings",
         value: stats['todayBookings'].toString(),
       ),
+      OperationsStatistic(
+        icon: Icons.report_problem_outlined,
+        iconColor: Colors.red.shade900,
+        title: 'Issues Reported',
+        value: stats['issueReported'].toString(),
+      ),
     ];
   });
 });
@@ -91,6 +97,12 @@ final recentBookingsStreamProvider = StreamProvider<List<BookingModel>>((ref) {
 final pendingBookingsStreamProvider = StreamProvider<List<BookingModel>>((ref) {
   return ref.watch(operationsRepositoryProvider).getBookingsByStatus([
     BookingStatus.pending,
+  ]);
+});
+
+final reportedIssuesStreamProvider = StreamProvider<List<BookingModel>>((ref) {
+  return ref.watch(operationsRepositoryProvider).getBookingsByStatus([
+    BookingStatus.issueReported,
   ]);
 });
 
@@ -122,6 +134,15 @@ class OperationsViewModel extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     try {
       final user = _ref.read(userModelProvider);
+      
+      final historyEntry = StatusHistoryEntry(
+        status: BookingStatus.reviewed,
+        updatedBy: user?.name ?? 'Operations',
+        updatedByRole: 'operations',
+        timestamp: DateTime.now(),
+        remarks: remarkMessage ?? 'Booking approved by operations.',
+      );
+
       OperationsRemark? remark;
       if (remarkMessage != null && remarkMessage.isNotEmpty) {
         remark = OperationsRemark(
@@ -133,6 +154,7 @@ class OperationsViewModel extends StateNotifier<AsyncValue<void>> {
       await _repository.updateBookingStatus(
         docId,
         BookingStatus.reviewed,
+        historyEntry,
         remark: remark,
       );
       state = const AsyncData(null);
@@ -145,6 +167,15 @@ class OperationsViewModel extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     try {
       final user = _ref.read(userModelProvider);
+
+      final historyEntry = StatusHistoryEntry(
+        status: BookingStatus.cancelled,
+        updatedBy: user?.name ?? 'Operations',
+        updatedByRole: 'operations',
+        timestamp: DateTime.now(),
+        remarks: remarkMessage,
+      );
+
       final remark = OperationsRemark(
         message: remarkMessage,
         createdBy: user?.name ?? 'Operations',
@@ -153,26 +184,7 @@ class OperationsViewModel extends StateNotifier<AsyncValue<void>> {
       await _repository.updateBookingStatus(
         docId,
         BookingStatus.cancelled,
-        remark: remark,
-      );
-      state = const AsyncData(null);
-    } catch (e, st) {
-      state = AsyncError(e, st);
-    }
-  }
-
-  Future<void> requestChanges(String docId, String remarkMessage) async {
-    state = const AsyncLoading();
-    try {
-      final user = _ref.read(userModelProvider);
-      final remark = OperationsRemark(
-        message: remarkMessage,
-        createdBy: user?.name ?? 'Operations',
-        timestamp: DateTime.now(),
-      );
-      await _repository.updateBookingStatus(
-        docId,
-        BookingStatus.pending,
+        historyEntry,
         remark: remark,
       );
       state = const AsyncData(null);
@@ -184,7 +196,15 @@ class OperationsViewModel extends StateNotifier<AsyncValue<void>> {
   Future<void> assignPilot(String bookingId, String pilotId, String pilotName) async {
     state = const AsyncLoading();
     try {
-      await _repository.assignPilot(bookingId, pilotId, pilotName);
+      final user = _ref.read(userModelProvider);
+      final historyEntry = StatusHistoryEntry(
+        status: BookingStatus.pilotAssigned,
+        updatedBy: user?.name ?? 'Operations',
+        updatedByRole: 'operations',
+        timestamp: DateTime.now(),
+        remarks: 'Pilot $pilotName assigned to job.',
+      );
+      await _repository.assignPilot(bookingId, pilotId, pilotName, historyEntry);
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -194,7 +214,15 @@ class OperationsViewModel extends StateNotifier<AsyncValue<void>> {
   Future<void> assignDrone(String bookingId, String droneId, String droneName) async {
     state = const AsyncLoading();
     try {
-      await _repository.assignDrone(bookingId, droneId, droneName);
+      final user = _ref.read(userModelProvider);
+      final historyEntry = StatusHistoryEntry(
+        status: BookingStatus.droneAssigned,
+        updatedBy: user?.name ?? 'Operations',
+        updatedByRole: 'operations',
+        timestamp: DateTime.now(),
+        remarks: 'Drone $droneName assigned to job.',
+      );
+      await _repository.assignDrone(bookingId, droneId, droneName, historyEntry);
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -204,7 +232,15 @@ class OperationsViewModel extends StateNotifier<AsyncValue<void>> {
   Future<String?> assignPilotAndDrone(OpsAssignmentRequest request) async {
     state = const AsyncLoading();
     try {
-      await _repository.assignPilotAndDrone(request);
+      final user = _ref.read(userModelProvider);
+      final historyEntry = StatusHistoryEntry(
+        status: BookingStatus.droneAssigned,
+        updatedBy: user?.name ?? 'Operations',
+        updatedByRole: 'operations',
+        timestamp: DateTime.now(),
+        remarks: 'Pilot ${request.pilot.name} and Drone ${request.drone.name} assigned.',
+      );
+      await _repository.assignPilotAndDrone(request, historyEntry);
       state = const AsyncData(null);
       return null;
     } on FirebaseException catch (e, st) {

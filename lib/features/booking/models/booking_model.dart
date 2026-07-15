@@ -29,6 +29,42 @@ class OperationsRemark {
   }
 }
 
+class StatusHistoryEntry {
+  final BookingStatus status;
+  final String updatedBy;
+  final String updatedByRole;
+  final DateTime timestamp;
+  final String? remarks;
+
+  StatusHistoryEntry({
+    required this.status,
+    required this.updatedBy,
+    required this.updatedByRole,
+    required this.timestamp,
+    this.remarks,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'status': status.toFirestore(),
+      'updatedBy': updatedBy,
+      'updatedByRole': updatedByRole,
+      'timestamp': Timestamp.fromDate(timestamp),
+      'remarks': remarks,
+    };
+  }
+
+  factory StatusHistoryEntry.fromMap(Map<String, dynamic> map) {
+    return StatusHistoryEntry(
+      status: BookingStatus.fromString(map['status']),
+      updatedBy: map['updatedBy'] ?? '',
+      updatedByRole: map['updatedByRole'] ?? '',
+      timestamp: (map['timestamp'] as Timestamp).toDate(),
+      remarks: map['remarks'],
+    );
+  }
+}
+
 class BookingModel {
   final String? docId;
   final String bookingId;
@@ -73,6 +109,18 @@ class BookingModel {
   final String? chemicalUsed;
   final List<String> missionPhotos;
 
+  // Farmer Post-Service
+  final double? rating;
+  final String? feedback;
+  final DateTime? feedbackCreatedAt;
+  final String? issueCategory;
+  final String? issueDescription;
+  final DateTime? issueReportedAt;
+  final DateTime? confirmedAt;
+
+  // Status History Audit Trail
+  final List<StatusHistoryEntry> statusHistory;
+
   // Timestamps
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -110,6 +158,14 @@ class BookingModel {
     this.flightDuration,
     this.chemicalUsed,
     this.missionPhotos = const [],
+    this.rating,
+    this.feedback,
+    this.feedbackCreatedAt,
+    this.issueCategory,
+    this.issueDescription,
+    this.issueReportedAt,
+    this.confirmedAt,
+    this.statusHistory = const [],
     required this.createdAt,
     required this.updatedAt,
   });
@@ -147,6 +203,14 @@ class BookingModel {
       'flightDuration': flightDuration,
       'chemicalUsed': chemicalUsed,
       'missionPhotos': missionPhotos,
+      'rating': rating,
+      'feedback': feedback,
+      'feedbackCreatedAt': feedbackCreatedAt != null ? Timestamp.fromDate(feedbackCreatedAt!) : null,
+      'issueCategory': issueCategory,
+      'issueDescription': issueDescription,
+      'issueReportedAt': issueReportedAt != null ? Timestamp.fromDate(issueReportedAt!) : null,
+      'confirmedAt': confirmedAt != null ? Timestamp.fromDate(confirmedAt!) : null,
+      'statusHistory': statusHistory.map((e) => e.toMap()).toList(),
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -195,6 +259,16 @@ class BookingModel {
       flightDuration: map['flightDuration'],
       chemicalUsed: map['chemicalUsed'],
       missionPhotos: List<String>.from(map['missionPhotos'] ?? []),
+      rating: (map['rating'] as num?)?.toDouble(),
+      feedback: map['feedback'],
+      feedbackCreatedAt: (map['feedbackCreatedAt'] as Timestamp?)?.toDate(),
+      issueCategory: map['issueCategory'],
+      issueDescription: map['issueDescription'],
+      issueReportedAt: (map['issueReportedAt'] as Timestamp?)?.toDate(),
+      confirmedAt: (map['confirmedAt'] as Timestamp?)?.toDate(),
+      statusHistory: (map['statusHistory'] as List? ?? [])
+          .map((e) => StatusHistoryEntry.fromMap(e as Map<String, dynamic>))
+          .toList(),
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
     );
@@ -233,6 +307,14 @@ class BookingModel {
     String? flightDuration,
     String? chemicalUsed,
     List<String>? missionPhotos,
+    double? rating,
+    String? feedback,
+    DateTime? feedbackCreatedAt,
+    String? issueCategory,
+    String? issueDescription,
+    DateTime? issueReportedAt,
+    DateTime? confirmedAt,
+    List<StatusHistoryEntry>? statusHistory,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -269,6 +351,14 @@ class BookingModel {
       flightDuration: flightDuration ?? this.flightDuration,
       chemicalUsed: chemicalUsed ?? this.chemicalUsed,
       missionPhotos: missionPhotos ?? this.missionPhotos,
+      rating: rating ?? this.rating,
+      feedback: feedback ?? this.feedback,
+      feedbackCreatedAt: feedbackCreatedAt ?? this.feedbackCreatedAt,
+      issueCategory: issueCategory ?? this.issueCategory,
+      issueDescription: issueDescription ?? this.issueDescription,
+      issueReportedAt: issueReportedAt ?? this.issueReportedAt,
+      confirmedAt: confirmedAt ?? this.confirmedAt,
+      statusHistory: statusHistory ?? this.statusHistory,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

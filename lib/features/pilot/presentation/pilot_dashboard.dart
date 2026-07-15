@@ -169,18 +169,16 @@ class _PilotHomeContent extends ConsumerWidget {
                 },
 
                 AppSpacing.verticalXl,
-                const _SectionTitle(title: 'Active Job'),
+                const _SectionTitle(title: 'Active Mission'),
                 AppSpacing.verticalMd,
                 switch (activeJobsAsync) {
                   AsyncData(:final value) => value.isEmpty
                       ? const Text('No active mission.')
-                      : PilotJobCard(
-                        job: value.first,
-                        onTap:
-                            () => context.push(
-                              '/pilot/job-details',
-                              extra: value.first,
-                            ),
+                      : Column(
+                        children: value.map((job) => PilotJobCard(
+                          job: job,
+                          onTap: () => context.push('/pilot/job-details', extra: job),
+                        )).toList(),
                       ),
                   AsyncError(:final error) => Text('Error: $error'),
                   _ => const LinearProgressIndicator(),
