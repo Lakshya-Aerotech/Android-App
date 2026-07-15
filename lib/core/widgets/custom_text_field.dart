@@ -13,6 +13,8 @@ class CustomTextField extends StatelessWidget {
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
   final bool enabled;
+  final int? maxLines;
+  final int? minLines;
 
   const CustomTextField({
     super.key,
@@ -26,6 +28,8 @@ class CustomTextField extends StatelessWidget {
     this.validator,
     this.onChanged,
     this.enabled = true,
+    this.maxLines = 1,
+    this.minLines,
   });
 
   @override
@@ -49,6 +53,8 @@ class CustomTextField extends StatelessWidget {
           validator: validator,
           onChanged: onChanged,
           enabled: enabled,
+          maxLines: maxLines,
+          minLines: minLines,
           style: AppTextStyles.bodyLarge.copyWith(
             color: enabled ? null : AppColors.textTertiary,
           ),

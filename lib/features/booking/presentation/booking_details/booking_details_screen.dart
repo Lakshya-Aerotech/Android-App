@@ -165,22 +165,28 @@ class BookingDetailsScreen extends ConsumerWidget {
 
   Widget _buildQuickInfo(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildInfoColumn(
-          Icons.calendar_today_outlined,
-          'Date',
-          DateFormat('dd MMM').format(booking.bookingDate),
+        Expanded(
+          child: _buildInfoColumn(
+            Icons.calendar_today_outlined,
+            'Date',
+            DateFormat('dd MMM').format(booking.bookingDate),
+          ),
         ),
-        _buildInfoColumn(
-          Icons.access_time_outlined,
-          'Time',
-          booking.preferredTime,
+        Expanded(
+          child: _buildInfoColumn(
+            Icons.access_time_outlined,
+            'Time',
+            booking.preferredTime,
+          ),
         ),
-        _buildInfoColumn(
-          Icons.grass_outlined,
-          'Crop',
-          booking.cropType,
+        Expanded(
+          child: _buildInfoColumn(
+            Icons.grass_outlined,
+            'Crop',
+            booking.cropType,
+          ),
         ),
       ],
     );
@@ -192,7 +198,12 @@ class BookingDetailsScreen extends ConsumerWidget {
         Icon(icon, size: 20, color: AppColors.textSecondary),
         const SizedBox(height: 4),
         Text(label, style: AppTextStyles.bodySmall.copyWith(fontSize: 10)),
-        Text(value, style: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.bold)),
+        Text(
+          value, 
+          style: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+        ),
       ],
     );
   }

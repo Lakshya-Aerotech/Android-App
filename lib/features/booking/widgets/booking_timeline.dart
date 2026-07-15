@@ -16,8 +16,11 @@ class BookingTimeline extends StatelessWidget {
       {'label': 'Pilot Assigned', 'status': BookingStatus.pilotAssigned},
       {'label': 'Drone Assigned', 'status': BookingStatus.droneAssigned},
       {'label': 'Accepted', 'status': BookingStatus.accepted},
+      {'label': 'En Route', 'status': BookingStatus.enRoute},
+      {'label': 'Arrived', 'status': BookingStatus.arrived},
       {'label': 'In Progress', 'status': BookingStatus.inProgress},
       {'label': 'Completed', 'status': BookingStatus.completed},
+      {'label': 'Confirmed', 'status': BookingStatus.farmerConfirmed},
     ];
 
     int activeIndex = _getSelectedIndex(currentStatus, stages);
@@ -61,7 +64,7 @@ class BookingTimeline extends StatelessWidget {
                 if (!isLast)
                   Container(
                     width: 2,
-                    height: 40,
+                    height: 35,
                     color: isCompleted ? AppColors.accent : AppColors.border,
                   ),
               ],
@@ -97,14 +100,11 @@ class BookingTimeline extends StatelessWidget {
       return 0; 
     }
     
-    // Check for exact match
     for (int i = 0; i < stages.length; i++) {
       if (stages[i]['status'] == status) return i;
     }
-    
-    // Handling intermediate or later states not explicitly in basic timeline
-    if (status == BookingStatus.enRoute) return 5; // Before In Progress
-    if (status == BookingStatus.farmerConfirmed) return 6; // At/After Completed
+
+    if (status == BookingStatus.closed) return stages.length - 1;
 
     return 0;
   }

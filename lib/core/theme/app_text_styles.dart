@@ -23,6 +23,12 @@ class AppTextStyles {
         color: AppColors.textPrimary,
       );
 
+  static TextStyle get headlineMedium => GoogleFonts.poppins(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: AppColors.textPrimary,
+      );
+
   static TextStyle get titleLarge => GoogleFonts.poppins(
         fontSize: 20,
         fontWeight: FontWeight.w600,
@@ -55,6 +61,12 @@ class AppTextStyles {
 
   static TextStyle get labelLarge => GoogleFonts.poppins(
         fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
+      );
+
+  static TextStyle get labelMedium => GoogleFonts.poppins(
+        fontSize: 12,
         fontWeight: FontWeight.w600,
         color: AppColors.textPrimary,
       );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/app_spacing.dart';
@@ -7,15 +8,13 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../auth/viewmodel/auth_viewmodel.dart';
-import '../models/pilot_dashboard_data.dart';
-import '../widgets/pilot_assignment_card.dart';
-import '../widgets/pilot_drone_card.dart';
 import '../widgets/pilot_home_header.dart';
-import '../widgets/pilot_overview_card.dart';
-import '../widgets/pilot_progress_card.dart';
 import '../widgets/pilot_status_card.dart';
-import '../widgets/pilot_upcoming_job_card.dart';
 import '../../profile/presentation/profile_screen.dart';
+import '../../pilot_jobs/viewmodels/pilot_jobs_viewmodel.dart';
+import '../../pilot_jobs/widgets/pilot_job_card.dart';
+import '../../pilot_jobs/presentation/assignments/pilot_assignments_screen.dart';
+import '../../pilot_jobs/presentation/history/pilot_history_screen.dart';
 
 class PilotDashboard extends StatefulWidget {
   const PilotDashboard({super.key});
@@ -28,32 +27,21 @@ class _PilotDashboardState extends State<PilotDashboard> {
   int _currentIndex = 0;
   bool _isAvailable = true;
 
-  final List<Widget> _screens = [];
-
   @override
-  void initState() {
-    super.initState();
-    _screens.addAll([
+  Widget build(BuildContext context) {
+    final List<Widget> screens = [
       _PilotHomeContent(
         isAvailable: _isAvailable,
         onAvailabilityChanged: (v) => setState(() => _isAvailable = v),
       ),
-      const Center(child: Text('Jobs coming soon')),
-      const Center(child: Text('Notifications coming soon')),
+      const PilotAssignmentsScreen(),
+      const PilotHistoryScreen(),
       const ProfileScreen(),
-    ]);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    _screens[0] = _PilotHomeContent(
-      isAvailable: _isAvailable,
-      onAvailabilityChanged: (v) => setState(() => _isAvailable = v),
-    );
+    ];
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
-      body: _screens[_currentIndex],
+      body: screens[_currentIndex],
       bottomNavigationBar: SafeArea(
         top: false,
         child: Theme(
@@ -90,9 +78,9 @@ class _PilotDashboardState extends State<PilotDashboard> {
                 label: 'Jobs',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.notifications_none),
-                activeIcon: Icon(Icons.notifications),
-                label: 'Notifications',
+                icon: Icon(Icons.history_outlined),
+                activeIcon: Icon(Icons.history),
+                label: 'History',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.person_outline),
@@ -116,15 +104,12 @@ class _PilotHomeContent extends ConsumerWidget {
     required this.onAvailabilityChanged,
   });
 
-  void _showComingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('$feature coming soon')));
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userModelProvider);
+    final statsAsync = ref.watch(pilotDashboardStatsProvider);
+    final activeJobsAsync = ref.watch(inProgressJobsProvider);
+    final assignedJobsAsync = ref.watch(assignedJobsProvider);
 
     return SingleChildScrollView(
       child: Column(
@@ -148,86 +133,190 @@ class _PilotHomeContent extends ConsumerWidget {
                 AppSpacing.verticalXl,
                 const _SectionTitle(title: "Today's Overview"),
                 AppSpacing.verticalMd,
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final overviewCardHeight =
-                        (constraints.maxWidth < 360 ? 100.0 : 110.0).clamp(
-                          120.0,
-                          150.0,
-                        );
-                    final useSingleColumn = constraints.maxWidth < 360;
+                switch (statsAsync) {
+                  AsyncData(:final value) => GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 1.5,
+                    children: [
+                      _StatCard(
+                        title: 'Assigned',
+                        value: '${value['assigned'] ?? 0}',
+                        color: Colors.blue,
+                      ),
+                      _StatCard(
+                        title: 'Accepted',
+                        value: '${value['accepted'] ?? 0}',
+                        color: Colors.purple,
+                      ),
+                      _StatCard(
+                        title: 'In Progress',
+                        value: '${value['inProgress'] ?? 0}',
+                        color: Colors.orange,
+                      ),
+                      _StatCard(
+                        title: 'Completed',
+                        value: '${value['completedToday'] ?? 0}',
+                        color: Colors.green,
+                      ),
+                    ],
+                  ),
+                  AsyncError(:final error) => Text('Error: $error'),
+                  _ => const Center(child: CircularProgressIndicator()),
+                },
 
-                    if (useSingleColumn) {
-                      return Wrap(
-                        spacing: AppSpacing.md,
-                        runSpacing: AppSpacing.md,
-                        children: [
-                          for (final metric in pilotOverviewMetrics)
-                            SizedBox(
-                              width: constraints.maxWidth,
-                              height: overviewCardHeight,
-                              child: PilotOverviewCard(
-                                metric: metric,
-                                height: overviewCardHeight,
-                              ),
+                AppSpacing.verticalXl,
+                const _SectionTitle(title: 'Active Job'),
+                AppSpacing.verticalMd,
+                switch (activeJobsAsync) {
+                  AsyncData(:final value) => value.isEmpty
+                      ? const Text('No active mission.')
+                      : PilotJobCard(
+                        job: value.first,
+                        onTap:
+                            () => context.push(
+                              '/pilot/job-details',
+                              extra: value.first,
                             ),
-                        ],
-                      );
-                    }
+                      ),
+                  AsyncError(:final error) => Text('Error: $error'),
+                  _ => const LinearProgressIndicator(),
+                },
 
-                    return Row(
-                      children: [
-                        for (
-                          int index = 0;
-                          index < pilotOverviewMetrics.length;
-                          index++
-                        ) ...[
-                          if (index > 0) SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: SizedBox(
-                              height: overviewCardHeight,
-                              child: PilotOverviewCard(
-                                metric: pilotOverviewMetrics[index],
-                                height: overviewCardHeight,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    );
-                  },
+                AppSpacing.verticalXl,
+                const _SectionTitle(title: 'New Assignments'),
+                AppSpacing.verticalMd,
+                switch (assignedJobsAsync) {
+                  AsyncData(:final value) => value.isEmpty
+                      ? const Text('No new assignments.')
+                      : Column(
+                        children:
+                            value
+                                .take(3)
+                                .map(
+                                  (job) => PilotJobCard(
+                                    job: job,
+                                    onTap:
+                                        () => context.push(
+                                          '/pilot/job-details',
+                                          extra: job,
+                                        ),
+                                  ),
+                                )
+                                .toList(),
+                      ),
+                  AsyncError(:final error) => Text('Error: $error'),
+                  _ => const LinearProgressIndicator(),
+                },
+
+                AppSpacing.verticalXl,
+                const _SectionTitle(title: 'Flight Stats'),
+                AppSpacing.verticalMd,
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.border.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _StatItem(
+                        label: 'Today Hours',
+                        value: '0.0',
+                        icon: Icons.timer_outlined,
+                      ),
+                      VerticalDivider(),
+                      _StatItem(
+                        label: 'Total Hours',
+                        value: '12.4',
+                        icon: Icons.history,
+                      ),
+                    ],
+                  ),
                 ),
-                AppSpacing.verticalXl,
-                const _SectionTitle(title: 'Current Assignment'),
-                AppSpacing.verticalMd,
-                PilotAssignmentCard(
-                  assignment: currentPilotAssignment,
-                  onNavigate: () => _showComingSoon(context, 'Navigation'),
-                  onViewDetails: () => _showComingSoon(context, 'Job details'),
-                ),
-                AppSpacing.verticalXl,
-                const _SectionTitle(title: 'Job Progress'),
-                AppSpacing.verticalMd,
-                PilotProgressCard(
-                  stages: pilotProgressStages,
-                  activeValue: currentPilotAssignment.statusValue,
-                ),
-                AppSpacing.verticalXl,
-                const _SectionTitle(title: 'Assigned Drone'),
-                AppSpacing.verticalMd,
-                const PilotDroneCard(),
-                AppSpacing.verticalXl,
-                const _SectionTitle(title: 'Upcoming Jobs'),
-                AppSpacing.verticalMd,
-                for (final job in pilotUpcomingJobs) ...[
-                  PilotUpcomingJobCard(job: job),
-                  AppSpacing.verticalMd,
-                ],
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final Color color;
+
+  const _StatCard({
+    required this.title,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(title, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: AppTextStyles.headlineMedium.copyWith(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _StatItem({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(icon, color: AppColors.primary, size: 24),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold),
+        ),
+        Text(
+          label,
+          style: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 }

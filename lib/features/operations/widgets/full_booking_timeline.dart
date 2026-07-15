@@ -17,14 +17,16 @@ class FullBookingTimeline extends StatelessWidget {
       {'label': 'Drone Assigned', 'status': BookingStatus.droneAssigned},
       {'label': 'Accepted', 'status': BookingStatus.accepted},
       {'label': 'En Route', 'status': BookingStatus.enRoute},
+      {'label': 'Arrived', 'status': BookingStatus.arrived},
       {'label': 'In Progress', 'status': BookingStatus.inProgress},
       {'label': 'Completed', 'status': BookingStatus.completed},
       {'label': 'Farmer Confirmed', 'status': BookingStatus.farmerConfirmed},
+      {'label': 'Closed', 'status': BookingStatus.closed},
     ];
 
     int activeIndex = stages.indexWhere((s) => s['status'] == currentStatus);
     if (activeIndex == -1 && currentStatus == BookingStatus.cancelled) {
-        activeIndex = 0;
+      activeIndex = 0;
     }
 
     return Column(
@@ -34,7 +36,8 @@ class FullBookingTimeline extends StatelessWidget {
         final isActive = index == activeIndex;
         final isCancelled = currentStatus == BookingStatus.cancelled;
 
-        Color color = isCompleted || isActive ? AppColors.accent : AppColors.border;
+        Color color =
+            isCompleted || isActive ? AppColors.accent : AppColors.border;
         if (isCancelled && isActive) color = Colors.red;
 
         return Row(
@@ -51,22 +54,23 @@ class FullBookingTimeline extends StatelessWidget {
                     border: Border.all(color: color, width: 2),
                   ),
                   child: Center(
-                    child: isCompleted
-                        ? Icon(Icons.check, size: 12, color: color)
-                        : Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isActive ? color : Colors.transparent,
+                    child:
+                        isCompleted
+                            ? Icon(Icons.check, size: 12, color: color)
+                            : Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isActive ? color : Colors.transparent,
+                              ),
                             ),
-                          ),
                   ),
                 ),
                 if (!isLast)
                   Container(
                     width: 2,
-                    height: 40,
+                    height: 30, // Reduced height for more stages
                     color: isCompleted ? AppColors.accent : AppColors.border,
                   ),
               ],
@@ -77,10 +81,18 @@ class FullBookingTimeline extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isCancelled && isActive ? 'Cancelled' : stages[index]['label'] as String,
+                    isCancelled && isActive
+                        ? 'Cancelled'
+                        : stages[index]['label'] as String,
                     style: AppTextStyles.bodyMedium.copyWith(
-                      fontWeight: isActive || isCompleted ? FontWeight.bold : FontWeight.normal,
-                      color: isActive || isCompleted ? AppColors.textPrimary : AppColors.textSecondary,
+                      fontWeight:
+                          isActive || isCompleted
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                      color:
+                          isActive || isCompleted
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary,
                     ),
                   ),
                   if (isActive)

@@ -15,6 +15,11 @@ import 'widgets/quick_action_card.dart';
 import '../../profile/presentation/profile_screen.dart';
 import '../../farm/presentation/my_farms/my_farms_screen.dart';
 import '../../booking/presentation/booking_history/my_bookings_screen.dart';
+import 'package:intl/intl.dart';
+import '../../../core/constants/app_radius.dart';
+import '../../../shared/enums/booking_status.dart';
+import '../../auth/viewmodel/auth_viewmodel.dart';
+import '../../booking/viewmodels/booking_viewmodel.dart';
 
 class FarmerHomeScreen extends ConsumerStatefulWidget {
   const FarmerHomeScreen({super.key});
@@ -69,7 +74,7 @@ class _FarmerHomeScreenState extends ConsumerState<FarmerHomeScreen> {
   }
 }
 
-class _FarmerHomeContent extends StatelessWidget {
+class _FarmerHomeContent extends ConsumerWidget {
   const _FarmerHomeContent();
 
   String? _quickActionAssetPath(String label) {
@@ -82,20 +87,17 @@ class _FarmerHomeContent extends StatelessWidget {
     };
   }
 
-  void _showComingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('$feature coming soon')));
-  }
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(userModelProvider);
+    final bookingsAsync = ref.watch(farmerBookingsStreamProvider);
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           FarmerHomeHeader(
-            farmerName: mockFarmerName,
+            farmerName: user?.name ?? 'Farmer',
             onBookNow: () => context.push('/book-service'),
           ),
           Padding(
@@ -142,7 +144,8 @@ class _FarmerHomeContent extends StatelessWidget {
                         } else if (action.label == 'My Bookings') {
                           context.push('/my-bookings');
                         } else {
-                          _showComingSoon(context, action.label);
+                          // Service History - Filter completed bookings
+                          context.push('/my-bookings');
                         }
                       },
                     );
@@ -157,12 +160,48 @@ class _FarmerHomeContent extends StatelessWidget {
                   ),
                 ),
                 AppSpacing.verticalMd,
-                BookingCard(
-                  dateTime: mockUpcomingBooking.dateTime,
-                  farmName: mockUpcomingBooking.farmName,
-                  cropInfo: mockUpcomingBooking.cropInfo,
-                  status: mockUpcomingBooking.status,
-                  onTap: () => context.push('/my-bookings'),
+                bookingsAsync.when(
+                  data: (bookings) {
+                    final upcoming = bookings.where((b) => 
+                      b.status != BookingStatus.completed && 
+                      b.status != BookingStatus.cancelled &&
+                      b.status != BookingStatus.closed
+                    ).toList();
+
+                    if (upcoming.isEmpty) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: AppRadius.radiusLg,
+                          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+                        ),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.calendar_today, color: AppColors.border, size: 40),
+                            const SizedBox(height: 12),
+                            Text('No upcoming bookings', style: AppTextStyles.bodyMedium),
+                            TextButton(
+                              onPressed: () => context.push('/book-service'),
+                              child: const Text('Book a Service Now'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final b = upcoming.first;
+                    return BookingCard(
+                      dateTime: '${DateFormat('dd MMM').format(b.bookingDate)}, ${b.preferredTime}',
+                      farmName: b.farmName,
+                      cropInfo: '${b.cropType} • ${b.estimatedArea} Acres',
+                      status: b.status,
+                      onTap: () => context.push('/booking-details', extra: b),
+                    );
+                  },
+                  loading: () => const LinearProgressIndicator(),
+                  error: (e, _) => Text('Error: $e'),
                 ),
               ],
             ),

@@ -21,6 +21,7 @@ import 'package:lakshya_aerotech/features/admin/presentation/employees/employee_
 import 'package:lakshya_aerotech/features/admin/presentation/employees/add_employee_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/placeholders/admin_placeholders.dart';
 import 'package:lakshya_aerotech/features/pilot/presentation/pilot_dashboard.dart';
+import 'package:lakshya_aerotech/features/pilot_jobs/presentation/job_details/pilot_job_details_screen.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/operations_main_screen.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/placeholders/operations_placeholders.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/pending_bookings/ops_pending_bookings_screen.dart';
@@ -131,6 +132,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/pilot',
         builder: (context, state) => const PilotDashboard(),
+        routes: [
+          GoRoute(
+            path: 'job-details',
+            builder: (context, state) {
+              final job = state.extra as BookingModel;
+              return PilotJobDetailsScreen(job: job);
+            },
+          ),
+        ],
       ),
 
       // Operations Dashboard

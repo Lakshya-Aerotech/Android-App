@@ -7,10 +7,46 @@ enum BookingStatus {
   droneAssigned,
   accepted,
   enRoute,
+  arrived,
   inProgress,
   completed,
   farmerConfirmed,
+  closed,
   cancelled;
+
+  /// Returns the enum value from a string, with safety fallbacks
+  static BookingStatus fromString(String? status) {
+    if (status == null || status.isEmpty) return BookingStatus.pending;
+
+    // Normalize string: lowercase and remove underscores
+    final normalized = status.toLowerCase().replaceAll('_', '');
+
+    // Exact match search
+    for (var value in BookingStatus.values) {
+      if (value.name.toLowerCase() == normalized) return value;
+    }
+
+    // Explicit snake_case mappings
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return BookingStatus.reviewed;
+      case 'pilot_assigned':
+        return BookingStatus.pilotAssigned;
+      case 'drone_assigned':
+        return BookingStatus.droneAssigned;
+      case 'en_route':
+        return BookingStatus.enRoute;
+      case 'in_progress':
+        return BookingStatus.inProgress;
+      case 'farmer_confirmed':
+        return BookingStatus.farmerConfirmed;
+    }
+
+    debugPrint(
+      'Warning: Unknown BookingStatus string received: $status. Defaulting to pending.',
+    );
+    return BookingStatus.pending;
+  }
 
   /// Returns a user-friendly display name
   String get displayName {
@@ -27,12 +63,16 @@ enum BookingStatus {
         return 'Accepted';
       case BookingStatus.enRoute:
         return 'En Route';
+      case BookingStatus.arrived:
+        return 'Arrived';
       case BookingStatus.inProgress:
         return 'In Progress';
       case BookingStatus.completed:
         return 'Completed';
       case BookingStatus.farmerConfirmed:
         return 'Confirmed';
+      case BookingStatus.closed:
+        return 'Closed';
       case BookingStatus.cancelled:
         return 'Cancelled';
     }
@@ -53,12 +93,16 @@ enum BookingStatus {
         return Colors.teal;
       case BookingStatus.enRoute:
         return Colors.cyan;
+      case BookingStatus.arrived:
+        return Colors.blueGrey;
       case BookingStatus.inProgress:
         return Colors.amber;
       case BookingStatus.completed:
         return Colors.green;
       case BookingStatus.farmerConfirmed:
         return Colors.green.shade700;
+      case BookingStatus.closed:
+        return Colors.grey;
       case BookingStatus.cancelled:
         return Colors.red;
     }
@@ -79,12 +123,16 @@ enum BookingStatus {
         return Icons.check_circle_outline;
       case BookingStatus.enRoute:
         return Icons.local_shipping_outlined;
+      case BookingStatus.arrived:
+        return Icons.location_on_outlined;
       case BookingStatus.inProgress:
         return Icons.run_circle_outlined;
       case BookingStatus.completed:
         return Icons.task_alt;
       case BookingStatus.farmerConfirmed:
         return Icons.verified_user_outlined;
+      case BookingStatus.closed:
+        return Icons.archive_outlined;
       case BookingStatus.cancelled:
         return Icons.cancel_outlined;
     }
@@ -92,30 +140,4 @@ enum BookingStatus {
 
   /// Serialization for Firestore
   String toFirestore() => name;
-
-  /// Deserialization from Firestore
-  static BookingStatus fromString(String? status) {
-    if (status == null || status.isEmpty) return BookingStatus.pending;
-
-    // Exact match
-    for (var value in BookingStatus.values) {
-      if (value.name == status) return value;
-    }
-
-    // Normalization fallback (for robustness)
-    final normalized = status.toLowerCase().replaceAll('_', '');
-    for (var value in BookingStatus.values) {
-      if (value.name.toLowerCase() == normalized) return value;
-    }
-
-    // Explicit snake_case mappings
-    if (status == 'approved') return BookingStatus.reviewed;
-    if (status == 'pilot_assigned') return BookingStatus.pilotAssigned;
-    if (status == 'drone_assigned') return BookingStatus.droneAssigned;
-    if (status == 'en_route') return BookingStatus.enRoute;
-    if (status == 'in_progress') return BookingStatus.inProgress;
-    if (status == 'farmer_confirmed') return BookingStatus.farmerConfirmed;
-
-    return BookingStatus.pending;
-  }
 }

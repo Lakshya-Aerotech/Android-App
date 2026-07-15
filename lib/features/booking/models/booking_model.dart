@@ -32,13 +32,13 @@ class OperationsRemark {
 class BookingModel {
   final String? docId;
   final String bookingId;
-  
+
   // Farmer Snapshot
   final String farmerUid;
   final String? farmerName;
   final String? farmerPhone;
   final String? preferredLanguage;
-  
+
   // Farm Snapshot
   final String farmId;
   final String farmName;
@@ -49,7 +49,7 @@ class BookingModel {
   final double? farmArea; // Total farm area
   final double? latitude;
   final double? longitude;
-  
+
   // Service Details
   final String serviceType;
   final DateTime bookingDate;
@@ -57,14 +57,22 @@ class BookingModel {
   final double estimatedArea; // Area for this specific service
   final BookingStatus status;
   final String? remarks;
-  
+
   // Operations & Execution
   final List<OperationsRemark> operationsRemarks;
   final String? assignedPilotId;
   final String? assignedPilotName;
   final String? assignedDroneId;
   final String? assignedDroneName;
-  
+
+  // Pilot Execution Details
+  final String? pilotRejectionReason;
+  final String? missionNotes;
+  final double? actualAreaCovered;
+  final String? flightDuration;
+  final String? chemicalUsed;
+  final List<String> missionPhotos;
+
   // Timestamps
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -96,6 +104,12 @@ class BookingModel {
     this.assignedPilotName,
     this.assignedDroneId,
     this.assignedDroneName,
+    this.pilotRejectionReason,
+    this.missionNotes,
+    this.actualAreaCovered,
+    this.flightDuration,
+    this.chemicalUsed,
+    this.missionPhotos = const [],
     required this.createdAt,
     required this.updatedAt,
   });
@@ -127,6 +141,12 @@ class BookingModel {
       'assignedPilotName': assignedPilotName,
       'assignedDroneId': assignedDroneId,
       'assignedDroneName': assignedDroneName,
+      'pilotRejectionReason': pilotRejectionReason,
+      'missionNotes': missionNotes,
+      'actualAreaCovered': actualAreaCovered,
+      'flightDuration': flightDuration,
+      'chemicalUsed': chemicalUsed,
+      'missionPhotos': missionPhotos,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -146,22 +166,35 @@ class BookingModel {
       district: map['district'],
       state: map['state'],
       cropType: map['cropType'] ?? '',
-      farmArea: (map['farmArea'] as num?)?.toDouble() ?? (map['area'] as num?)?.toDouble(),
-      latitude: (map['latitude'] as num?)?.toDouble() ?? (map['lat'] as num?)?.toDouble(),
-      longitude: (map['longitude'] as num?)?.toDouble() ?? (map['lng'] as num?)?.toDouble(),
+      farmArea:
+          (map['farmArea'] as num?)?.toDouble() ??
+          (map['area'] as num?)?.toDouble(),
+      latitude:
+          (map['latitude'] as num?)?.toDouble() ??
+          (map['lat'] as num?)?.toDouble(),
+      longitude:
+          (map['longitude'] as num?)?.toDouble() ??
+          (map['lng'] as num?)?.toDouble(),
       serviceType: map['serviceType'] ?? '',
       bookingDate: (map['bookingDate'] as Timestamp).toDate(),
       preferredTime: map['preferredTime'] ?? '',
       estimatedArea: (map['estimatedArea'] as num).toDouble(),
       status: BookingStatus.fromString(map['status']),
       remarks: map['remarks'],
-      operationsRemarks: (map['operationsRemarks'] as List? ?? [])
-          .map((e) => OperationsRemark.fromMap(e as Map<String, dynamic>))
-          .toList(),
+      operationsRemarks:
+          (map['operationsRemarks'] as List? ?? [])
+              .map((e) => OperationsRemark.fromMap(e as Map<String, dynamic>))
+              .toList(),
       assignedPilotId: map['assignedPilotId'],
       assignedPilotName: map['assignedPilotName'],
       assignedDroneId: map['assignedDroneId'],
       assignedDroneName: map['assignedDroneName'],
+      pilotRejectionReason: map['pilotRejectionReason'],
+      missionNotes: map['missionNotes'],
+      actualAreaCovered: (map['actualAreaCovered'] as num?)?.toDouble(),
+      flightDuration: map['flightDuration'],
+      chemicalUsed: map['chemicalUsed'],
+      missionPhotos: List<String>.from(map['missionPhotos'] ?? []),
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
     );
@@ -194,6 +227,12 @@ class BookingModel {
     String? assignedPilotName,
     String? assignedDroneId,
     String? assignedDroneName,
+    String? pilotRejectionReason,
+    String? missionNotes,
+    double? actualAreaCovered,
+    String? flightDuration,
+    String? chemicalUsed,
+    List<String>? missionPhotos,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -224,6 +263,12 @@ class BookingModel {
       assignedPilotName: assignedPilotName ?? this.assignedPilotName,
       assignedDroneId: assignedDroneId ?? this.assignedDroneId,
       assignedDroneName: assignedDroneName ?? this.assignedDroneName,
+      pilotRejectionReason: pilotRejectionReason ?? this.pilotRejectionReason,
+      missionNotes: missionNotes ?? this.missionNotes,
+      actualAreaCovered: actualAreaCovered ?? this.actualAreaCovered,
+      flightDuration: flightDuration ?? this.flightDuration,
+      chemicalUsed: chemicalUsed ?? this.chemicalUsed,
+      missionPhotos: missionPhotos ?? this.missionPhotos,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
