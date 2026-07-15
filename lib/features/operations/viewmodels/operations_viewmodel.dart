@@ -37,16 +37,40 @@ final dashboardStatsStreamProvider = StreamProvider<List<OperationsStatistic>>((
         value: stats['pilotAssigned'].toString(),
       ),
       OperationsStatistic(
+        icon: Icons.precision_manufacturing_outlined,
+        iconColor: Colors.indigo,
+        title: 'Drone Assigned',
+        value: stats['droneAssigned'].toString(),
+      ),
+      OperationsStatistic(
         icon: Icons.task_alt,
         iconColor: Colors.green,
         title: 'Completed Today',
         value: stats['completedToday'].toString(),
       ),
       OperationsStatistic(
-        icon: Icons.cancel_outlined,
+        icon: Icons.people_outline,
+        iconColor: Colors.blue,
+        title: 'Available Pilots',
+        value: stats['availablePilots'].toString(),
+      ),
+      OperationsStatistic(
+        icon: Icons.check_circle_outline,
+        iconColor: Colors.green,
+        title: 'Available Drones',
+        value: stats['availableDrones'].toString(),
+      ),
+      OperationsStatistic(
+        icon: Icons.run_circle_outlined,
+        iconColor: Colors.orange,
+        title: 'Busy Drones',
+        value: stats['busyDrones'].toString(),
+      ),
+      OperationsStatistic(
+        icon: Icons.build_circle_outlined,
         iconColor: Colors.red,
-        title: 'Cancelled',
-        value: stats['cancelled'].toString(),
+        title: 'Maintenance',
+        value: stats['maintenanceDrones'].toString(),
       ),
       OperationsStatistic(
         icon: Icons.today,
@@ -157,23 +181,38 @@ class OperationsViewModel extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  Future<void> assignPilot(String bookingId, String pilotId, String pilotName) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.assignPilot(bookingId, pilotId, pilotName);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
+  Future<void> assignDrone(String bookingId, String droneId, String droneName) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.assignDrone(bookingId, droneId, droneName);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
   Future<String?> assignPilotAndDrone(OpsAssignmentRequest request) async {
     state = const AsyncLoading();
     try {
       await _repository.assignPilotAndDrone(request);
       state = const AsyncData(null);
-      _ref.invalidate(dashboardStatsStreamProvider);
-      _ref.invalidate(approvedUnassignedBookingsStreamProvider);
       return null;
-    } on OpsAssignmentException catch (e) {
-      state = AsyncError(e, StackTrace.current);
-      return e.message;
     } on FirebaseException catch (e, st) {
       state = AsyncError(e, st);
       return _friendlyFirebaseMessage(e);
     } catch (e, st) {
       state = AsyncError(e, st);
-      return 'Assignment failed. Please refresh and try again.';
+      return 'Assignment failed. Please try again.';
     }
   }
 

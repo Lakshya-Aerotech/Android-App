@@ -8,8 +8,10 @@ import 'package:lakshya_aerotech/core/theme/app_text_styles.dart';
 import 'package:lakshya_aerotech/core/widgets/primary_button.dart';
 import 'package:lakshya_aerotech/core/widgets/status_chip.dart';
 import 'package:lakshya_aerotech/features/booking/models/booking_model.dart';
+import 'package:lakshya_aerotech/features/operations/models/operations_models.dart';
 import 'package:lakshya_aerotech/features/operations/viewmodels/operations_viewmodel.dart';
 import 'package:lakshya_aerotech/features/operations/widgets/full_booking_timeline.dart';
+import 'package:lakshya_aerotech/shared/enums/booking_status.dart';
 
 class OpsBookingDetailsScreen extends ConsumerStatefulWidget {
   final BookingModel booking;
@@ -21,6 +23,9 @@ class OpsBookingDetailsScreen extends ConsumerStatefulWidget {
 
 class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScreen> {
   final TextEditingController _remarksController = TextEditingController();
+  
+  OpsPilotResource? _selectedPilot;
+  OpsDroneResource? _selectedDrone;
 
   @override
   void dispose() {
@@ -28,7 +33,7 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
     super.dispose();
   }
 
-  Future<void> _handleAction(String action, String bookingDocId) async {
+  Future<void> _handleReviewAction(String action) async {
     final viewModel = ref.read(operationsViewModelProvider.notifier);
     final remark = _remarksController.text.trim();
 
@@ -41,22 +46,99 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
 
     switch (action) {
       case 'approve':
-        await viewModel.approveBooking(bookingDocId, remarkMessage: remark);
+        await viewModel.approveBooking(widget.booking.docId!, remarkMessage: remark);
         break;
       case 'reject':
-        await viewModel.rejectBooking(bookingDocId, remark);
-        break;
-      case 'request_changes':
-        await viewModel.requestChanges(bookingDocId, remark);
+        await viewModel.rejectBooking(widget.booking.docId!, remark);
         break;
     }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Booking updated: $action'), backgroundColor: AppColors.success),
+        SnackBar(content: Text('Booking updated successfully'), backgroundColor: AppColors.success),
       );
       context.pop();
     }
+  }
+
+  Future<void> _assignPilot() async {
+    if (_selectedPilot == null) return;
+
+    final confirmed = await _showConfirmDialog(
+      title: 'Confirm Pilot Assignment',
+      items: {
+        'Booking ID': widget.booking.bookingId,
+        'Pilot Name': _selectedPilot!.name,
+        'Farm': widget.booking.farmName,
+        'Date': DateFormat('dd MMM yyyy').format(widget.booking.bookingDate),
+      },
+    );
+
+    if (confirmed) {
+      await ref.read(operationsViewModelProvider.notifier).assignPilot(
+        widget.booking.docId!,
+        _selectedPilot!.uid,
+        _selectedPilot!.name,
+      );
+      if (mounted) context.pop();
+    }
+  }
+
+  Future<void> _assignDrone() async {
+    if (_selectedDrone == null) return;
+
+    final confirmed = await _showConfirmDialog(
+      title: 'Confirm Drone Assignment',
+      items: {
+        'Booking ID': widget.booking.bookingId,
+        'Pilot': widget.booking.assignedPilotName ?? 'N/A',
+        'Drone Model': _selectedDrone!.name,
+        'Drone Code': _selectedDrone!.code,
+        'Farm': widget.booking.farmName,
+      },
+    );
+
+    if (confirmed) {
+      await ref.read(operationsViewModelProvider.notifier).assignDrone(
+        widget.booking.docId!,
+        _selectedDrone!.id,
+        _selectedDrone!.name,
+      );
+      if (mounted) context.pop();
+    }
+  }
+
+  Future<bool> _showConfirmDialog({required String title, required Map<String, String> items}) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: items.entries.map((e) => Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: RichText(
+              text: TextSpan(
+                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+                children: [
+                  TextSpan(text: '${e.key}: ', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  TextSpan(text: e.value),
+                ],
+              ),
+            ),
+          )).toList(),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    ) ?? false;
   }
 
   @override
@@ -66,7 +148,7 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       appBar: AppBar(
-        title: const Text('Review Booking'),
+        title: const Text('Booking Details'),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.primary,
         elevation: 0,
@@ -81,8 +163,6 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
   }
 
   Widget _buildContent(BuildContext context, BookingModel booking) {
-    final isLoading = ref.watch(operationsViewModelProvider).isLoading;
-
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -97,7 +177,6 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
                   items: [
                     {'label': 'Farmer Name', 'value': booking.farmerName ?? 'N/A', 'icon': Icons.person_outline},
                     {'label': 'Phone Number', 'value': booking.farmerPhone ?? 'N/A', 'icon': Icons.phone_android_outlined},
-                    {'label': 'Preferred Language', 'value': booking.preferredLanguage ?? 'N/A', 'icon': Icons.language_outlined},
                   ],
                 ),
 
@@ -107,23 +186,13 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
                   items: [
                     {'label': 'Farm Name', 'value': booking.farmName, 'icon': Icons.landscape_outlined},
                     {'label': 'Village', 'value': booking.village ?? 'N/A', 'icon': Icons.home_work_outlined},
-                    {'label': 'District', 'value': booking.district ?? 'N/A', 'icon': Icons.location_city_outlined},
-                    {'label': 'State', 'value': booking.state ?? 'N/A', 'icon': Icons.map_outlined},
-                    {'label': 'Total Area', 'value': '${booking.farmArea ?? 'N/A'} Acres', 'icon': Icons.crop_free},
+                    {'label': 'Area', 'value': '${booking.estimatedArea} Acres', 'icon': Icons.crop_free},
                   ],
                 ),
                 
                 if (booking.latitude != null && booking.longitude != null) ...[
                   const SizedBox(height: 12),
                   _buildMapPreview(booking.latitude!, booking.longitude!),
-                ] else ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-                    child: const Center(child: Text('Location not available.')),
-                  ),
                 ],
 
                 const SizedBox(height: 24),
@@ -131,21 +200,21 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
                 _buildInfoCard(
                   items: [
                     {'label': 'Service Type', 'value': booking.serviceType, 'icon': Icons.settings_suggest_outlined},
-                    {'label': 'Crop Type', 'value': booking.cropType, 'icon': Icons.spa_outlined},
-                    {'label': 'Estimated Service Area', 'value': '${booking.estimatedArea} Acres', 'icon': Icons.crop_free},
                     {'label': 'Preferred Date', 'value': DateFormat('EEEE, dd MMM yyyy').format(booking.bookingDate), 'icon': Icons.calendar_today_outlined},
                     {'label': 'Preferred Time', 'value': booking.preferredTime, 'icon': Icons.access_time_outlined},
                   ],
                 ),
 
-                if (booking.remarks != null) ...[
+                if (booking.assignedPilotId != null || booking.assignedDroneId != null) ...[
                   const SizedBox(height: 24),
-                  _buildSectionTitle('Farmer Notes'),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-                    child: Text(booking.remarks!, style: AppTextStyles.bodyMedium),
+                  _buildSectionTitle('Assigned Resources'),
+                  _buildInfoCard(
+                    items: [
+                      if (booking.assignedPilotName != null)
+                        {'label': 'Pilot', 'value': booking.assignedPilotName!, 'icon': Icons.person_add_alt_1_outlined},
+                      if (booking.assignedDroneName != null)
+                        {'label': 'Drone', 'value': booking.assignedDroneName!, 'icon': Icons.precision_manufacturing_outlined},
+                    ],
                   ),
                 ],
 
@@ -157,85 +226,8 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
                   child: FullBookingTimeline(currentStatus: booking.status),
                 ),
 
-                if (booking.operationsRemarks.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  _buildSectionTitle('Operations Remarks History'),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: booking.operationsRemarks.map((remark) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(remark.createdBy, style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.bold)),
-                                Text(DateFormat('dd MMM, hh:mm a').format(remark.timestamp), style: AppTextStyles.bodySmall.copyWith(fontSize: 10)),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(remark.message, style: AppTextStyles.bodyMedium),
-                            if (booking.operationsRemarks.last != remark) const Divider(),
-                          ],
-                        ),
-                      )).toList(),
-                    ),
-                  ),
-                ],
-
                 const SizedBox(height: 24),
-                _buildSectionTitle('New Review Remarks'),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-                  child: TextField(
-                    controller: _remarksController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      hintText: 'Add internal remarks or reasons for changes/rejection...',
-                      border: InputBorder.none,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: isLoading ? null : () => _handleAction('reject', booking.docId!),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          side: const BorderSide(color: Colors.red),
-                          minimumSize: const Size(0, 56),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: const Text('Reject'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: PrimaryButton(
-                        text: 'Approve',
-                        onPressed: () => _handleAction('approve', booking.docId!),
-                        isLoading: isLoading,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: isLoading ? null : () => _handleAction('request_changes', booking.docId!),
-                    child: const Text('Request Changes'),
-                  ),
-                ),
+                _buildActionSection(booking),
                 const SizedBox(height: 40),
               ],
             ),
@@ -245,30 +237,147 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
     );
   }
 
+  Widget _buildActionSection(BookingModel booking) {
+    final isLoading = ref.watch(operationsViewModelProvider).isLoading;
+
+    switch (booking.status) {
+      case BookingStatus.pending:
+        return _buildReviewActions(isLoading);
+      case BookingStatus.reviewed:
+        return _buildPilotAssignment(isLoading);
+      case BookingStatus.pilotAssigned:
+        return _buildDroneAssignment(isLoading);
+      case BookingStatus.droneAssigned:
+        return const Center(
+          child: Column(
+            children: [
+              Icon(Icons.check_circle, color: AppColors.success, size: 48),
+              SizedBox(height: 8),
+              Text('Assignment Complete', style: TextStyle(color: AppColors.success, fontWeight: FontWeight.bold)),
+              Text('Awaiting Pilot Acceptance', style: TextStyle(fontSize: 12)),
+            ],
+          ),
+        );
+      case BookingStatus.cancelled:
+        return const Center(child: Text('This booking is cancelled.', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)));
+      default:
+        return const Center(child: Text('Operational flow in progress.'));
+    }
+  }
+
+  Widget _buildReviewActions(bool isLoading) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Review Remarks'),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+          child: TextField(
+            controller: _remarksController,
+            maxLines: 2,
+            decoration: const InputDecoration(hintText: 'Add internal remarks...', border: InputBorder.none),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: isLoading ? null : () => _handleReviewAction('reject'),
+                style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: const BorderSide(color: Colors.red), minimumSize: const Size(0, 50)),
+                child: const Text('Reject'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: PrimaryButton(text: 'Approve', onPressed: () => _handleReviewAction('approve'), isLoading: isLoading),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPilotAssignment(bool isLoading) {
+    final pilotsAsync = ref.watch(availablePilotsStreamProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Assign Pilot'),
+        pilotsAsync.when(
+          data: (pilots) => _buildDropdown<OpsPilotResource>(
+            value: _selectedPilot,
+            items: pilots,
+            hint: 'Select available pilot',
+            onChanged: (v) => setState(() => _selectedPilot = v),
+            labelBuilder: (p) => p.name,
+          ),
+          loading: () => const LinearProgressIndicator(),
+          error: (e, _) => Text('Error loading pilots: $e'),
+        ),
+        const SizedBox(height: 16),
+        PrimaryButton(text: 'Assign Pilot', onPressed: _selectedPilot != null ? _assignPilot : null, isLoading: isLoading),
+      ],
+    );
+  }
+
+  Widget _buildDroneAssignment(bool isLoading) {
+    final dronesAsync = ref.watch(dronesStreamProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Assign Drone'),
+        dronesAsync.when(
+          data: (drones) => _buildDropdown<OpsDroneResource>(
+            value: _selectedDrone,
+            items: drones.where((d) => d.canSelect).toList(),
+            hint: 'Select available drone',
+            onChanged: (v) => setState(() => _selectedDrone = v),
+            labelBuilder: (d) => '${d.name} (${d.code})',
+          ),
+          loading: () => const LinearProgressIndicator(),
+          error: (e, _) => Text('Error loading drones: $e'),
+        ),
+        const SizedBox(height: 16),
+        PrimaryButton(text: 'Assign Drone', onPressed: _selectedDrone != null ? _assignDrone : null, isLoading: isLoading),
+      ],
+    );
+  }
+
+  Widget _buildDropdown<T>({required T? value, required List<T> items, required String hint, required void Function(T?) onChanged, required String Function(T) labelBuilder}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          hint: Text(hint),
+          isExpanded: true,
+          onChanged: onChanged,
+          items: items.map((T item) => DropdownMenuItem<T>(value: item, child: Text(labelBuilder(item)))).toList(),
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeaderCard(BookingModel booking) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
-      ),
+      decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(bottom: Radius.circular(32))),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Booking ID', style: AppTextStyles.bodySmall),
-              Text(
-                booking.bookingId,
-                style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold, letterSpacing: 1.1),
-              ),
-              Text(
-                'Created on: ${DateFormat('dd MMM yyyy').format(booking.createdAt)}',
-                style: AppTextStyles.bodySmall.copyWith(fontSize: 10),
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Booking ID', style: AppTextStyles.bodySmall),
+                Text(booking.bookingId, style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+              ],
+            ),
           ),
+          const SizedBox(width: 8),
           StatusChip.fromStatus(booking.status),
         ],
       ),
@@ -276,13 +385,7 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
   }
 
   Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Text(
-        title,
-        style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold, color: AppColors.textDark),
-      ),
-    );
+    return Padding(padding: const EdgeInsets.only(bottom: 12.0), child: Text(title, style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold, color: AppColors.textDark)));
   }
 
   Widget _buildInfoCard({required List<Map<String, dynamic>> items}) {
@@ -296,12 +399,14 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
             children: [
               Icon(item['icon'] as IconData, size: 18, color: AppColors.textSecondary),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item['label'] as String, style: AppTextStyles.bodySmall.copyWith(fontSize: 10)),
-                  Text(item['value'] as String, style: AppTextStyles.labelLarge),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item['label'] as String, style: AppTextStyles.bodySmall.copyWith(fontSize: 10)),
+                    Text(item['value'] as String, style: AppTextStyles.labelLarge),
+                  ],
+                ),
               ),
             ],
           ),

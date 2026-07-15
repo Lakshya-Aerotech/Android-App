@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../shared/enums/booking_status.dart';
 
@@ -62,7 +61,9 @@ class BookingModel {
   // Operations & Execution
   final List<OperationsRemark> operationsRemarks;
   final String? assignedPilotId;
+  final String? assignedPilotName;
   final String? assignedDroneId;
+  final String? assignedDroneName;
   
   // Timestamps
   final DateTime createdAt;
@@ -92,7 +93,9 @@ class BookingModel {
     this.remarks,
     this.operationsRemarks = const [],
     this.assignedPilotId,
+    this.assignedPilotName,
     this.assignedDroneId,
+    this.assignedDroneName,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -121,22 +124,20 @@ class BookingModel {
       'remarks': remarks,
       'operationsRemarks': operationsRemarks.map((e) => e.toMap()).toList(),
       'assignedPilotId': assignedPilotId,
+      'assignedPilotName': assignedPilotName,
       'assignedDroneId': assignedDroneId,
+      'assignedDroneName': assignedDroneName,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
   }
 
   factory BookingModel.fromMap(Map<String, dynamic> map, String docId) {
-    // Debug print to help identify missing fields in Firestore during development
-    if (map['farmerName'] == null) debugPrint('Booking $docId: farmerName is null');
-    if (map['latitude'] == null) debugPrint('Booking $docId: latitude is null');
-
     return BookingModel(
       docId: docId,
       bookingId: map['bookingId'] ?? '',
       farmerUid: map['farmerUid'] ?? '',
-      farmerName: map['farmerName'] ?? map['farmer_name'], // Try alternate naming
+      farmerName: map['farmerName'] ?? map['farmer_name'],
       farmerPhone: map['farmerPhone'] ?? map['phone'],
       preferredLanguage: map['preferredLanguage'] ?? map['language'],
       farmId: map['farmId'] ?? '',
@@ -158,7 +159,9 @@ class BookingModel {
           .map((e) => OperationsRemark.fromMap(e as Map<String, dynamic>))
           .toList(),
       assignedPilotId: map['assignedPilotId'],
+      assignedPilotName: map['assignedPilotName'],
       assignedDroneId: map['assignedDroneId'],
+      assignedDroneName: map['assignedDroneName'],
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
     );
@@ -188,7 +191,9 @@ class BookingModel {
     String? remarks,
     List<OperationsRemark>? operationsRemarks,
     String? assignedPilotId,
+    String? assignedPilotName,
     String? assignedDroneId,
+    String? assignedDroneName,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -216,7 +221,9 @@ class BookingModel {
       remarks: remarks ?? this.remarks,
       operationsRemarks: operationsRemarks ?? this.operationsRemarks,
       assignedPilotId: assignedPilotId ?? this.assignedPilotId,
+      assignedPilotName: assignedPilotName ?? this.assignedPilotName,
       assignedDroneId: assignedDroneId ?? this.assignedDroneId,
+      assignedDroneName: assignedDroneName ?? this.assignedDroneName,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

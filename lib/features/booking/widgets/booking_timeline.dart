@@ -13,7 +13,8 @@ class BookingTimeline extends StatelessWidget {
     final stages = <Map<String, dynamic>>[
       {'label': 'Pending', 'status': BookingStatus.pending},
       {'label': 'Reviewed', 'status': BookingStatus.reviewed},
-      {'label': 'Assigned', 'status': BookingStatus.pilotAssigned},
+      {'label': 'Pilot Assigned', 'status': BookingStatus.pilotAssigned},
+      {'label': 'Drone Assigned', 'status': BookingStatus.droneAssigned},
       {'label': 'Accepted', 'status': BookingStatus.accepted},
       {'label': 'In Progress', 'status': BookingStatus.inProgress},
       {'label': 'Completed', 'status': BookingStatus.completed},
@@ -95,9 +96,16 @@ class BookingTimeline extends StatelessWidget {
     if (status == BookingStatus.cancelled) {
       return 0; 
     }
+    
+    // Check for exact match
     for (int i = 0; i < stages.length; i++) {
       if (stages[i]['status'] == status) return i;
     }
+    
+    // Handling intermediate or later states not explicitly in basic timeline
+    if (status == BookingStatus.enRoute) return 5; // Before In Progress
+    if (status == BookingStatus.farmerConfirmed) return 6; // At/After Completed
+
     return 0;
   }
 }

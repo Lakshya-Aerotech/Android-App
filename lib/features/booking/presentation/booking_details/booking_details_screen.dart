@@ -53,20 +53,24 @@ class BookingDetailsScreen extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Booking ID', style: AppTextStyles.bodySmall),
-                          Text(
-                            booking.bookingId,
-                            style: AppTextStyles.titleMedium.copyWith(
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.1,
-                              color: AppColors.primary,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Booking ID', style: AppTextStyles.bodySmall),
+                            Text(
+                              booking.bookingId,
+                              style: AppTextStyles.titleMedium.copyWith(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.1,
+                                color: AppColors.primary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       StatusChip.fromStatus(booking.status),
                     ],
                   ),
@@ -94,6 +98,24 @@ class BookingDetailsScreen extends ConsumerWidget {
               value: '${booking.estimatedArea} Acres',
               icon: Icons.crop_free,
             ),
+
+            if (booking.assignedPilotName != null || booking.assignedDroneName != null) ...[
+              const SizedBox(height: 24),
+              Text('Assigned Resources', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              if (booking.assignedPilotName != null)
+                BookingSummaryCard(
+                  label: 'Pilot',
+                  value: booking.assignedPilotName!,
+                  icon: Icons.person_add_alt_1_outlined,
+                ),
+              if (booking.assignedDroneName != null)
+                BookingSummaryCard(
+                  label: 'Drone',
+                  value: booking.assignedDroneName!,
+                  icon: Icons.precision_manufacturing_outlined,
+                ),
+            ],
 
             const SizedBox(height: 24),
             Text('Service Status', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
