@@ -31,7 +31,6 @@ class AdminDashboardScreen extends ConsumerWidget {
               userName: user?.name ?? 'Admin',
               subtitle: today,
               onNotificationPressed: () {},
-              onMenuPressed: () {},
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(

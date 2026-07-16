@@ -8,7 +8,6 @@ class DashboardHeader extends StatelessWidget {
   final String userName;
   final String? subtitle;
   final Widget? bottomChild;
-  final VoidCallback? onMenuPressed;
   final VoidCallback? onNotificationPressed;
 
   const DashboardHeader({
@@ -16,7 +15,6 @@ class DashboardHeader extends StatelessWidget {
     required this.userName,
     this.subtitle,
     this.bottomChild,
-    this.onMenuPressed,
     this.onNotificationPressed,
   });
 
@@ -38,9 +36,7 @@ class DashboardHeader extends StatelessWidget {
       width: double.infinity,
       decoration: const BoxDecoration(
         color: AppColors.primary,
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(32),
-        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
       ),
       child: Padding(
         padding: EdgeInsets.fromLTRB(
@@ -53,13 +49,8 @@ class DashboardHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                IconButton(
-                  onPressed: onMenuPressed ?? () {},
-                  icon: const Icon(Icons.menu, color: Colors.white),
-                  tooltip: 'Menu',
-                ),
                 Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -113,10 +104,7 @@ class DashboardHeader extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            if (bottomChild != null) ...[
-              AppSpacing.verticalLg,
-              bottomChild!,
-            ],
+            if (bottomChild != null) ...[AppSpacing.verticalLg, bottomChild!],
           ],
         ),
       ),
