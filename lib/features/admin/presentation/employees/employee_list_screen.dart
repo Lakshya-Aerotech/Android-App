@@ -5,6 +5,8 @@ import '../../../../features/auth/models/user_model.dart';
 import '../../viewmodels/admin_viewmodel.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/confirmation_dialog.dart';
+import 'add_employee_screen.dart';
 
 class EmployeeListScreen extends ConsumerWidget {
   const EmployeeListScreen({super.key});
@@ -18,10 +20,7 @@ class EmployeeListScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Employees'),
         actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.filter_list),
-          ),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.filter_list)),
           IconButton(
             onPressed: () => context.push('/admin/add-employee'),
             icon: const Icon(Icons.add),
@@ -35,7 +34,11 @@ class EmployeeListScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.people_outline, size: 64, color: AppColors.border),
+                  const Icon(
+                    Icons.people_outline,
+                    size: 64,
+                    color: AppColors.border,
+                  ),
                   const SizedBox(height: 16),
                   const Text('No employees found'),
                   TextButton(
@@ -68,7 +71,11 @@ class EmployeeListScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmployeeCard(BuildContext context, WidgetRef ref, UserModel employee) {
+  Widget _buildEmployeeCard(
+    BuildContext context,
+    WidgetRef ref,
+    UserModel employee,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -88,7 +95,10 @@ class EmployeeListScreen extends ConsumerWidget {
           backgroundColor: AppColors.primary.withValues(alpha: 0.1),
           child: Text(
             employee.name?[0].toUpperCase() ?? 'E',
-            style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
           ),
         ),
         title: Text(
@@ -115,10 +125,20 @@ class EmployeeListScreen extends ConsumerWidget {
         trailing: PopupMenuButton(
           icon: const Icon(Icons.more_vert),
           onSelected: (value) {
-            if (value == 'status') {
-              ref.read(adminViewModelProvider.notifier).updateStatus(employee.uid!, !employee.isActive);
+            if (value == 'edit') {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AddEmployeeScreen(employee: employee),
+                ),
+              );
+            } else if (value == 'status') {
+              if (employee.isActive) {
+                _showDeactivateDialog(context, ref, employee);
+              } else {
+                _updateStatus(context, ref, employee, true);
+              }
             } else if (value == 'delete') {
-              _showDeleteDialog(context, ref, employee.uid!);
+              _showDeleteDialog(context, ref, employee.docId ?? '');
             }
           },
           itemBuilder: (context) => [
@@ -128,7 +148,7 @@ class EmployeeListScreen extends ConsumerWidget {
                 children: [
                   Icon(Icons.edit, size: 20),
                   SizedBox(width: 12),
-                  Text('Edit Details'),
+                  Text('Edit'),
                 ],
               ),
             ),
@@ -136,7 +156,10 @@ class EmployeeListScreen extends ConsumerWidget {
               value: 'status',
               child: Row(
                 children: [
-                  Icon(employee.isActive ? Icons.block : Icons.check_circle, size: 20),
+                  Icon(
+                    employee.isActive ? Icons.block : Icons.check_circle,
+                    size: 20,
+                  ),
                   const SizedBox(width: 12),
                   Text(employee.isActive ? 'Deactivate' : 'Activate'),
                 ],
@@ -181,9 +204,14 @@ class EmployeeListScreen extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Employee'),
-        content: const Text('Are you sure you want to remove this employee record? This action cannot be undone.'),
+        content: const Text(
+          'Are you sure you want to remove this employee record? This action cannot be undone.',
+        ),
         actions: [
-          TextButton(onPressed: () => context.pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => context.pop(),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
               ref.read(adminViewModelProvider.notifier).deleteEmployee(docId);
@@ -194,5 +222,65 @@ class EmployeeListScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  void _showDeactivateDialog(
+    BuildContext context,
+    WidgetRef ref,
+    UserModel employee,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => ConfirmationDialog(
+        title: 'Deactivate Employee',
+        content: 'Are you sure you want to deactivate this employee?',
+        confirmLabel: 'Deactivate',
+        cancelLabel: 'Cancel',
+        onConfirm: () => _updateStatus(context, ref, employee, false),
+      ),
+    );
+  }
+
+  Future<void> _updateStatus(
+    BuildContext context,
+    WidgetRef ref,
+    UserModel employee,
+    bool isActive,
+  ) async {
+    final docId = employee.docId;
+    if (docId == null || docId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Employee record was not found. It may have been deleted.',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    final error = await ref
+        .read(adminViewModelProvider.notifier)
+        .updateStatus(docId, isActive);
+
+    if (!context.mounted) return;
+
+    if (error == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isActive
+                ? 'Employee activated successfully'
+                : 'Employee deactivated successfully',
+          ),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: AppColors.error),
+      );
+    }
   }
 }

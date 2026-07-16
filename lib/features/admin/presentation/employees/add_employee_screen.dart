@@ -10,7 +10,9 @@ import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 
 class AddEmployeeScreen extends ConsumerStatefulWidget {
-  const AddEmployeeScreen({super.key});
+  final UserModel? employee;
+
+  const AddEmployeeScreen({super.key, this.employee});
 
   @override
   ConsumerState<AddEmployeeScreen> createState() => _AddEmployeeScreenState();
@@ -25,6 +27,24 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
   String _selectedLanguage = 'English';
   bool _isActive = true;
 
+  bool get _isEditMode => widget.employee != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final employee = widget.employee;
+    if (employee != null) {
+      _nameController.text = employee.name ?? '';
+      _emailController.text = employee.email ?? '';
+      _phoneController.text = employee.phoneNumber ?? '';
+      _selectedRole = employee.role;
+      _selectedLanguage = employee.preferredLanguage == 'te'
+          ? 'Telugu'
+          : 'English';
+      _isActive = employee.isActive;
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -36,22 +56,77 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_isEditMode) {
+      await _updateEmployee();
+      return;
+    }
+
     final admin = ref.read(userModelProvider);
-    
-    final error = await ref.read(adminViewModelProvider.notifier).createEmployee(
-      name: _nameController.text.trim(),
-      email: _emailController.text.trim().toLowerCase(),
-      phone: _phoneController.text.trim(),
-      role: _selectedRole,
-      language: _selectedLanguage == 'English' ? 'en' : 'te',
-      isActive: _isActive,
-      createdBy: admin?.name ?? 'Admin',
-    );
+
+    final error = await ref
+        .read(adminViewModelProvider.notifier)
+        .createEmployee(
+          name: _nameController.text.trim(),
+          email: _emailController.text.trim().toLowerCase(),
+          phone: _phoneController.text.trim(),
+          role: _selectedRole,
+          language: _selectedLanguage == 'English' ? 'en' : 'te',
+          isActive: _isActive,
+          createdBy: admin?.name ?? 'Admin',
+        );
 
     if (mounted) {
       if (error == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Employee created successfully'), backgroundColor: AppColors.success),
+          const SnackBar(
+            content: Text('Employee created successfully'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        context.pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _updateEmployee() async {
+    final employee = widget.employee;
+    final docId = employee?.docId;
+
+    if (docId == null || docId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Employee record was not found. It may have been deleted.',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    final error = await ref
+        .read(adminViewModelProvider.notifier)
+        .updateEmployee(
+          docId: docId,
+          name: _nameController.text.trim(),
+          email: _emailController.text.trim().toLowerCase(),
+          phone: _phoneController.text.trim(),
+          role: _selectedRole,
+          language: _selectedLanguage == 'English' ? 'en' : 'te',
+          isActive: _isActive,
+        );
+
+    if (mounted) {
+      if (error == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Employee updated successfully'),
+            backgroundColor: AppColors.success,
+          ),
         );
         context.pop();
       } else {
@@ -68,7 +143,7 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Employee'),
+        title: Text(_isEditMode ? 'Edit Employee' : 'Add Employee'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -79,7 +154,9 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
             children: [
               Text(
                 'Enter Details',
-                style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold),
+                style: AppTextStyles.titleLarge.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 24),
               CustomTextField(
@@ -102,20 +179,25 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
                 hintText: '9876543210',
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
-                validator: (v) => v!.length >= 10 ? null : 'Invalid phone number',
+                validator: (v) =>
+                    v!.length >= 10 ? null : 'Invalid phone number',
               ),
               const SizedBox(height: 16),
-              
+
               Text('Assign Role', style: AppTextStyles.labelLarge),
               const SizedBox(height: 8),
               _buildDropdown<UserRole>(
                 value: _selectedRole,
-                items: const [UserRole.pilot, UserRole.operations, UserRole.admin],
+                items: const [
+                  UserRole.pilot,
+                  UserRole.operations,
+                  UserRole.admin,
+                ],
                 onChanged: (v) => setState(() => _selectedRole = v!),
                 labelBuilder: (role) => role.name.toUpperCase(),
               ),
               const SizedBox(height: 16),
-              
+
               Text('Preferred Language', style: AppTextStyles.labelLarge),
               const SizedBox(height: 8),
               _buildDropdown<String>(
@@ -125,7 +207,7 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
                 labelBuilder: (lang) => lang,
               ),
               const SizedBox(height: 24),
-              
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -133,7 +215,10 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Active Account', style: AppTextStyles.bodyLarge),
-                      Text('Enable immediate login access', style: AppTextStyles.bodySmall),
+                      Text(
+                        'Enable immediate login access',
+                        style: AppTextStyles.bodySmall,
+                      ),
                     ],
                   ),
                   Switch(
@@ -146,7 +231,7 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
               ),
               const SizedBox(height: 48),
               PrimaryButton(
-                text: 'Create Employee',
+                text: _isEditMode ? 'Update Employee' : 'Create Employee',
                 onPressed: _submit,
                 isLoading: isLoading,
               ),
