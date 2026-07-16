@@ -100,6 +100,9 @@ class BookingModel {
   final String? assignedPilotName;
   final String? assignedDroneId;
   final String? assignedDroneName;
+  final String? copilotId;
+  final String? copilotName;
+  final DateTime? assignedCopilotAt;
 
   // Pilot Execution Details
   final String? missionNotes;
@@ -154,6 +157,9 @@ class BookingModel {
     this.assignedPilotName,
     this.assignedDroneId,
     this.assignedDroneName,
+    this.copilotId,
+    this.copilotName,
+    this.assignedCopilotAt,
     this.missionNotes,
     this.actualAreaCovered,
     this.missionStartedAt,
@@ -201,21 +207,35 @@ class BookingModel {
       'assignedPilotName': assignedPilotName,
       'assignedDroneId': assignedDroneId,
       'assignedDroneName': assignedDroneName,
+      if (copilotId != null) 'copilotId': copilotId,
+      if (copilotName != null) 'copilotName': copilotName,
+      if (assignedCopilotAt != null)
+        'assignedCopilotAt': Timestamp.fromDate(assignedCopilotAt!),
       'missionNotes': missionNotes,
       'actualAreaCovered': actualAreaCovered,
-      'missionStartedAt': missionStartedAt != null ? Timestamp.fromDate(missionStartedAt!) : null,
-      'missionCompletedAt': missionCompletedAt != null ? Timestamp.fromDate(missionCompletedAt!) : null,
+      'missionStartedAt': missionStartedAt != null
+          ? Timestamp.fromDate(missionStartedAt!)
+          : null,
+      'missionCompletedAt': missionCompletedAt != null
+          ? Timestamp.fromDate(missionCompletedAt!)
+          : null,
       'flightDurationMinutes': flightDurationMinutes,
       'flightDurationHours': flightDurationHours,
       'chemicalUsed': chemicalUsed,
       'missionPhotos': missionPhotos,
       'rating': rating,
       'feedback': feedback,
-      'feedbackCreatedAt': feedbackCreatedAt != null ? Timestamp.fromDate(feedbackCreatedAt!) : null,
+      'feedbackCreatedAt': feedbackCreatedAt != null
+          ? Timestamp.fromDate(feedbackCreatedAt!)
+          : null,
       'issueCategory': issueCategory,
       'issueDescription': issueDescription,
-      'issueReportedAt': issueReportedAt != null ? Timestamp.fromDate(issueReportedAt!) : null,
-      'confirmedAt': confirmedAt != null ? Timestamp.fromDate(confirmedAt!) : null,
+      'issueReportedAt': issueReportedAt != null
+          ? Timestamp.fromDate(issueReportedAt!)
+          : null,
+      'confirmedAt': confirmedAt != null
+          ? Timestamp.fromDate(confirmedAt!)
+          : null,
       'statusHistory': statusHistory.map((e) => e.toMap()).toList(),
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
@@ -251,14 +271,16 @@ class BookingModel {
       estimatedArea: (map['estimatedArea'] as num).toDouble(),
       status: BookingStatus.fromString(map['status']),
       remarks: map['remarks'],
-      operationsRemarks:
-          (map['operationsRemarks'] as List? ?? [])
-              .map((e) => OperationsRemark.fromMap(e as Map<String, dynamic>))
-              .toList(),
+      operationsRemarks: (map['operationsRemarks'] as List? ?? [])
+          .map((e) => OperationsRemark.fromMap(e as Map<String, dynamic>))
+          .toList(),
       assignedPilotId: map['assignedPilotId'],
       assignedPilotName: map['assignedPilotName'],
       assignedDroneId: map['assignedDroneId'],
       assignedDroneName: map['assignedDroneName'],
+      copilotId: map['copilotId'],
+      copilotName: map['copilotName'],
+      assignedCopilotAt: (map['assignedCopilotAt'] as Timestamp?)?.toDate(),
       missionNotes: map['missionNotes'],
       actualAreaCovered: (map['actualAreaCovered'] as num?)?.toDouble(),
       missionStartedAt: (map['missionStartedAt'] as Timestamp?)?.toDate(),
@@ -309,6 +331,9 @@ class BookingModel {
     String? assignedPilotName,
     String? assignedDroneId,
     String? assignedDroneName,
+    String? copilotId,
+    String? copilotName,
+    DateTime? assignedCopilotAt,
     String? missionNotes,
     double? actualAreaCovered,
     DateTime? missionStartedAt,
@@ -355,11 +380,15 @@ class BookingModel {
       assignedPilotName: assignedPilotName ?? this.assignedPilotName,
       assignedDroneId: assignedDroneId ?? this.assignedDroneId,
       assignedDroneName: assignedDroneName ?? this.assignedDroneName,
+      copilotId: copilotId ?? this.copilotId,
+      copilotName: copilotName ?? this.copilotName,
+      assignedCopilotAt: assignedCopilotAt ?? this.assignedCopilotAt,
       missionNotes: missionNotes ?? this.missionNotes,
       actualAreaCovered: actualAreaCovered ?? this.actualAreaCovered,
       missionStartedAt: missionStartedAt ?? this.missionStartedAt,
       missionCompletedAt: missionCompletedAt ?? this.missionCompletedAt,
-      flightDurationMinutes: flightDurationMinutes ?? this.flightDurationMinutes,
+      flightDurationMinutes:
+          flightDurationMinutes ?? this.flightDurationMinutes,
       flightDurationHours: flightDurationHours ?? this.flightDurationHours,
       chemicalUsed: chemicalUsed ?? this.chemicalUsed,
       missionPhotos: missionPhotos ?? this.missionPhotos,

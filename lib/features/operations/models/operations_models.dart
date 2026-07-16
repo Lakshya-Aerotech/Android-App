@@ -154,6 +154,7 @@ class OpsAssignmentRequest {
   final String farmerId;
   final OpsPilotResource pilot;
   final OpsDroneResource drone;
+  final OpsPilotResource? copilot;
 
   const OpsAssignmentRequest({
     required this.bookingDocId,
@@ -161,5 +162,6 @@ class OpsAssignmentRequest {
     required this.farmerId,
     required this.pilot,
     required this.drone,
+    this.copilot,
   });
 }

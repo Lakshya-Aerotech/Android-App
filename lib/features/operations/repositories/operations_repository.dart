@@ -17,9 +17,22 @@ abstract class OperationsRepository {
   Stream<List<BookingModel>> getApprovedUnassignedBookingsStream();
   Stream<List<OpsPilotResource>> getAvailablePilotsStream();
   Stream<List<OpsDroneResource>> getDronesStream();
-  Future<void> assignPilot(String bookingDocId, String pilotId, String pilotName, StatusHistoryEntry historyEntry);
-  Future<void> assignDrone(String bookingDocId, String droneId, String droneName, StatusHistoryEntry historyEntry);
-  Future<void> assignPilotAndDrone(OpsAssignmentRequest request, StatusHistoryEntry historyEntry);
+  Future<void> assignPilot(
+    String bookingDocId,
+    String pilotId,
+    String pilotName,
+    StatusHistoryEntry historyEntry,
+  );
+  Future<void> assignDrone(
+    String bookingDocId,
+    String droneId,
+    String droneName,
+    StatusHistoryEntry historyEntry,
+  );
+  Future<void> assignPilotAndDrone(
+    OpsAssignmentRequest request,
+    StatusHistoryEntry historyEntry,
+  );
 }
 
 class OperationsRepositoryImpl implements OperationsRepository {
@@ -96,7 +109,7 @@ class OperationsRepositoryImpl implements OperationsRepository {
       int droneAssigned = 0;
       int activeMissions = 0;
       int completedToday = 0;
-      
+
       double acresScheduledToday = 0;
       double acresCompletedToday = 0;
 
@@ -113,14 +126,19 @@ class OperationsRepositoryImpl implements OperationsRepository {
         if (status == BookingStatus.reviewed) reviewed++;
         if (status == BookingStatus.pilotAssigned) pilotAssigned++;
         if (status == BookingStatus.droneAssigned) droneAssigned++;
-        
-        if ([BookingStatus.accepted, BookingStatus.enRoute, BookingStatus.arrived, BookingStatus.inProgress].contains(status)) {
+
+        if ([
+          BookingStatus.accepted,
+          BookingStatus.enRoute,
+          BookingStatus.arrived,
+          BookingStatus.inProgress,
+        ].contains(status)) {
           activeMissions++;
         }
 
-        if (bookingDate != null && 
-            bookingDate.year == now.year && 
-            bookingDate.month == now.month && 
+        if (bookingDate != null &&
+            bookingDate.year == now.year &&
+            bookingDate.month == now.month &&
             bookingDate.day == now.day &&
             status != BookingStatus.cancelled) {
           acresScheduledToday += estArea;
@@ -237,7 +255,12 @@ class OperationsRepositoryImpl implements OperationsRepository {
   }
 
   @override
-  Future<void> assignPilot(String bookingDocId, String pilotId, String pilotName, StatusHistoryEntry historyEntry) async {
+  Future<void> assignPilot(
+    String bookingDocId,
+    String pilotId,
+    String pilotName,
+    StatusHistoryEntry historyEntry,
+  ) async {
     await _firestore.collection('bookings').doc(bookingDocId).update({
       'assignedPilotId': pilotId,
       'assignedPilotName': pilotName,
@@ -248,7 +271,12 @@ class OperationsRepositoryImpl implements OperationsRepository {
   }
 
   @override
-  Future<void> assignDrone(String bookingDocId, String droneId, String droneName, StatusHistoryEntry historyEntry) async {
+  Future<void> assignDrone(
+    String bookingDocId,
+    String droneId,
+    String droneName,
+    StatusHistoryEntry historyEntry,
+  ) async {
     await _firestore.collection('bookings').doc(bookingDocId).update({
       'assignedDroneId': droneId,
       'assignedDroneName': droneName,
@@ -259,15 +287,90 @@ class OperationsRepositoryImpl implements OperationsRepository {
   }
 
   @override
-  Future<void> assignPilotAndDrone(OpsAssignmentRequest request, StatusHistoryEntry historyEntry) async {
-    final bookingRef = _firestore.collection('bookings').doc(request.bookingDocId);
+  Future<void> assignPilotAndDrone(
+    OpsAssignmentRequest request,
+    StatusHistoryEntry historyEntry,
+  ) async {
+    final copilot = request.copilot;
+    if (copilot != null && copilot.uid == request.pilot.uid) {
+      throw FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'invalid-argument',
+        message: 'Pilot and Copilot must be different employees.',
+      );
+    }
+
+    final bookingRef = _firestore
+        .collection('bookings')
+        .doc(request.bookingDocId);
     final droneRef = _firestore.collection('drones').doc(request.drone.id);
-    final assignmentRef = _firestore.collection('job_assignments').doc(request.bookingDocId);
+    final pilotRef = _firestore
+        .collection('users')
+        .doc(request.pilot.documentId);
+    final copilotRef = copilot == null
+        ? null
+        : _firestore.collection('users').doc(copilot.documentId);
+    final assignmentRef = _firestore
+        .collection('job_assignments')
+        .doc(request.bookingDocId);
 
     await _firestore.runTransaction((transaction) async {
       final timestamp = FieldValue.serverTimestamp();
-      
-      transaction.update(bookingRef, {
+
+      final bookingDoc = await transaction.get(bookingRef);
+      if (!bookingDoc.exists) {
+        throw FirebaseException(
+          plugin: 'cloud_firestore',
+          code: 'not-found',
+          message: 'Booking no longer exists.',
+        );
+      }
+
+      final bookingData = bookingDoc.data() ?? const <String, dynamic>{};
+      final bookingStatus = BookingStatus.fromString(
+        bookingData['status']?.toString(),
+      );
+      final alreadyAssigned =
+          bookingData['assignedPilotId'] != null ||
+          bookingData['assignedDroneId'] != null;
+      if (alreadyAssigned || bookingStatus != BookingStatus.reviewed) {
+        throw FirebaseException(
+          plugin: 'cloud_firestore',
+          code: 'failed-precondition',
+          message: 'This booking has already been assigned.',
+        );
+      }
+
+      final pilotDoc = await transaction.get(pilotRef);
+      if (!pilotDoc.exists || !_isPilotSelectableData(pilotDoc.data())) {
+        throw FirebaseException(
+          plugin: 'cloud_firestore',
+          code: 'failed-precondition',
+          message: 'Selected pilot is no longer available.',
+        );
+      }
+
+      if (copilotRef != null) {
+        final copilotDoc = await transaction.get(copilotRef);
+        if (!copilotDoc.exists || !_isPilotSelectableData(copilotDoc.data())) {
+          throw FirebaseException(
+            plugin: 'cloud_firestore',
+            code: 'failed-precondition',
+            message: 'Selected copilot is no longer available.',
+          );
+        }
+      }
+
+      final droneDoc = await transaction.get(droneRef);
+      if (!droneDoc.exists || !_isDroneSelectableData(droneDoc.data())) {
+        throw FirebaseException(
+          plugin: 'cloud_firestore',
+          code: 'failed-precondition',
+          message: 'Selected drone is no longer available.',
+        );
+      }
+
+      final bookingUpdates = <String, dynamic>{
         'assignedPilotId': request.pilot.uid,
         'assignedPilotName': request.pilot.name,
         'assignedDroneId': request.drone.id,
@@ -275,9 +378,17 @@ class OperationsRepositoryImpl implements OperationsRepository {
         'status': BookingStatus.droneAssigned.toFirestore(),
         'updatedAt': timestamp,
         'statusHistory': FieldValue.arrayUnion([historyEntry.toMap()]),
-      });
+      };
+      if (copilot != null) {
+        bookingUpdates.addAll({
+          'copilotId': copilot.uid,
+          'copilotName': copilot.name,
+          'assignedCopilotAt': timestamp,
+        });
+      }
+      transaction.update(bookingRef, bookingUpdates);
 
-      transaction.set(assignmentRef, {
+      final assignmentUpdates = <String, dynamic>{
         'bookingId': request.bookingDocId,
         'assignedPilotId': request.pilot.uid,
         'assignedPilotName': request.pilot.name,
@@ -285,10 +396,24 @@ class OperationsRepositoryImpl implements OperationsRepository {
         'assignedDroneName': request.drone.name,
         'status': BookingStatus.droneAssigned.toFirestore(),
         'updatedAt': timestamp,
-      }, SetOptions(merge: true));
+      };
+      if (copilot != null) {
+        assignmentUpdates.addAll({
+          'copilotId': copilot.uid,
+          'copilotName': copilot.name,
+          'assignedCopilotAt': timestamp,
+        });
+      }
+      transaction.set(
+        assignmentRef,
+        assignmentUpdates,
+        SetOptions(merge: true),
+      );
 
       transaction.update(droneRef, {
         'status': 'busy',
+        'assignedBookingId': request.bookingDocId,
+        'assignedPilotId': request.pilot.uid,
         'updatedAt': timestamp,
       });
     });
@@ -297,13 +422,14 @@ class OperationsRepositoryImpl implements OperationsRepository {
   bool _isAwaitingAssignment(Map<String, dynamic> data) {
     final statusText = data['status']?.toString();
     final status = BookingStatus.fromString(statusText);
-    
-    final isValidForAssignment = status == BookingStatus.reviewed || 
-                                 status == BookingStatus.pilotAssigned;
-                                 
+
+    final isValidForAssignment =
+        status == BookingStatus.reviewed ||
+        status == BookingStatus.pilotAssigned;
+
     final isDeleted = data['isDeleted'] == true;
     final isCancelled = status == BookingStatus.cancelled;
-    
+
     final assignedPilot = data['assignedPilotId'];
     final assignedDrone = data['assignedDroneId'];
 
@@ -363,6 +489,25 @@ class OperationsRepositoryImpl implements OperationsRepository {
     );
   }
 
+  bool _isPilotSelectableData(Map<String, dynamic>? data) {
+    if (data == null) return false;
+
+    final role = (data['role'] ?? '').toString();
+    const pilotRoles = {'pilot', 'drone_operator', 'droneOperator'};
+    if (!pilotRoles.contains(role)) return false;
+
+    final isDeleted = data['isDeleted'] == true || data['deleted'] == true;
+    if (isDeleted || data['isActive'] == false) return false;
+
+    final availability = (data['availability'] ?? '').toString().toLowerCase();
+    final activeBookingId = data['currentBookingId'] ?? data['activeBookingId'];
+    return data['isAvailableForJobs'] != false &&
+        data['isAvailable'] != false &&
+        availability != 'unavailable' &&
+        availability != 'assigned' &&
+        (activeBookingId == null || activeBookingId.toString().isEmpty);
+  }
+
   OpsDroneResource _droneFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? const <String, dynamic>{};
     final availability =
@@ -396,5 +541,32 @@ class OperationsRepositoryImpl implements OperationsRepository {
       isDeleted: data['isDeleted'] == true || data['deleted'] == true,
       activeBookingId: activeBookingId?.toString(),
     );
+  }
+
+  bool _isDroneSelectableData(Map<String, dynamic>? data) {
+    if (data == null) return false;
+
+    final availability =
+        (data['availability'] ?? data['availabilityStatus'] ?? '')
+            .toString()
+            .toLowerCase();
+    final status = (data['operationalStatus'] ?? data['status'] ?? 'available')
+        .toString()
+        .toLowerCase();
+    final activeBookingId =
+        data['currentBookingId'] ??
+        data['activeBookingId'] ??
+        data['assignedBookingId'];
+
+    return data['isActive'] != false &&
+        data['isDeleted'] != true &&
+        data['deleted'] != true &&
+        data['isAvailable'] != false &&
+        status != 'inactive' &&
+        status != 'busy' &&
+        availability != 'assigned' &&
+        availability != 'unavailable' &&
+        availability != 'maintenance' &&
+        (activeBookingId == null || activeBookingId.toString().isEmpty);
   }
 }

@@ -59,13 +59,15 @@ final dashboardStatsStreamProvider = StreamProvider<List<OperationsStatistic>>((
         icon: Icons.calendar_today,
         iconColor: Colors.teal,
         title: 'Acres Scheduled',
-        value: (stats['acresScheduledToday'] as num?)?.toStringAsFixed(1) ?? '0.0',
+        value:
+            (stats['acresScheduledToday'] as num?)?.toStringAsFixed(1) ?? '0.0',
       ),
       OperationsStatistic(
         icon: Icons.done_all,
         iconColor: Colors.green.shade800,
         title: 'Acres Completed',
-        value: (stats['acresCompletedToday'] as num?)?.toStringAsFixed(1) ?? '0.0',
+        value:
+            (stats['acresCompletedToday'] as num?)?.toStringAsFixed(1) ?? '0.0',
       ),
     ];
   });
@@ -117,7 +119,7 @@ class OperationsViewModel extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     try {
       final user = _ref.read(userModelProvider);
-      
+
       final historyEntry = StatusHistoryEntry(
         status: BookingStatus.reviewed,
         updatedBy: user?.name ?? 'Operations',
@@ -176,7 +178,11 @@ class OperationsViewModel extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  Future<void> assignPilot(String bookingId, String pilotId, String pilotName) async {
+  Future<void> assignPilot(
+    String bookingId,
+    String pilotId,
+    String pilotName,
+  ) async {
     state = const AsyncLoading();
     try {
       final user = _ref.read(userModelProvider);
@@ -187,14 +193,23 @@ class OperationsViewModel extends StateNotifier<AsyncValue<void>> {
         timestamp: DateTime.now(),
         remarks: 'Pilot $pilotName assigned to job.',
       );
-      await _repository.assignPilot(bookingId, pilotId, pilotName, historyEntry);
+      await _repository.assignPilot(
+        bookingId,
+        pilotId,
+        pilotName,
+        historyEntry,
+      );
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
     }
   }
 
-  Future<void> assignDrone(String bookingId, String droneId, String droneName) async {
+  Future<void> assignDrone(
+    String bookingId,
+    String droneId,
+    String droneName,
+  ) async {
     state = const AsyncLoading();
     try {
       final user = _ref.read(userModelProvider);
@@ -205,7 +220,12 @@ class OperationsViewModel extends StateNotifier<AsyncValue<void>> {
         timestamp: DateTime.now(),
         remarks: 'Drone $droneName assigned to job.',
       );
-      await _repository.assignDrone(bookingId, droneId, droneName, historyEntry);
+      await _repository.assignDrone(
+        bookingId,
+        droneId,
+        droneName,
+        historyEntry,
+      );
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -221,7 +241,9 @@ class OperationsViewModel extends StateNotifier<AsyncValue<void>> {
         updatedBy: user?.name ?? 'Operations',
         updatedByRole: 'operations',
         timestamp: DateTime.now(),
-        remarks: 'Pilot ${request.pilot.name} and Drone ${request.drone.name} assigned.',
+        remarks: request.copilot == null
+            ? 'Pilot ${request.pilot.name} and Drone ${request.drone.name} assigned.'
+            : 'Pilot ${request.pilot.name}, Copilot ${request.copilot!.name}, and Drone ${request.drone.name} assigned.',
       );
       await _repository.assignPilotAndDrone(request, historyEntry);
       state = const AsyncData(null);
@@ -247,6 +269,9 @@ class OperationsViewModel extends StateNotifier<AsyncValue<void>> {
       case 'aborted':
       case 'already-exists':
         return 'This booking changed while assigning. Refresh and try again.';
+      case 'failed-precondition':
+      case 'invalid-argument':
+        return e.message ?? 'Selected resources are no longer available.';
       default:
         return 'Assignment failed. Please refresh and try again.';
     }

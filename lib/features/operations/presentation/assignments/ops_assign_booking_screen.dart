@@ -27,6 +27,12 @@ class _OpsAssignBookingScreenState
     extends ConsumerState<OpsAssignBookingScreen> {
   OpsPilotResource? _selectedPilot;
   OpsDroneResource? _selectedDrone;
+  OpsPilotResource? _selectedCopilot;
+
+  bool get _hasSamePilotAndCopilot =>
+      _selectedPilot != null &&
+      _selectedCopilot != null &&
+      _selectedPilot!.uid == _selectedCopilot!.uid;
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +64,7 @@ class _OpsAssignBookingScreenState
             onPressed:
                 _selectedPilot != null &&
                     _selectedDrone != null &&
+                    !_hasSamePilotAndCopilot &&
                     !isSubmitting
                 ? _confirmAssignment
                 : null,
@@ -69,7 +76,7 @@ class _OpsAssignBookingScreenState
         children: [
           _BookingSummary(booking: widget.booking),
           AppSpacing.verticalXl,
-          _SectionTitle(title: 'Select Pilot'),
+          _SectionTitle(title: 'Pilot Selection (Required)'),
           AppSpacing.verticalMd,
           pilotsAsync.when(
             data: (pilots) {
@@ -103,7 +110,7 @@ class _OpsAssignBookingScreenState
             ),
           ),
           AppSpacing.verticalLg,
-          _SectionTitle(title: 'Select Drone'),
+          _SectionTitle(title: 'Drone Selection (Required)'),
           AppSpacing.verticalMd,
           dronesAsync.when(
             data: (drones) {
@@ -136,6 +143,61 @@ class _OpsAssignBookingScreenState
               icon: Icons.wifi_off_outlined,
             ),
           ),
+          AppSpacing.verticalLg,
+          _SectionTitle(title: 'Copilot (Optional)'),
+          AppSpacing.verticalXs,
+          Text(
+            'Leave empty if this booking does not require a Copilot.',
+            style: AppTextStyles.bodySmall,
+          ),
+          AppSpacing.verticalMd,
+          pilotsAsync.when(
+            data: (pilots) {
+              if (pilots.isEmpty) {
+                return const EmptyState(
+                  title: 'No available copilots',
+                  message: 'Active available pilots will appear here.',
+                  icon: Icons.person_off_outlined,
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _CopilotPlaceholder(
+                    selectedCopilot: _selectedCopilot,
+                    onClear: _selectedCopilot == null
+                        ? null
+                        : () => setState(() => _selectedCopilot = null),
+                  ),
+                  AppSpacing.verticalMd,
+                  for (final pilot in pilots) ...[
+                    _PilotCard(
+                      pilot: pilot,
+                      selected: _selectedCopilot?.uid == pilot.uid,
+                      onTap: pilot.canSelect
+                          ? () => setState(() => _selectedCopilot = pilot)
+                          : null,
+                    ),
+                    AppSpacing.verticalMd,
+                  ],
+                  if (_hasSamePilotAndCopilot)
+                    Text(
+                      'Pilot and Copilot must be different employees.',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                ],
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, __) => const EmptyState(
+              title: 'Unable to load copilots',
+              message: 'Check your connection and try again.',
+              icon: Icons.wifi_off_outlined,
+            ),
+          ),
         ],
       ),
     );
@@ -144,8 +206,19 @@ class _OpsAssignBookingScreenState
   Future<void> _confirmAssignment() async {
     final pilot = _selectedPilot;
     final drone = _selectedDrone;
+    final copilot = _selectedCopilot;
     final docId = widget.booking.docId;
     if (pilot == null || drone == null || docId == null) return;
+
+    if (copilot != null && copilot.uid == pilot.uid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pilot and Copilot must be different employees.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -158,6 +231,8 @@ class _OpsAssignBookingScreenState
             _DialogLine(label: 'Booking', value: widget.booking.bookingId),
             _DialogLine(label: 'Pilot', value: pilot.name),
             _DialogLine(label: 'Drone', value: drone.code),
+            if (copilot != null)
+              _DialogLine(label: 'Copilot', value: copilot.name),
           ],
         ),
         actions: [
@@ -184,6 +259,7 @@ class _OpsAssignBookingScreenState
             farmerId: widget.booking.farmerUid,
             pilot: pilot,
             drone: drone,
+            copilot: copilot,
           ),
         );
 
@@ -418,6 +494,45 @@ class _DroneCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CopilotPlaceholder extends StatelessWidget {
+  final OpsPilotResource? selectedCopilot;
+  final VoidCallback? onClear;
+
+  const _CopilotPlaceholder({
+    required this.selectedCopilot,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _SelectableContainer(
+      selected: selectedCopilot != null,
+      enabled: true,
+      child: Row(
+        children: [
+          const Icon(Icons.support_agent_outlined, color: AppColors.primary),
+          AppSpacing.horizontalMd,
+          Expanded(
+            child: Text(
+              selectedCopilot?.name ?? 'Select Copilot',
+              style: AppTextStyles.bodyLarge.copyWith(
+                fontWeight: selectedCopilot == null
+                    ? FontWeight.normal
+                    : FontWeight.w600,
+                color: selectedCopilot == null
+                    ? AppColors.textSecondary
+                    : AppColors.textPrimary,
+              ),
+            ),
+          ),
+          if (onClear != null)
+            TextButton(onPressed: onClear, child: const Text('Clear')),
+        ],
       ),
     );
   }

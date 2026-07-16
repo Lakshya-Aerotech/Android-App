@@ -9,6 +9,7 @@ import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/status_chip.dart';
 import '../../../../shared/enums/booking_status.dart';
 import '../../../booking/models/booking_model.dart';
+import '../../../auth/viewmodel/auth_viewmodel.dart';
 import '../../viewmodels/pilot_jobs_viewmodel.dart';
 import '../../../operations/widgets/full_booking_timeline.dart';
 import '../../../../core/widgets/confirmation_dialog.dart';
@@ -31,7 +32,10 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
     ref.listen(pilotJobsViewModelProvider, (previous, next) {
       if (next is AsyncError) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${next.error}'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error: ${next.error}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     });
@@ -73,10 +77,13 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
       context: context,
       builder: (context) => ConfirmationDialog(
         title: 'Complete Mission',
-        content: 'Are you sure you want to mark this mission as completed? Total acreage of ${job.estimatedArea} Acres will be recorded.',
+        content:
+            'Are you sure you want to mark this mission as completed? Total acreage of ${job.estimatedArea} Acres will be recorded.',
         confirmLabel: 'Complete Mission',
         onConfirm: () {
-          ref.read(pilotJobsViewModelProvider.notifier).completeMission(job: job);
+          ref
+              .read(pilotJobsViewModelProvider.notifier)
+              .completeMission(job: job);
         },
       ),
     );
@@ -122,6 +129,17 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
                 _buildSectionTitle('Drone Assignment'),
                 _buildInfoCard(
                   items: [
+                    {
+                      'label': 'Assigned Pilot',
+                      'value': job.assignedPilotName ?? 'N/A',
+                      'icon': Icons.person_outline,
+                    },
+                    if (job.copilotName != null)
+                      {
+                        'label': 'Copilot',
+                        'value': job.copilotName!,
+                        'icon': Icons.support_agent_outlined,
+                      },
                     {
                       'label': 'Drone Code',
                       'value': job.assignedDroneId ?? 'N/A',
@@ -170,7 +188,9 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+                    border: Border.all(
+                      color: AppColors.border.withValues(alpha: 0.5),
+                    ),
                   ),
                   child: FullBookingTimeline(currentStatus: job.status),
                 ),
@@ -189,6 +209,21 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
   Widget _buildActionButtons(BookingModel job) {
     final notifier = ref.read(pilotJobsViewModelProvider.notifier);
     final isLoading = ref.watch(pilotJobsViewModelProvider).isLoading;
+    final user = ref.watch(userModelProvider);
+    final isCopilot =
+        user?.uid != null &&
+        job.copilotId == user!.uid &&
+        job.assignedPilotId != user.uid;
+
+    if (isCopilot) {
+      return const Center(
+        child: StatusChip(
+          label: 'Copilot View',
+          backgroundColor: AppColors.info,
+          textColor: Colors.white,
+        ),
+      );
+    }
 
     switch (job.status) {
       case BookingStatus.droneAssigned:
@@ -293,39 +328,36 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
         border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
       ),
       child: Column(
-        children:
-            items
-                .map(
-                  (item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: Row(
+        children: items
+            .map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Row(
+                  children: [
+                    Icon(
+                      item['icon'] as IconData,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          item['icon'] as IconData,
-                          size: 18,
-                          color: AppColors.textSecondary,
+                        Text(
+                          item['label'] as String,
+                          style: AppTextStyles.bodySmall.copyWith(fontSize: 10),
                         ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item['label'] as String,
-                              style: AppTextStyles.bodySmall.copyWith(
-                                fontSize: 10,
-                              ),
-                            ),
-                            Text(
-                              item['value'] as String,
-                              style: AppTextStyles.labelLarge,
-                            ),
-                          ],
+                        Text(
+                          item['value'] as String,
+                          style: AppTextStyles.labelLarge,
                         ),
                       ],
                     ),
-                  ),
-                )
-                .toList(),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
       ),
     );
   }
@@ -346,7 +378,10 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
             zoom: 15,
           ),
           markers: {
-            Marker(markerId: const MarkerId('farm'), position: LatLng(lat, lng)),
+            Marker(
+              markerId: const MarkerId('farm'),
+              position: LatLng(lat, lng),
+            ),
           },
           liteModeEnabled: true,
           zoomControlsEnabled: false,
