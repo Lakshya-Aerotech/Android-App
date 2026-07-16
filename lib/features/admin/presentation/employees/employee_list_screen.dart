@@ -63,11 +63,6 @@ class EmployeeListScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, st) => Center(child: Text('Error: $e')),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/admin/add-employee'),
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
     );
   }
 
