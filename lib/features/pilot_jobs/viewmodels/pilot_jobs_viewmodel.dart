@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/viewmodel/auth_viewmodel.dart';
 import '../../booking/models/booking_model.dart';
@@ -153,8 +154,19 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
   Future<void> completeMission({
     required BookingModel job,
   }) async {
+    if (job.docId == null || job.assignedDroneId == null) {
+      state = AsyncError('Invalid job or drone information.', StackTrace.current);
+      return;
+    }
+
     state = const AsyncLoading();
     final user = _ref.read(userModelProvider);
+    
+    if (user == null || user.docId == null) {
+      state = AsyncError('User profile not found.', StackTrace.current);
+      return;
+    }
+
     try {
       final now = DateTime.now();
       final startTime = job.missionStartedAt ?? now;
@@ -164,7 +176,7 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
 
       final historyEntry = StatusHistoryEntry(
         status: BookingStatus.completed,
-        updatedBy: user?.name ?? 'Pilot',
+        updatedBy: user.name ?? 'Pilot',
         updatedByRole: 'pilot',
         timestamp: now,
         remarks: 'Mission completed. Duration: $durationMinutes mins.',
@@ -180,12 +192,13 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
       await _repository.completeMission(
         bookingDocId: job.docId!,
         droneDocId: job.assignedDroneId!,
-        pilotId: user!.uid!,
+        pilotId: user.docId!,
         completionData: completionData,
         historyEntry: historyEntry,
       );
       state = const AsyncData(null);
     } catch (e, st) {
+      debugPrint('Error completing mission: $e');
       state = AsyncError(e, st);
     }
   }

@@ -46,6 +46,14 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
 
   @override
   Future<void> updateJobStatus(String bookingDocId, BookingStatus status, StatusHistoryEntry historyEntry, {Map<String, dynamic>? additionalUpdates}) async {
+    if (bookingDocId.isEmpty) {
+      throw FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'invalid-argument',
+        message: 'Booking Document ID cannot be empty.',
+      );
+    }
+
     final Map<String, dynamic> updates = {
       'status': status.toFirestore(),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -64,6 +72,14 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
     required Map<String, dynamic> completionData,
     required StatusHistoryEntry historyEntry,
   }) async {
+    if (bookingDocId.isEmpty || droneDocId.isEmpty || pilotId.isEmpty) {
+      throw FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'invalid-argument',
+        message: 'Booking, Drone, or Pilot ID cannot be empty.',
+      );
+    }
+
     final bookingRef = _firestore.collection('bookings').doc(bookingDocId);
     final droneRef = _firestore.collection('drones').doc(droneDocId);
     final pilotRef = _firestore.collection('users').doc(pilotId);
@@ -71,9 +87,21 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
     await _firestore.runTransaction((transaction) async {
       // 1. Get current pilot data for stats
       final pilotDoc = await transaction.get(pilotRef);
+      if (!pilotDoc.exists) {
+        throw FirebaseException(
+          plugin: 'cloud_firestore',
+          code: 'not-found',
+          message: 'Pilot profile not found in database.',
+        );
+      }
+
       final pilotData = pilotDoc.data() ?? {};
       
-      final currentMinutes = (pilotData['totalFlightMinutes'] ?? 0) as int;
+      // Ensure numeric fields exist and handle potential type mismatches
+      final int currentMinutes = (pilotData['totalFlightMinutes'] ?? 0) is int 
+          ? (pilotData['totalFlightMinutes'] ?? 0) 
+          : (pilotData['totalFlightMinutes'] as num?)?.toInt() ?? 0;
+
       final newMinutes = currentMinutes + (completionData['flightDurationMinutes'] as int? ?? 0);
       final newHours = double.parse((newMinutes / 60.0).toStringAsFixed(2));
 

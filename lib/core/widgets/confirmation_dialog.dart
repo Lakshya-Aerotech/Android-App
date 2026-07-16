@@ -23,11 +23,19 @@ class ConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Force a light background for dialogs to ensure visibility of buttons
     return AlertDialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.white, 
+      surfaceTintColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: AppRadius.radiusLg),
-      title: Text(title, style: AppTextStyles.titleLarge),
-      content: Text(content, style: AppTextStyles.bodyMedium),
+      title: Text(
+        title, 
+        style: AppTextStyles.titleLarge.copyWith(color: AppColors.textPrimary),
+      ),
+      content: Text(
+        content, 
+        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+      ),
       actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       actions: [
         OverflowBar(
@@ -39,12 +47,12 @@ class ConfirmationDialog extends StatelessWidget {
             OutlinedButton(
               onPressed: onCancel ?? () => Navigator.pop(context),
               style: OutlinedButton.styleFrom(
-                minimumSize: const Size(100, 48), // Set a reasonable min width
+                minimumSize: const Size(100, 48),
                 side: const BorderSide(color: AppColors.border),
                 foregroundColor: AppColors.textPrimary,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: Text(cancelLabel, style: const TextStyle(fontSize: 13)),
+              child: Text(cancelLabel, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -52,15 +60,15 @@ class ConfirmationDialog extends StatelessWidget {
                 onConfirm();
               },
               style: ElevatedButton.styleFrom(
-                minimumSize: const Size(100, 48), // Set a reasonable min width
+                minimumSize: const Size(100, 48),
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: Text(
-                confirmLabel, 
-                textAlign: TextAlign.center, 
+                confirmLabel,
+                textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
               ),
             ),

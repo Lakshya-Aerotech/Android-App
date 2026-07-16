@@ -27,6 +27,15 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
   Widget build(BuildContext context) {
     final jobAsync = ref.watch(pilotJobDetailsProvider(widget.job.docId!));
 
+    // Listen for completion errors
+    ref.listen(pilotJobsViewModelProvider, (previous, next) {
+      if (next is AsyncError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${next.error}'), backgroundColor: Colors.red),
+        );
+      }
+    });
+
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       appBar: AppBar(

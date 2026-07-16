@@ -45,7 +45,16 @@ class PrimaryButton extends StatelessWidget {
                   icon!,
                   const SizedBox(width: 8),
                 ],
-                Text(text),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      text,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                    ),
+                  ),
+                ),
               ],
             ),
     );

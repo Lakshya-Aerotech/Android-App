@@ -33,15 +33,29 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
     super.dispose();
   }
 
-  Future<void> _handleReviewAction() async {
+  Future<void> _handleReviewAction(String action) async {
     final viewModel = ref.read(operationsViewModelProvider.notifier);
     final remark = _remarksController.text.trim();
 
-    await viewModel.approveBooking(widget.booking.docId!, remarkMessage: remark.isEmpty ? null : remark);
+    if (action == 'reject' && remark.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please provide a reason for rejection in remarks.')),
+      );
+      return;
+    }
+
+    if (action == 'approve') {
+      await viewModel.approveBooking(widget.booking.docId!, remarkMessage: remark.isEmpty ? null : remark);
+    } else {
+      await viewModel.rejectBooking(widget.booking.docId!, remark);
+    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking approved successfully'), backgroundColor: AppColors.success),
+        SnackBar(
+          content: Text('Booking ${action == 'approve' ? 'approved' : 'rejected'} successfully'), 
+          backgroundColor: action == 'approve' ? AppColors.success : Colors.red,
+        ),
       );
       context.pop();
     }
@@ -278,7 +292,33 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
           ),
         ),
         const SizedBox(height: 16),
-        PrimaryButton(text: 'Approve Booking', onPressed: _handleReviewAction, isLoading: isLoading),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: isLoading ? null : () => _handleReviewAction('reject'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red, 
+                  side: const BorderSide(color: Colors.red),
+                  minimumSize: const Size(0, 56),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('Reject Job', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: PrimaryButton(
+                text: 'Approve Job',
+                onPressed: () => _handleReviewAction('approve'), 
+                isLoading: isLoading,
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
