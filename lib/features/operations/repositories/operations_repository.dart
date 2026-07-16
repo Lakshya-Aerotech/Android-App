@@ -13,7 +13,7 @@ abstract class OperationsRepository {
   });
   Stream<List<BookingModel>> getAllBookingsStream();
   Stream<List<BookingModel>> getRecentBookingsStream({int limit = 10});
-  Stream<Map<String, int>> getDashboardStatsStream();
+  Stream<Map<String, dynamic>> getDashboardStatsStream();
   Stream<List<BookingModel>> getApprovedUnassignedBookingsStream();
   Stream<List<OpsPilotResource>> getAvailablePilotsStream();
   Stream<List<OpsDroneResource>> getDronesStream();
@@ -85,8 +85,8 @@ class OperationsRepositoryImpl implements OperationsRepository {
   }
 
   @override
-  Stream<Map<String, int>> getDashboardStatsStream() {
-    return _firestore.collection('bookings').snapshots().asyncMap((bookingSnapshot) async {
+  Stream<Map<String, dynamic>> getDashboardStatsStream() {
+    return _firestore.collection('bookings').snapshots().map((bookingSnapshot) {
       final now = DateTime.now();
       final todayStart = DateTime(now.year, now.month, now.day);
 
@@ -94,58 +94,55 @@ class OperationsRepositoryImpl implements OperationsRepository {
       int reviewed = 0;
       int pilotAssigned = 0;
       int droneAssigned = 0;
+      int activeMissions = 0;
       int completedToday = 0;
-      int cancelled = 0;
-      int todayBookings = 0;
-      int issueReported = 0;
+      
+      double acresScheduledToday = 0;
+      double acresCompletedToday = 0;
 
       for (var doc in bookingSnapshot.docs) {
         final data = doc.data();
         final status = BookingStatus.fromString(data['status'] as String?);
-        final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+        final bookingDateTs = data['bookingDate'] as Timestamp?;
+        final bookingDate = bookingDateTs?.toDate();
         final updatedAt = (data['updatedAt'] as Timestamp?)?.toDate();
+        final estArea = (data['estimatedArea'] as num?)?.toDouble() ?? 0.0;
+        final actArea = (data['actualAreaCovered'] as num?)?.toDouble() ?? 0.0;
 
         if (status == BookingStatus.pending) pending++;
         if (status == BookingStatus.reviewed) reviewed++;
         if (status == BookingStatus.pilotAssigned) pilotAssigned++;
         if (status == BookingStatus.droneAssigned) droneAssigned++;
-        if (status == BookingStatus.cancelled) cancelled++;
-        if (status == BookingStatus.issueReported) issueReported++;
+        
+        if ([BookingStatus.accepted, BookingStatus.enRoute, BookingStatus.arrived, BookingStatus.inProgress].contains(status)) {
+          activeMissions++;
+        }
 
-        if (createdAt != null && createdAt.isAfter(todayStart)) {
-          todayBookings++;
+        if (bookingDate != null && 
+            bookingDate.year == now.year && 
+            bookingDate.month == now.month && 
+            bookingDate.day == now.day &&
+            status != BookingStatus.cancelled) {
+          acresScheduledToday += estArea;
         }
 
         if (status == BookingStatus.completed &&
             updatedAt != null &&
             updatedAt.isAfter(todayStart)) {
           completedToday++;
+          acresCompletedToday += actArea;
         }
       }
-
-      // Available Pilots
-      final pilotsSnapshot = await _firestore.collection('users').where('role', isEqualTo: 'pilot').get();
-      int availablePilots = pilotsSnapshot.docs.where((d) => d.data()['isActive'] == true).length;
-
-      // Drone Stats
-      final dronesSnapshot = await _firestore.collection('drones').get();
-      int availableDrones = dronesSnapshot.docs.where((d) => d.data()['status'] == 'available').length;
-      int busyDrones = dronesSnapshot.docs.where((d) => d.data()['status'] == 'busy').length;
-      int maintenanceDrones = dronesSnapshot.docs.where((d) => d.data()['status'] == 'maintenance').length;
 
       return {
         'pending': pending,
         'reviewed': reviewed,
         'pilotAssigned': pilotAssigned,
         'droneAssigned': droneAssigned,
+        'activeMissions': activeMissions,
         'completedToday': completedToday,
-        'cancelled': cancelled,
-        'todayBookings': todayBookings,
-        'availablePilots': availablePilots,
-        'availableDrones': availableDrones,
-        'busyDrones': busyDrones,
-        'maintenanceDrones': maintenanceDrones,
-        'issueReported': issueReported,
+        'acresScheduledToday': acresScheduledToday,
+        'acresCompletedToday': acresCompletedToday,
       };
     });
   }

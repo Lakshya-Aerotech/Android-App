@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,8 +10,8 @@ import '../../../../core/widgets/status_chip.dart';
 import '../../../../shared/enums/booking_status.dart';
 import '../../../booking/models/booking_model.dart';
 import '../../viewmodels/pilot_jobs_viewmodel.dart';
-import '../../widgets/mission_completion_dialog.dart';
 import '../../../operations/widgets/full_booking_timeline.dart';
+import '../../../../core/widgets/confirmation_dialog.dart';
 
 class PilotJobDetailsScreen extends ConsumerStatefulWidget {
   final BookingModel job;
@@ -24,12 +23,24 @@ class PilotJobDetailsScreen extends ConsumerStatefulWidget {
 }
 
 class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
-  final TextEditingController _rejectionController = TextEditingController();
-
   @override
-  void dispose() {
-    _rejectionController.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final jobAsync = ref.watch(pilotJobDetailsProvider(widget.job.docId!));
+
+    return Scaffold(
+      backgroundColor: AppColors.lightBackground,
+      appBar: AppBar(
+        title: const Text('Job Details'),
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.primary,
+        elevation: 0,
+      ),
+      body: switch (jobAsync) {
+        AsyncData(:final value) => _buildContent(context, value),
+        AsyncError(:final error) => Center(child: Text('Error: $error')),
+        _ => const Center(child: CircularProgressIndicator()),
+      },
+    );
   }
 
   Future<void> _navigate(BookingModel job) async {
@@ -48,75 +59,17 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
     }
   }
 
-  void _showRejectDialog() {
+  void _showCompleteMissionConfirmation(BookingModel job) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reject Job Assignment'),
-        content: TextField(
-          controller: _rejectionController,
-          decoration: const InputDecoration(hintText: 'Reason for rejection...'),
-          maxLines: 3,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (_rejectionController.text.isNotEmpty) {
-                ref
-                    .read(pilotJobsViewModelProvider.notifier)
-                    .rejectJob(widget.job.docId!, _rejectionController.text);
-                Navigator.pop(context);
-                context.pop();
-              }
-            },
-            child: const Text('Reject', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCompletionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => MissionCompletionDialog(
-        onConfirm: (notes, area, duration, chemical) {
-          ref.read(pilotJobsViewModelProvider.notifier).completeMission(
-            bookingDocId: widget.job.docId!,
-            droneDocId: widget.job.assignedDroneId!, // Assumed non-null if in_progress
-            notes: notes,
-            areaCovered: area,
-            duration: duration,
-            chemical: chemical,
-          );
-          context.pop();
+      builder: (context) => ConfirmationDialog(
+        title: 'Complete Mission',
+        content: 'Are you sure you want to mark this mission as completed? Total acreage of ${job.estimatedArea} Acres will be recorded.',
+        confirmLabel: 'Complete Mission',
+        onConfirm: () {
+          ref.read(pilotJobsViewModelProvider.notifier).completeMission(job: job);
         },
       ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Watch real-time stream using docId as family key for stable updates
-    final jobAsync = ref.watch(pilotJobDetailsProvider(widget.job.docId!));
-
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      appBar: AppBar(
-        title: const Text('Job Details'),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.primary,
-        elevation: 0,
-      ),
-      body: switch (jobAsync) {
-        AsyncData(:final value) => _buildContent(context, value),
-        AsyncError(:final error) => Center(child: Text('Error: $error')),
-        _ => const Center(child: CircularProgressIndicator()),
-      },
     );
   }
 
@@ -180,7 +133,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
                     {
                       'label': 'Service Type',
                       'value': job.serviceType,
-                      'icon': Icons.settings_suggest_outlined,
+                      'icon': Icons.water_drop_outlined,
                     },
                     {
                       'label': 'Crop Type',
@@ -208,6 +161,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
                   ),
                   child: FullBookingTimeline(currentStatus: job.status),
                 ),
@@ -229,28 +183,10 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
 
     switch (job.status) {
       case BookingStatus.droneAssigned:
-        return Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: isLoading ? null : _showRejectDialog,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  side: const BorderSide(color: Colors.red),
-                  minimumSize: const Size(0, 56),
-                ),
-                child: const Text('Reject Job'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: PrimaryButton(
-                text: 'Accept Job',
-                onPressed: () => notifier.acceptJob(job.docId!),
-                isLoading: isLoading,
-              ),
-            ),
-          ],
+        return PrimaryButton(
+          text: 'Accept Assignment',
+          onPressed: () => notifier.acceptJob(job.docId!),
+          isLoading: isLoading,
         );
       case BookingStatus.accepted:
         return PrimaryButton(
@@ -279,7 +215,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
         return PrimaryButton(
           text: 'Complete Mission',
           icon: const Icon(Icons.check_circle_outline, color: Colors.white),
-          onPressed: _showCompletionDialog,
+          onPressed: () => _showCompleteMissionConfirmation(job),
           isLoading: isLoading,
         );
       case BookingStatus.completed:
@@ -345,6 +281,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
       ),
       child: Column(
         children:

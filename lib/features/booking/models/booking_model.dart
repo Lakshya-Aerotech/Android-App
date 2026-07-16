@@ -102,10 +102,12 @@ class BookingModel {
   final String? assignedDroneName;
 
   // Pilot Execution Details
-  final String? pilotRejectionReason;
   final String? missionNotes;
   final double? actualAreaCovered;
-  final String? flightDuration;
+  final DateTime? missionStartedAt;
+  final DateTime? missionCompletedAt;
+  final int? flightDurationMinutes;
+  final double? flightDurationHours;
   final String? chemicalUsed;
   final List<String> missionPhotos;
 
@@ -152,10 +154,12 @@ class BookingModel {
     this.assignedPilotName,
     this.assignedDroneId,
     this.assignedDroneName,
-    this.pilotRejectionReason,
     this.missionNotes,
     this.actualAreaCovered,
-    this.flightDuration,
+    this.missionStartedAt,
+    this.missionCompletedAt,
+    this.flightDurationMinutes,
+    this.flightDurationHours,
     this.chemicalUsed,
     this.missionPhotos = const [],
     this.rating,
@@ -197,10 +201,12 @@ class BookingModel {
       'assignedPilotName': assignedPilotName,
       'assignedDroneId': assignedDroneId,
       'assignedDroneName': assignedDroneName,
-      'pilotRejectionReason': pilotRejectionReason,
       'missionNotes': missionNotes,
       'actualAreaCovered': actualAreaCovered,
-      'flightDuration': flightDuration,
+      'missionStartedAt': missionStartedAt != null ? Timestamp.fromDate(missionStartedAt!) : null,
+      'missionCompletedAt': missionCompletedAt != null ? Timestamp.fromDate(missionCompletedAt!) : null,
+      'flightDurationMinutes': flightDurationMinutes,
+      'flightDurationHours': flightDurationHours,
       'chemicalUsed': chemicalUsed,
       'missionPhotos': missionPhotos,
       'rating': rating,
@@ -253,10 +259,12 @@ class BookingModel {
       assignedPilotName: map['assignedPilotName'],
       assignedDroneId: map['assignedDroneId'],
       assignedDroneName: map['assignedDroneName'],
-      pilotRejectionReason: map['pilotRejectionReason'],
       missionNotes: map['missionNotes'],
       actualAreaCovered: (map['actualAreaCovered'] as num?)?.toDouble(),
-      flightDuration: map['flightDuration'],
+      missionStartedAt: (map['missionStartedAt'] as Timestamp?)?.toDate(),
+      missionCompletedAt: (map['missionCompletedAt'] as Timestamp?)?.toDate(),
+      flightDurationMinutes: map['flightDurationMinutes'] as int?,
+      flightDurationHours: (map['flightDurationHours'] as num?)?.toDouble(),
       chemicalUsed: map['chemicalUsed'],
       missionPhotos: List<String>.from(map['missionPhotos'] ?? []),
       rating: (map['rating'] as num?)?.toDouble(),
@@ -301,10 +309,12 @@ class BookingModel {
     String? assignedPilotName,
     String? assignedDroneId,
     String? assignedDroneName,
-    String? pilotRejectionReason,
     String? missionNotes,
     double? actualAreaCovered,
-    String? flightDuration,
+    DateTime? missionStartedAt,
+    DateTime? missionCompletedAt,
+    int? flightDurationMinutes,
+    double? flightDurationHours,
     String? chemicalUsed,
     List<String>? missionPhotos,
     double? rating,
@@ -345,10 +355,12 @@ class BookingModel {
       assignedPilotName: assignedPilotName ?? this.assignedPilotName,
       assignedDroneId: assignedDroneId ?? this.assignedDroneId,
       assignedDroneName: assignedDroneName ?? this.assignedDroneName,
-      pilotRejectionReason: pilotRejectionReason ?? this.pilotRejectionReason,
       missionNotes: missionNotes ?? this.missionNotes,
       actualAreaCovered: actualAreaCovered ?? this.actualAreaCovered,
-      flightDuration: flightDuration ?? this.flightDuration,
+      missionStartedAt: missionStartedAt ?? this.missionStartedAt,
+      missionCompletedAt: missionCompletedAt ?? this.missionCompletedAt,
+      flightDurationMinutes: flightDurationMinutes ?? this.flightDurationMinutes,
+      flightDurationHours: flightDurationHours ?? this.flightDurationHours,
       chemicalUsed: chemicalUsed ?? this.chemicalUsed,
       missionPhotos: missionPhotos ?? this.missionPhotos,
       rating: rating ?? this.rating,

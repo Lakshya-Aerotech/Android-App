@@ -9,6 +9,7 @@ import '../../../../core/widgets/empty_state.dart';
 import '../../../../shared/components/dashboard_header.dart';
 import '../../viewmodels/farm_viewmodel.dart';
 import '../../widgets/detailed_farm_card.dart';
+import '../../models/farm_model.dart';
 
 class MyFarmsScreen extends ConsumerStatefulWidget {
   const MyFarmsScreen({super.key});
@@ -21,7 +22,7 @@ class _MyFarmsScreenState extends ConsumerState<MyFarmsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String? _selectedCrop;
-  
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -61,18 +62,20 @@ class _MyFarmsScreenState extends ConsumerState<MyFarmsScreen> {
                     ),
                   ),
                   AppSpacing.verticalMd,
-                  
+
                   // Search and Filter Bar
                   Row(
                     children: [
                       Expanded(
                         child: TextField(
                           controller: _searchController,
-                          onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
-                          decoration: InputDecoration(
+                          onChanged:
+                              (value) =>
+                                  setState(() => _searchQuery = value.toLowerCase()),
+                          decoration: const InputDecoration(
                             hintText: 'Search by name, village...',
-                            prefixIcon: const Icon(Icons.search, size: 20),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                            prefixIcon: Icon(Icons.search, size: 20),
+                            contentPadding: EdgeInsets.symmetric(vertical: 12),
                             fillColor: Colors.white,
                           ),
                         ),
@@ -82,68 +85,31 @@ class _MyFarmsScreenState extends ConsumerState<MyFarmsScreen> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+                          border: Border.all(
+                            color: AppColors.border.withValues(alpha: 0.5),
+                          ),
                         ),
                         child: IconButton(
                           onPressed: () => _showFilterDialog(),
-                          icon: const Icon(Icons.filter_list, color: AppColors.primary),
+                          icon: const Icon(
+                            Icons.filter_list,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  
+
                   AppSpacing.verticalLg,
-                  
-                  farmsAsync.when(
-                    data: (farms) {
-                      final filteredFarms = farms.where((farm) {
-                        final matchesSearch = farm.farmName.toLowerCase().contains(_searchQuery) ||
-                                              farm.village.toLowerCase().contains(_searchQuery) ||
-                                              farm.cropType.toLowerCase().contains(_searchQuery);
-                        final matchesCrop = _selectedCrop == null || farm.cropType == _selectedCrop;
-                        return matchesSearch && matchesCrop;
-                      }).toList();
 
-                      if (filteredFarms.isEmpty) {
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 40),
-                          child: EmptyState(
-                            title: 'No farms added yet.',
-                            message: 'Start by adding your first farm to book drone services.',
-                            icon: Icons.landscape_outlined,
-                          ),
-                        );
-                      }
-
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: filteredFarms.length,
-                        itemBuilder: (context, index) {
-                          final farm = filteredFarms[index];
-                          return DetailedFarmCard(
-                            farm: farm,
-                            onTap: () => context.push('/farm-details', extra: farm),
-                          );
-                        },
-                      );
-                    },
-                    loading: () => const Padding(
+                  switch (farmsAsync) {
+                    AsyncData(:final value) => _buildFarmList(value),
+                    AsyncError(:final error) => _buildError(error),
+                    _ => const Padding(
                       padding: EdgeInsets.only(top: 40),
                       child: Center(child: CircularProgressIndicator()),
                     ),
-                    error: (e, _) {
-                      debugPrint('Firestore Error in MyFarmsScreen: $e');
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 40),
-                        child: EmptyState(
-                          title: 'Unable to load farms.',
-                          message: 'There was a technical issue. Please try again later.',
-                          icon: Icons.error_outline,
-                        ),
-                      );
-                    },
-                  ),
+                  },
                   const SizedBox(height: 80), // Space for FAB
                 ],
               ),
@@ -154,8 +120,56 @@ class _MyFarmsScreenState extends ConsumerState<MyFarmsScreen> {
     );
   }
 
+  Widget _buildFarmList(List<FarmModel> farms) {
+    final filteredFarms =
+        farms.where((farm) {
+          final matchesSearch =
+              farm.farmName.toLowerCase().contains(_searchQuery) ||
+              farm.village.toLowerCase().contains(_searchQuery) ||
+              farm.cropType.toLowerCase().contains(_searchQuery);
+          final matchesCrop =
+              _selectedCrop == null || farm.cropType == _selectedCrop;
+          return matchesSearch && matchesCrop;
+        }).toList();
+
+    if (filteredFarms.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 40),
+        child: EmptyState(
+          title: 'No farms added yet.',
+          message: 'Start by adding your first farm to book drone services.',
+          icon: Icons.landscape_outlined,
+        ),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: filteredFarms.length,
+      itemBuilder: (context, index) {
+        final farm = filteredFarms[index];
+        return DetailedFarmCard(
+          farm: farm,
+          onTap: () => context.push('/farm-details', extra: farm),
+        );
+      },
+    );
+  }
+
+  Widget _buildError(Object error) {
+    debugPrint('Firestore Error in MyFarmsScreen: $error');
+    return const Padding(
+      padding: EdgeInsets.only(top: 40),
+      child: EmptyState(
+        title: 'Unable to load farms.',
+        message: 'There was a technical issue. Please try again later.',
+        icon: Icons.error_outline,
+      ),
+    );
+  }
+
   void _showFilterDialog() {
-    // Basic filter dialog implementation
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -168,23 +182,29 @@ class _MyFarmsScreenState extends ConsumerState<MyFarmsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Filter Farms', style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                'Filter Farms',
+                style: AppTextStyles.titleLarge.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 24),
               Text('By Crop Type', style: AppTextStyles.labelLarge),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
-                children: ['Cotton', 'Paddy', 'Chilli', 'Maize', 'Soya'].map((crop) {
-                  final isSelected = _selectedCrop == crop;
-                  return ChoiceChip(
-                    label: Text(crop),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() => _selectedCrop = selected ? crop : null);
-                      Navigator.pop(context);
-                    },
-                  );
-                }).toList(),
+                children:
+                    ['Cotton', 'Paddy', 'Chilli', 'Maize', 'Soya'].map((crop) {
+                      final isSelected = _selectedCrop == crop;
+                      return ChoiceChip(
+                        label: Text(crop),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() => _selectedCrop = selected ? crop : null);
+                          Navigator.pop(context);
+                        },
+                      );
+                    }).toList(),
               ),
               const SizedBox(height: 24),
               TextButton(

@@ -109,7 +109,6 @@ class _PilotHomeContent extends ConsumerWidget {
     final user = ref.watch(userModelProvider);
     final statsAsync = ref.watch(pilotDashboardStatsProvider);
     final activeJobsAsync = ref.watch(inProgressJobsProvider);
-    final assignedJobsAsync = ref.watch(assignedJobsProvider);
 
     return SingleChildScrollView(
       child: Column(
@@ -131,7 +130,7 @@ class _PilotHomeContent extends ConsumerWidget {
                   onChanged: onAvailabilityChanged,
                 ),
                 AppSpacing.verticalXl,
-                const _SectionTitle(title: "Today's Overview"),
+                const _SectionTitle(title: "Execution Overview"),
                 AppSpacing.verticalMd,
                 switch (statsAsync) {
                   AsyncData(:final value) => GridView.count(
@@ -143,24 +142,28 @@ class _PilotHomeContent extends ConsumerWidget {
                     childAspectRatio: 1.5,
                     children: [
                       _StatCard(
-                        title: 'Assigned',
-                        value: '${value['assigned'] ?? 0}',
+                        title: 'Today',
+                        value: value['todayAssignments'].toString(),
                         color: Colors.blue,
+                        icon: Icons.calendar_today,
                       ),
                       _StatCard(
-                        title: 'Accepted',
-                        value: '${value['accepted'] ?? 0}',
-                        color: Colors.purple,
-                      ),
-                      _StatCard(
-                        title: 'In Progress',
-                        value: '${value['inProgress'] ?? 0}',
+                        title: 'Pending',
+                        value: value['pendingJobs'].toString(),
                         color: Colors.orange,
+                        icon: Icons.pending_actions,
                       ),
                       _StatCard(
                         title: 'Completed',
-                        value: '${value['completedToday'] ?? 0}',
+                        value: value['completedJobs'].toString(),
                         color: Colors.green,
+                        icon: Icons.task_alt,
+                      ),
+                      _StatCard(
+                        title: 'Acres',
+                        value: (value['totalAcresCovered'] as num).toStringAsFixed(1),
+                        color: Colors.purple,
+                        icon: Icons.crop_free,
                       ),
                     ],
                   ),
@@ -183,35 +186,9 @@ class _PilotHomeContent extends ConsumerWidget {
                   AsyncError(:final error) => Text('Error: $error'),
                   _ => const LinearProgressIndicator(),
                 },
-
+                
                 AppSpacing.verticalXl,
-                const _SectionTitle(title: 'New Assignments'),
-                AppSpacing.verticalMd,
-                switch (assignedJobsAsync) {
-                  AsyncData(:final value) => value.isEmpty
-                      ? const Text('No new assignments.')
-                      : Column(
-                        children:
-                            value
-                                .take(3)
-                                .map(
-                                  (job) => PilotJobCard(
-                                    job: job,
-                                    onTap:
-                                        () => context.push(
-                                          '/pilot/job-details',
-                                          extra: job,
-                                        ),
-                                  ),
-                                )
-                                .toList(),
-                      ),
-                  AsyncError(:final error) => Text('Error: $error'),
-                  _ => const LinearProgressIndicator(),
-                },
-
-                AppSpacing.verticalXl,
-                const _SectionTitle(title: 'Flight Stats'),
+                const _SectionTitle(title: 'Overall Pilot Stats'),
                 AppSpacing.verticalMd,
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -222,18 +199,18 @@ class _PilotHomeContent extends ConsumerWidget {
                       color: AppColors.border.withValues(alpha: 0.5),
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _StatItem(
-                        label: 'Today Hours',
-                        value: '0.0',
+                        label: 'Total Flight Hours',
+                        value: (user?.totalFlightHours ?? 0.0).toStringAsFixed(1),
                         icon: Icons.timer_outlined,
                       ),
-                      VerticalDivider(),
+                      const VerticalDivider(),
                       _StatItem(
-                        label: 'Total Hours',
-                        value: '12.4',
+                        label: 'Total Missions',
+                        value: (user?.completedMissions ?? 0).toString(),
                         icon: Icons.history,
                       ),
                     ],
@@ -252,11 +229,13 @@ class _StatCard extends StatelessWidget {
   final String title;
   final String value;
   final Color color;
+  final IconData icon;
 
   const _StatCard({
     required this.title,
     required this.value,
     required this.color,
+    required this.icon,
   });
 
   @override
@@ -272,7 +251,13 @@ class _StatCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(title, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
+          Row(
+            children: [
+              Icon(icon, size: 14, color: AppColors.textSecondary),
+              const SizedBox(width: 4),
+              Text(title, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 10)),
+            ],
+          ),
           const SizedBox(height: 4),
           Text(
             value,

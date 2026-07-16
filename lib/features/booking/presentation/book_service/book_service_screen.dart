@@ -12,7 +12,6 @@ import '../../../farm/viewmodels/farm_viewmodel.dart';
 import '../../viewmodels/booking_viewmodel.dart';
 import '../../../auth/viewmodel/auth_viewmodel.dart';
 import '../../widgets/farm_selection_card.dart';
-import '../../widgets/service_selection_card.dart';
 import '../../widgets/booking_summary_card.dart';
 
 class BookServiceScreen extends ConsumerStatefulWidget {
@@ -27,40 +26,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
   int _currentStep = 0;
 
   FarmModel? _selectedFarm;
-  
-  final List<Map<String, String>> _services = [
-    {
-      'title': 'Pesticide Spraying',
-      'icon': '🌿',
-      'desc': 'Targeted pest control for healthy crops.',
-      'duration': 'Est. 15-20 min/acre'
-    },
-    {
-      'title': 'Fertilizer Spraying',
-      'icon': '🌾',
-      'desc': 'Efficient nutrient distribution.',
-      'duration': 'Est. 10-15 min/acre'
-    },
-    {
-      'title': 'Micronutrient Spraying',
-      'icon': '💧',
-      'desc': 'Enhanced growth supplements.',
-      'duration': 'Est. 12-18 min/acre'
-    },
-    {
-      'title': 'Survey Mapping',
-      'icon': '🛰',
-      'desc': 'High-res multispectral mapping.',
-      'duration': 'Est. 30-40 min/farm'
-    },
-    {
-      'title': 'Seed Broadcasting',
-      'icon': '🌱',
-      'desc': 'Precise uniform seed distribution.',
-      'duration': 'Est. 20-30 min/acre'
-    },
-  ];
-  String? _selectedService;
+  final String _selectedService = "Pesticide Spraying";
   
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 0);
@@ -81,10 +47,6 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
     if (_currentStep < 3) {
       if (_currentStep == 0 && _selectedFarm == null) {
         _showError('Please select a farm');
-        return;
-      }
-      if (_currentStep == 1 && _selectedService == null) {
-        _showError('Please select a service');
         return;
       }
       if (_currentStep == 2 && _areaController.text.isEmpty) {
@@ -125,7 +87,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
       farmId: _selectedFarm!.docId!,
       farmName: _selectedFarm!.farmName,
       cropType: _selectedFarm!.cropType,
-      serviceType: _selectedService!,
+      serviceType: _selectedService,
       bookingDate: _selectedDate,
       preferredTime: formattedTime,
       estimatedArea: double.parse(_areaController.text),
@@ -246,18 +208,64 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(title: 'Select Service'),
-          const SizedBox(height: 16),
-          ..._services.map((s) => ServiceSelectionCard(
-            title: s['title']!,
-            icon: s['icon']!,
-            description: s['desc']!,
-            duration: s['duration']!,
-            isSelected: _selectedService == s['title'],
-            onTap: () => setState(() => _selectedService = s['title']),
-          )),
+          const SectionHeader(title: 'Service Information'),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.05),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.water_drop, color: AppColors.primary, size: 40),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  _selectedService,
+                  style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Precision agricultural drone spraying for pesticides. Ensuring uniform coverage and efficient pest control for your crops.',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.bodyMedium,
+                ),
+                const Divider(height: 40),
+                _buildInfoRow(Icons.timer_outlined, 'Estimated Duration', '15-20 min / acre'),
+                const SizedBox(height: 12),
+                _buildInfoRow(Icons.check_circle_outline, 'Benefit', 'Saves water and chemical usage'),
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: AppColors.accent),
+        const SizedBox(width: 12),
+        Text(label, style: AppTextStyles.bodySmall),
+        const Spacer(),
+        Text(value, style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+      ],
     );
   }
 
@@ -368,8 +376,8 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
           ),
           BookingSummaryCard(
             label: 'Service',
-            value: _selectedService ?? '',
-            icon: Icons.settings_suggest_outlined,
+            value: _selectedService,
+            icon: Icons.water_drop_outlined,
           ),
           BookingSummaryCard(
             label: 'Date',

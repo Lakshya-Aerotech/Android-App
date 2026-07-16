@@ -33,29 +33,15 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
     super.dispose();
   }
 
-  Future<void> _handleReviewAction(String action) async {
+  Future<void> _handleReviewAction() async {
     final viewModel = ref.read(operationsViewModelProvider.notifier);
     final remark = _remarksController.text.trim();
 
-    if (action == 'reject' && remark.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please provide a reason for rejection in remarks.')),
-      );
-      return;
-    }
-
-    switch (action) {
-      case 'approve':
-        await viewModel.approveBooking(widget.booking.docId!, remarkMessage: remark);
-        break;
-      case 'reject':
-        await viewModel.rejectBooking(widget.booking.docId!, remark);
-        break;
-    }
+    await viewModel.approveBooking(widget.booking.docId!, remarkMessage: remark.isEmpty ? null : remark);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Booking updated successfully'), backgroundColor: AppColors.success),
+        const SnackBar(content: Text('Booking approved successfully'), backgroundColor: AppColors.success),
       );
       context.pop();
     }
@@ -292,21 +278,7 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
           ),
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: isLoading ? null : () => _handleReviewAction('reject'),
-                style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: const BorderSide(color: Colors.red), minimumSize: const Size(0, 50)),
-                child: const Text('Reject'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: PrimaryButton(text: 'Approve', onPressed: () => _handleReviewAction('approve'), isLoading: isLoading),
-            ),
-          ],
-        ),
+        PrimaryButton(text: 'Approve Booking', onPressed: _handleReviewAction, isLoading: isLoading),
       ],
     );
   }

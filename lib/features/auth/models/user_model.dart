@@ -4,7 +4,7 @@ enum UserRole { farmer, pilot, operations, admin }
 
 class UserModel {
   final String? docId; // Firestore Document ID
-  final String? uid;   // Firebase Auth UID
+  final String? uid; // Firebase Auth UID
   final String? phoneNumber;
   final String? email;
   final UserRole role;
@@ -17,7 +17,7 @@ class UserModel {
   final String? district;
   final String? state;
   final String? preferredLanguage;
-  
+
   // Admin Module Specific Fields
   final String? createdBy;
   final DateTime? lastLogin;
@@ -25,6 +25,12 @@ class UserModel {
   final bool mustChangePassword;
   final bool authCreated;
   final List<String> fcmTokens;
+
+  // Pilot Specific Statistics
+  final int completedMissions;
+  final double totalAcresCovered;
+  final int totalFlightMinutes;
+  final double totalFlightHours;
 
   UserModel({
     this.docId,
@@ -47,6 +53,10 @@ class UserModel {
     this.mustChangePassword = true,
     this.authCreated = false,
     this.fcmTokens = const [],
+    this.completedMissions = 0,
+    this.totalAcresCovered = 0.0,
+    this.totalFlightMinutes = 0,
+    this.totalFlightHours = 0.0,
   });
 
   Map<String, dynamic> toMap() {
@@ -70,6 +80,10 @@ class UserModel {
       'mustChangePassword': mustChangePassword,
       'authCreated': authCreated,
       'fcmTokens': fcmTokens,
+      'completedMissions': completedMissions,
+      'totalAcresCovered': totalAcresCovered,
+      'totalFlightMinutes': totalFlightMinutes,
+      'totalFlightHours': totalFlightHours,
     };
   }
 
@@ -90,11 +104,18 @@ class UserModel {
       state: map['state'],
       preferredLanguage: map['preferredLanguage'],
       createdBy: map['createdBy'],
-      lastLogin: map['lastLogin'] != null ? (map['lastLogin'] as Timestamp).toDate() : null,
+      lastLogin:
+          map['lastLogin'] != null
+              ? (map['lastLogin'] as Timestamp).toDate()
+              : null,
       profileImageUrl: map['profileImageUrl'],
       mustChangePassword: map['mustChangePassword'] ?? true,
       authCreated: map['authCreated'] ?? false,
       fcmTokens: List<String>.from(map['fcmTokens'] ?? []),
+      completedMissions: map['completedMissions'] ?? 0,
+      totalAcresCovered: (map['totalAcresCovered'] as num?)?.toDouble() ?? 0.0,
+      totalFlightMinutes: map['totalFlightMinutes'] ?? 0,
+      totalFlightHours: (map['totalFlightHours'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -119,6 +140,10 @@ class UserModel {
     bool? mustChangePassword,
     bool? authCreated,
     List<String>? fcmTokens,
+    int? completedMissions,
+    double? totalAcresCovered,
+    int? totalFlightMinutes,
+    double? totalFlightHours,
   }) {
     return UserModel(
       docId: docId ?? this.docId,
@@ -141,6 +166,10 @@ class UserModel {
       mustChangePassword: mustChangePassword ?? this.mustChangePassword,
       authCreated: authCreated ?? this.authCreated,
       fcmTokens: fcmTokens ?? this.fcmTokens,
+      completedMissions: completedMissions ?? this.completedMissions,
+      totalAcresCovered: totalAcresCovered ?? this.totalAcresCovered,
+      totalFlightMinutes: totalFlightMinutes ?? this.totalFlightMinutes,
+      totalFlightHours: totalFlightHours ?? this.totalFlightHours,
     );
   }
 }

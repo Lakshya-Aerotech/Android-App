@@ -15,11 +15,14 @@ import 'widgets/quick_action_card.dart';
 import '../../profile/presentation/profile_screen.dart';
 import '../../farm/presentation/my_farms/my_farms_screen.dart';
 import '../../booking/presentation/booking_history/my_bookings_screen.dart';
+import '../../farm/models/farm_model.dart';
+import '../../booking/models/booking_model.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../shared/enums/booking_status.dart';
 import '../../auth/viewmodel/auth_viewmodel.dart';
 import '../../booking/viewmodels/booking_viewmodel.dart';
+import '../../farm/viewmodels/farm_viewmodel.dart';
 
 class FarmerHomeScreen extends ConsumerStatefulWidget {
   const FarmerHomeScreen({super.key});
@@ -91,6 +94,7 @@ class _FarmerHomeContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userModelProvider);
     final bookingsAsync = ref.watch(farmerBookingsStreamProvider);
+    final farmsAsync = ref.watch(farmsStreamProvider);
 
     return SingleChildScrollView(
       child: Column(
@@ -110,6 +114,8 @@ class _FarmerHomeContent extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildStatsGrid(bookingsAsync, farmsAsync),
+                AppSpacing.verticalXl,
                 SectionHeader(
                   title: 'Quick Actions',
                   titleStyle: AppTextStyles.titleMedium.copyWith(
@@ -160,48 +166,172 @@ class _FarmerHomeContent extends ConsumerWidget {
                   ),
                 ),
                 AppSpacing.verticalMd,
-                bookingsAsync.when(
-                  data: (bookings) {
-                    final upcoming = bookings.where((b) => 
-                      b.status != BookingStatus.completed && 
-                      b.status != BookingStatus.cancelled &&
-                      b.status != BookingStatus.closed
-                    ).toList();
+                switch (bookingsAsync) {
+                  AsyncData(:final value) =>
+                    _buildUpcomingBookingCard(context, value),
+                  AsyncError(:final error) => Text('Error: $error'),
+                  _ => const LinearProgressIndicator(),
+                },
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                    if (upcoming.isEmpty) {
-                      return Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: AppRadius.radiusLg,
-                          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
-                        ),
-                        child: Column(
-                          children: [
-                            const Icon(Icons.calendar_today, color: AppColors.border, size: 40),
-                            const SizedBox(height: 12),
-                            Text('No upcoming bookings', style: AppTextStyles.bodyMedium),
-                            TextButton(
-                              onPressed: () => context.push('/book-service'),
-                              child: const Text('Book a Service Now'),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
+  Widget _buildUpcomingBookingCard(
+    BuildContext context,
+    List<BookingModel> bookings,
+  ) {
+    final upcoming =
+        bookings
+            .where(
+              (b) =>
+                  b.status != BookingStatus.completed &&
+                  b.status != BookingStatus.cancelled &&
+                  b.status != BookingStatus.closed &&
+                  b.status != BookingStatus.farmerConfirmed,
+            )
+            .toList();
 
-                    final b = upcoming.first;
-                    return BookingCard(
-                      dateTime: '${DateFormat('dd MMM').format(b.bookingDate)}, ${b.preferredTime}',
-                      farmName: b.farmName,
-                      cropInfo: '${b.cropType} • ${b.estimatedArea} Acres',
-                      status: b.status,
-                      onTap: () => context.push('/booking-details', extra: b),
-                    );
-                  },
-                  loading: () => const LinearProgressIndicator(),
-                  error: (e, _) => Text('Error: $e'),
+    if (upcoming.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: AppRadius.radiusLg,
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.calendar_today, color: AppColors.border, size: 40),
+            const SizedBox(height: 12),
+            Text('No upcoming bookings', style: AppTextStyles.bodyMedium),
+            TextButton(
+              onPressed: () => context.push('/book-service'),
+              child: const Text('Book a Service Now'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final b = upcoming.first;
+    return BookingCard(
+      dateTime:
+          '${DateFormat('dd MMM').format(b.bookingDate)}, ${b.preferredTime}',
+      farmName: b.farmName,
+      cropInfo: '${b.cropType} • ${b.estimatedArea} Acres',
+      status: b.status,
+      onTap: () => context.push('/booking-details', extra: b),
+    );
+  }
+
+  Widget _buildStatsGrid(
+    AsyncValue<List<BookingModel>> bookingsAsync,
+    AsyncValue<List<FarmModel>> farmsAsync,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.8,
+          children: [
+            _buildStatCard(
+              'Total Farms',
+              switch (farmsAsync) {
+                AsyncData(:final value) => value.length.toString(),
+                _ => '...',
+              },
+              Icons.landscape_outlined,
+              Colors.green,
+            ),
+            _buildStatCard(
+              'Total Bookings',
+              switch (bookingsAsync) {
+                AsyncData(:final value) => value.length.toString(),
+                _ => '...',
+              },
+              Icons.assignment_outlined,
+              Colors.blue,
+            ),
+            _buildStatCard(
+              'Completed',
+              switch (bookingsAsync) {
+                AsyncData(:final value) =>
+                  value
+                      .where(
+                        (e) => [
+                          BookingStatus.completed,
+                          BookingStatus.farmerConfirmed,
+                          BookingStatus.closed,
+                        ].contains(e.status),
+                      )
+                      .length
+                      .toString(),
+                _ => '...',
+              },
+              Icons.task_alt,
+              Colors.orange,
+            ),
+            _buildStatCard(
+              'Total Acres',
+              switch (farmsAsync) {
+                AsyncData(:final value) =>
+                  value.fold(0.0, (sum, item) => sum + item.area).toStringAsFixed(
+                    1,
+                  ),
+                _ => '0.0',
+              },
+              Icons.crop_free,
+              Colors.purple,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  value,
+                  style: AppTextStyles.titleMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  label,
+                  style: AppTextStyles.bodySmall.copyWith(fontSize: 10),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

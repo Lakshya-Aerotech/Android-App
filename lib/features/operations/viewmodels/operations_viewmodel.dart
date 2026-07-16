@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lakshya_aerotech/core/theme/app_colors.dart';
 import '../models/operations_models.dart';
 import '../repositories/operations_repository.dart';
 import '../../booking/models/booking_model.dart';
@@ -21,13 +22,13 @@ final dashboardStatsStreamProvider = StreamProvider<List<OperationsStatistic>>((
       OperationsStatistic(
         icon: Icons.pending_actions,
         iconColor: Colors.orange,
-        title: 'Pending Bookings',
+        title: 'Pending Review',
         value: stats['pending'].toString(),
       ),
       OperationsStatistic(
         icon: Icons.rate_review_outlined,
         iconColor: Colors.blue,
-        title: 'Under Review',
+        title: 'Approved',
         value: stats['reviewed'].toString(),
       ),
       OperationsStatistic(
@@ -43,46 +44,28 @@ final dashboardStatsStreamProvider = StreamProvider<List<OperationsStatistic>>((
         value: stats['droneAssigned'].toString(),
       ),
       OperationsStatistic(
+        icon: Icons.run_circle_outlined,
+        iconColor: AppColors.accent,
+        title: 'Active Missions',
+        value: stats['activeMissions'].toString(),
+      ),
+      OperationsStatistic(
         icon: Icons.task_alt,
         iconColor: Colors.green,
         title: 'Completed Today',
         value: stats['completedToday'].toString(),
       ),
       OperationsStatistic(
-        icon: Icons.people_outline,
-        iconColor: Colors.blue,
-        title: 'Available Pilots',
-        value: stats['availablePilots'].toString(),
-      ),
-      OperationsStatistic(
-        icon: Icons.check_circle_outline,
-        iconColor: Colors.green,
-        title: 'Available Drones',
-        value: stats['availableDrones'].toString(),
-      ),
-      OperationsStatistic(
-        icon: Icons.run_circle_outlined,
-        iconColor: Colors.orange,
-        title: 'Busy Drones',
-        value: stats['busyDrones'].toString(),
-      ),
-      OperationsStatistic(
-        icon: Icons.build_circle_outlined,
-        iconColor: Colors.red,
-        title: 'Maintenance',
-        value: stats['maintenanceDrones'].toString(),
-      ),
-      OperationsStatistic(
-        icon: Icons.today,
+        icon: Icons.calendar_today,
         iconColor: Colors.teal,
-        title: "Today's Bookings",
-        value: stats['todayBookings'].toString(),
+        title: 'Acres Scheduled',
+        value: (stats['acresScheduledToday'] as num?)?.toStringAsFixed(1) ?? '0.0',
       ),
       OperationsStatistic(
-        icon: Icons.report_problem_outlined,
-        iconColor: Colors.red.shade900,
-        title: 'Issues Reported',
-        value: stats['issueReported'].toString(),
+        icon: Icons.done_all,
+        iconColor: Colors.green.shade800,
+        title: 'Acres Completed',
+        value: (stats['acresCompletedToday'] as num?)?.toStringAsFixed(1) ?? '0.0',
       ),
     ];
   });

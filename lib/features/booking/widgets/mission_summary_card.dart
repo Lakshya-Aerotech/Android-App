@@ -12,6 +12,10 @@ class MissionSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isSuccessfullyCompleted = 
+        booking.actualAreaCovered != null && 
+        booking.estimatedArea <= booking.actualAreaCovered!;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -23,17 +27,37 @@ class MissionSummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.summarize_outlined, color: AppColors.primary, size: 24),
-              const SizedBox(width: 12),
-              Text('Mission Summary', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  const Icon(Icons.summarize_outlined, color: AppColors.primary, size: 24),
+                  const SizedBox(width: 12),
+                  Text('Mission Summary', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              if (isSuccessfullyCompleted)
+                const Icon(Icons.verified, color: AppColors.success, size: 24),
             ],
           ),
           const Divider(height: 32),
-          _buildDetailRow('Actual Area Covered', '${booking.actualAreaCovered ?? 0} Acres'),
-          _buildDetailRow('Flight Duration', '${booking.flightDuration ?? '0'} Mins'),
-          _buildDetailRow('Chemical Used', booking.chemicalUsed ?? 'N/A'),
-          _buildDetailRow('Completed At', booking.confirmedAt != null ? DateFormat('dd MMM yyyy, hh:mm a').format(booking.confirmedAt!) : 'Waiting for confirmation'),
+          _buildDetailRow('Estimated Acres', '${booking.estimatedArea} Acres'),
+          _buildDetailRow('Actual Acres Covered', '${booking.actualAreaCovered ?? 0} Acres'),
+          
+          if (!isSuccessfullyCompleted && booking.actualAreaCovered != null)
+             Padding(
+               padding: const EdgeInsets.only(bottom: 12),
+               child: Text(
+                 'Note: Coverage difference detected (${(booking.estimatedArea - booking.actualAreaCovered!).toStringAsFixed(1)} Acres)',
+                 style: const TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold),
+               ),
+             ),
+
+          _buildDetailRow('Mission Started', booking.missionStartedAt != null ? DateFormat('hh:mm a').format(booking.missionStartedAt!) : 'N/A'),
+          _buildDetailRow('Mission Completed', booking.missionCompletedAt != null ? DateFormat('hh:mm a').format(booking.missionCompletedAt!) : 'N/A'),
+          _buildDetailRow('Flight Duration', '${booking.flightDurationMinutes ?? 0} Minutes'),
+          _buildDetailRow('Service Type', booking.serviceType),
+          _buildDetailRow('Status', isSuccessfullyCompleted ? 'Completed Successfully' : 'Completed'),
           
           if (booking.missionNotes != null && booking.missionNotes!.isNotEmpty) ...[
             const SizedBox(height: 16),
