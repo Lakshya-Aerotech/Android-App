@@ -262,9 +262,22 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
       children: [
         Icon(icon, size: 20, color: AppColors.accent),
         const SizedBox(width: 12),
-        Text(label, style: AppTextStyles.bodySmall),
-        const Spacer(),
-        Text(value, style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+        Expanded(
+          child: Text(
+            label, 
+            style: AppTextStyles.bodySmall,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            value, 
+            style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     );
   }

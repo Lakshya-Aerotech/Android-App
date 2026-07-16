@@ -32,7 +32,7 @@ class AnalyticsSummaryGrid extends StatelessWidget {
             crossAxisCount: columns,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: width / 124,
+            childAspectRatio: width / 164,
           ),
           itemBuilder: (context, index) =>
               AnalyticsSummaryCard(metric: metrics[index]),

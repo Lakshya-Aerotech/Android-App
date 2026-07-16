@@ -30,41 +30,38 @@ class ConfirmationDialog extends StatelessWidget {
       content: Text(content, style: AppTextStyles.bodyMedium),
       actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       actions: [
-        Row(
+        OverflowBar(
+          alignment: MainAxisAlignment.end,
+          overflowAlignment: OverflowBarAlignment.end,
+          spacing: 12,
+          overflowSpacing: 8,
           children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: onCancel ?? () => Navigator.pop(context),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 48), // Reset infinity width from theme
-                  side: const BorderSide(color: AppColors.border),
-                  foregroundColor: AppColors.textPrimary,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: Text(cancelLabel, style: const TextStyle(fontSize: 13)),
+            OutlinedButton(
+              onPressed: onCancel ?? () => Navigator.pop(context),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(100, 48), // Set a reasonable min width
+                side: const BorderSide(color: AppColors.border),
+                foregroundColor: AppColors.textPrimary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
+              child: Text(cancelLabel, style: const TextStyle(fontSize: 13)),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  onConfirm();
-                },
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(0, 48), // Reset infinity width from theme
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: Text(
-                  confirmLabel, 
-                  textAlign: TextAlign.center, 
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                onConfirm();
+              },
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(100, 48), // Set a reasonable min width
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(
+                confirmLabel, 
+                textAlign: TextAlign.center, 
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
               ),
             ),
           ],
