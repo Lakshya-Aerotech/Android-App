@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../shared/models/activity_model.dart';
+import '../../../shared/repositories/activity_repository.dart';
 import '../models/user_model.dart';
 
 abstract class AuthRepository {
@@ -24,6 +26,7 @@ abstract class AuthRepository {
   Future<UserModel?> findUserByEmail(String email);
   Future<void> linkAuthWithEmployee(String docId, String uid);
   Future<void> updateLastLogin(String docId);
+  Future<void> sendPasswordResetEmail(String email);
 }
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -96,6 +99,15 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> createFarmerProfile(UserModel user) async {
     // For farmers, we use the UID as the document ID for simplicity and performance
     await _firestore.collection('users').doc(user.uid).set(user.toMap());
+
+    // Log Activity
+    await ActivityRepository.logActivity(ActivityModel(
+      type: ActivityType.farmerRegistered,
+      description: 'New farmer registered: ${user.name}',
+      userId: user.uid,
+      userName: user.name,
+      timestamp: DateTime.now(),
+    ));
   }
 
   @override
@@ -135,5 +147,10 @@ class AuthRepositoryImpl implements AuthRepository {
       'lastLogin': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  @override
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _auth.sendPasswordResetEmail(email: email);
   }
 }

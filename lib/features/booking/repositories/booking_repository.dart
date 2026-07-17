@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../shared/models/activity_model.dart';
+import '../../../shared/repositories/activity_repository.dart';
 import '../../../shared/enums/booking_status.dart';
 import '../models/booking_model.dart';
 
@@ -42,6 +44,17 @@ class BookingRepositoryImpl implements BookingRepository {
     bookingData['statusHistory'] = [historyEntry.toMap()];
 
     final docRef = await _firestore.collection('bookings').add(bookingData);
+
+    // Log Activity
+    await ActivityRepository.logActivity(ActivityModel(
+      type: ActivityType.bookingCreated,
+      description: 'New booking created: ${booking.bookingId}',
+      userId: booking.farmerUid,
+      userName: booking.farmerName,
+      timestamp: DateTime.now(),
+      metadata: {'bookingId': docRef.id},
+    ));
+
     return docRef.id;
   }
 
@@ -80,6 +93,15 @@ class BookingRepositoryImpl implements BookingRepository {
       'updatedAt': FieldValue.serverTimestamp(),
       'statusHistory': FieldValue.arrayUnion([historyEntry.toMap()]),
     });
+
+    // Log Activity
+    await ActivityRepository.logActivity(ActivityModel(
+      type: ActivityType.farmerConfirmedService,
+      description: 'Farmer confirmed service for booking: $docId',
+      userName: historyEntry.updatedBy,
+      timestamp: DateTime.now(),
+      metadata: {'bookingId': docId},
+    ));
   }
 
   @override

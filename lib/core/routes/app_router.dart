@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lakshya_aerotech/features/auth/presentation/splash_screen.dart';
 import 'package:lakshya_aerotech/features/auth/presentation/login_screen.dart';
+import 'package:lakshya_aerotech/features/auth/presentation/forgot_password_screen.dart';
 import 'package:lakshya_aerotech/features/auth/presentation/otp_screen.dart';
+import 'package:lakshya_aerotech/features/profile/presentation/edit_profile_screen.dart';
 import 'package:lakshya_aerotech/features/auth/presentation/complete_profile_screen.dart';
 import 'package:lakshya_aerotech/features/auth/viewmodel/auth_viewmodel.dart';
 import 'package:lakshya_aerotech/features/auth/models/user_model.dart';
@@ -38,7 +40,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/splash',
     redirect: (context, state) {
       final isAuthPath =
-          state.matchedLocation == '/login' || state.matchedLocation == '/otp';
+          state.matchedLocation == '/login' || 
+          state.matchedLocation == '/otp' ||
+          state.matchedLocation == '/forgot-password';
       final isSplash = state.matchedLocation == '/splash';
 
       if (isInitializing) return '/splash';
@@ -71,6 +75,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
         path: '/otp',
         builder: (context, state) {
           final phone = state.extra as String;
@@ -80,6 +88,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/complete-profile',
         builder: (context, state) => const CompleteProfileScreen(),
+      ),
+      GoRoute(
+        path: '/edit-profile',
+        builder: (context, state) => const EditProfileScreen(),
       ),
 
       // Farmer Dashboard

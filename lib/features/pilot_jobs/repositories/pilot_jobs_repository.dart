@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../shared/models/activity_model.dart';
+import '../../../shared/repositories/activity_repository.dart';
 import '../../booking/models/booking_model.dart';
 import '../../../shared/enums/booking_status.dart';
 
@@ -24,6 +26,7 @@ abstract class PilotJobsRepository {
     required StatusHistoryEntry historyEntry,
   });
   Stream<BookingModel> getJobStream(String bookingDocId);
+  Future<double> getAverageRating(String pilotId);
 }
 
 class PilotJobsRepositoryImpl implements PilotJobsRepository {
@@ -72,6 +75,17 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
     };
 
     await _firestore.collection('bookings').doc(bookingDocId).update(updates);
+
+    // Log Activity if mission started
+    if (status == BookingStatus.inProgress) {
+      await ActivityRepository.logActivity(ActivityModel(
+        type: ActivityType.missionStarted,
+        description: 'Mission started for booking: $bookingDocId',
+        userName: historyEntry.updatedBy,
+        timestamp: DateTime.now(),
+        metadata: {'bookingId': bookingDocId},
+      ));
+    }
   }
 
   @override
@@ -144,6 +158,15 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
         'updatedAt': FieldValue.serverTimestamp(),
       });
     });
+
+    // Log Activity
+    await ActivityRepository.logActivity(ActivityModel(
+      type: ActivityType.missionCompleted,
+      description: 'Mission completed for booking: $bookingDocId',
+      userName: historyEntry.updatedBy,
+      timestamp: DateTime.now(),
+      metadata: {'bookingId': bookingDocId},
+    ));
   }
 
   @override
@@ -153,6 +176,29 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
         .doc(bookingDocId)
         .snapshots()
         .map((doc) => BookingModel.fromMap(doc.data()!, doc.id));
+  }
+
+  @override
+  Future<double> getAverageRating(String pilotId) async {
+    final query = await _firestore
+        .collection('bookings')
+        .where('assignedPilotId', isEqualTo: pilotId)
+        .where('status', isEqualTo: BookingStatus.closed.toFirestore())
+        .get();
+    
+    if (query.docs.isEmpty) return 0.0;
+    
+    double total = 0;
+    int count = 0;
+    for (var doc in query.docs) {
+      final rating = doc.data()['rating'];
+      if (rating != null) {
+        total += (rating as num).toDouble();
+        count++;
+      }
+    }
+    
+    return count > 0 ? total / count : 0.0;
   }
 
   Stream<List<BookingModel>> _getAssignedOrCopilotJobsStream({

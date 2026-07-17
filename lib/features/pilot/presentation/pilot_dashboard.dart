@@ -25,15 +25,11 @@ class PilotDashboard extends StatefulWidget {
 
 class _PilotDashboardState extends State<PilotDashboard> {
   int _currentIndex = 0;
-  bool _isAvailable = true;
 
   @override
   Widget build(BuildContext context) {
     final List<Widget> screens = [
-      _PilotHomeContent(
-        isAvailable: _isAvailable,
-        onAvailabilityChanged: (v) => setState(() => _isAvailable = v),
-      ),
+      const _PilotHomeContent(),
       const PilotAssignmentsScreen(),
       const PilotHistoryScreen(),
       const ProfileScreen(),
@@ -96,13 +92,7 @@ class _PilotDashboardState extends State<PilotDashboard> {
 }
 
 class _PilotHomeContent extends ConsumerWidget {
-  final bool isAvailable;
-  final ValueChanged<bool> onAvailabilityChanged;
-
-  const _PilotHomeContent({
-    required this.isAvailable,
-    required this.onAvailabilityChanged,
-  });
+  const _PilotHomeContent();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -125,11 +115,6 @@ class _PilotHomeContent extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                PilotStatusCard(
-                  isAvailable: isAvailable,
-                  onChanged: onAvailabilityChanged,
-                ),
-                AppSpacing.verticalXl,
                 const _SectionTitle(title: "Execution Overview"),
                 AppSpacing.verticalMd,
                 switch (statsAsync) {

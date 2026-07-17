@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../shared/models/activity_model.dart';
+import '../../../shared/repositories/activity_repository.dart';
 import '../../auth/models/user_model.dart';
 
 abstract class AdminRepository {
@@ -16,7 +18,7 @@ abstract class AdminRepository {
   });
   Future<void> updateEmployeeStatus(String docId, bool isActive);
   Future<void> deleteEmployee(String docId);
-  // Add other methods for stats later
+  Stream<Map<String, dynamic>> getDashboardStats();
 }
 
 class AdminRepositoryImpl implements AdminRepository {
@@ -38,7 +40,16 @@ class AdminRepositoryImpl implements AdminRepository {
 
   @override
   Future<void> createEmployee(UserModel employee) async {
-    await _firestore.collection('users').add(employee.toMap());
+    final docRef = await _firestore.collection('users').add(employee.toMap());
+
+    // Log Activity
+    await ActivityRepository.logActivity(ActivityModel(
+      type: ActivityType.employeeCreated,
+      description: 'New employee created: ${employee.name} (${employee.role.name})',
+      userId: docRef.id,
+      userName: employee.name,
+      timestamp: DateTime.now(),
+    ));
   }
 
   @override
@@ -104,5 +115,78 @@ class AdminRepositoryImpl implements AdminRepository {
   @override
   Future<void> deleteEmployee(String docId) async {
     await _firestore.collection('users').doc(docId).delete();
+  }
+
+  @override
+  Stream<Map<String, dynamic>> getDashboardStats() {
+    // Note: In a large production app, these would be aggregated using Cloud Functions
+    // or by listening to a dedicated metadata document. 
+    // For now, we use real-time listeners on filtered collections.
+    
+    final employeesStream = _firestore.collection('users')
+        .where('role', whereIn: ['pilot', 'operations', 'admin'])
+        .snapshots();
+    final farmersStream = _firestore.collection('users')
+        .where('role', isEqualTo: 'farmer')
+        .snapshots();
+    final bookingsStream = _firestore.collection('bookings').snapshots();
+    final dronesStream = _firestore.collection('drones').snapshots();
+
+    return Stream.multi((controller) {
+      int totalEmployees = 0;
+      int totalFarmers = 0;
+      int totalBookings = 0;
+      int completedMissions = 0;
+      int pendingBookings = 0;
+      int activePilots = 0;
+      int activeDrones = 0;
+
+      void emit() {
+        if (!controller.isClosed) {
+          controller.add({
+            'totalEmployees': totalEmployees,
+            'totalFarmers': totalFarmers,
+            'totalBookings': totalBookings,
+            'completedMissions': completedMissions,
+            'pendingBookings': pendingBookings,
+            'activePilots': activePilots,
+            'activeDrones': activeDrones,
+          });
+        }
+      }
+
+      final employeesSub = employeesStream.listen((snapshot) {
+        totalEmployees = snapshot.docs.length;
+        activePilots = snapshot.docs.where((doc) => doc.data()['role'] == 'pilot' && doc.data()['isActive'] == true).length;
+        emit();
+      });
+
+      final farmersSub = farmersStream.listen((snapshot) {
+        totalFarmers = snapshot.docs.length;
+        emit();
+      });
+
+      final bookingsSub = bookingsStream.listen((snapshot) {
+        totalBookings = snapshot.docs.length;
+        completedMissions = snapshot.docs.where((doc) {
+          final status = doc.data()['status'];
+          return status == 'completed' || status == 'farmerConfirmed' || status == 'closed';
+        }).length;
+        pendingBookings = snapshot.docs.where((doc) => doc.data()['status'] == 'pending').length;
+        emit();
+      });
+
+      final dronesSub = dronesStream.listen((snapshot) {
+        activeDrones = snapshot.docs.where((doc) => doc.data()['isActive'] == true).length;
+        emit();
+      });
+
+      controller.onCancel = () {
+        employeesSub.cancel();
+        farmersSub.cancel();
+        bookingsSub.cancel();
+        dronesSub.cancel();
+      };
+    });
   }
 }

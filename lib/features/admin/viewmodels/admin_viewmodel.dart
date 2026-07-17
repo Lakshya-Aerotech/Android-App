@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../shared/models/activity_model.dart';
+import '../../../shared/repositories/activity_repository.dart';
 import '../models/admin_statistic.dart';
 import '../repositories/admin_repository.dart';
 import '../../auth/models/user_model.dart';
@@ -13,58 +15,58 @@ final employeesStreamProvider = StreamProvider<List<UserModel>>((ref) {
   return ref.watch(adminRepositoryProvider).getEmployeesStream();
 });
 
-final adminStatisticsProvider = Provider<List<AdminStatistic>>((ref) {
-  // This will later be connected to real data from Firestore
-  return [
-    const AdminStatistic(
-      icon: Icons.agriculture,
-      iconColor: Colors.blue,
-      title: 'Total Farmers',
-      value: '0',
-    ),
-    const AdminStatistic(
-      icon: Icons.flight,
-      iconColor: Colors.orange,
-      title: 'Total Pilots',
-      value: '0',
-    ),
-    const AdminStatistic(
-      icon: Icons.engineering,
-      iconColor: Colors.purple,
-      title: 'Operations Staff',
-      value: '0',
-    ),
-    const AdminStatistic(
-      icon: Icons.book_online,
-      iconColor: Colors.green,
-      title: 'Today\'s Bookings',
-      value: '0',
-    ),
-    const AdminStatistic(
-      icon: Icons.pending_actions,
-      iconColor: Colors.red,
-      title: 'Pending Jobs',
-      value: '0',
-    ),
-    const AdminStatistic(
-      icon: Icons.task_alt,
-      iconColor: Colors.teal,
-      title: 'Completed Jobs',
-      value: '0',
-    ),
-    const AdminStatistic(
-      icon: Icons.precision_manufacturing,
-      iconColor: Colors.indigo,
-      title: 'Available Drones',
-      value: '0',
-    ),
-    const AdminStatistic(
-      icon: Icons.payments_outlined,
-      iconColor: Colors.amber,
-      title: 'Revenue',
-      value: '₹0',
-    ),
-  ];
+final adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((ref) {
+  final repository = ref.watch(adminRepositoryProvider);
+  return repository.getDashboardStats().map((stats) {
+    return [
+      AdminStatistic(
+        icon: Icons.engineering,
+        iconColor: Colors.purple,
+        title: 'Total Employees',
+        value: stats['totalEmployees'].toString(),
+      ),
+      AdminStatistic(
+        icon: Icons.agriculture,
+        iconColor: Colors.blue,
+        title: 'Total Farmers',
+        value: stats['totalFarmers'].toString(),
+      ),
+      AdminStatistic(
+        icon: Icons.book_online,
+        iconColor: Colors.green,
+        title: 'Total Bookings',
+        value: stats['totalBookings'].toString(),
+      ),
+      AdminStatistic(
+        icon: Icons.task_alt,
+        iconColor: Colors.teal,
+        title: 'Completed Missions',
+        value: stats['completedMissions'].toString(),
+      ),
+      AdminStatistic(
+        icon: Icons.pending_actions,
+        iconColor: Colors.red,
+        title: 'Pending Bookings',
+        value: stats['pendingBookings'].toString(),
+      ),
+      AdminStatistic(
+        icon: Icons.flight,
+        iconColor: Colors.orange,
+        title: 'Active Pilots',
+        value: stats['activePilots'].toString(),
+      ),
+      AdminStatistic(
+        icon: Icons.precision_manufacturing,
+        iconColor: Colors.indigo,
+        title: 'Active Drones',
+        value: stats['activeDrones'].toString(),
+      ),
+    ];
+  });
+});
+
+final recentActivitiesStreamProvider = StreamProvider<List<ActivityModel>>((ref) {
+  return ActivityRepository.getRecentActivities();
 });
 
 class AdminViewModel extends StateNotifier<AsyncValue<void>> {

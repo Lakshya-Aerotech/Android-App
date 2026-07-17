@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../shared/models/activity_model.dart';
+import '../../../shared/repositories/activity_repository.dart';
 import '../models/farm_model.dart';
 
 abstract class FarmRepository {
@@ -29,7 +31,16 @@ class FarmRepositoryImpl implements FarmRepository {
 
   @override
   Future<void> addFarm(FarmModel farm) async {
-    await _firestore.collection('farms').add(farm.toMap());
+    final docRef = await _firestore.collection('farms').add(farm.toMap());
+
+    // Log Activity
+    await ActivityRepository.logActivity(ActivityModel(
+      type: ActivityType.farmAdded,
+      description: 'New farm added: ${farm.farmName}',
+      userId: farm.farmerUid,
+      timestamp: DateTime.now(),
+      metadata: {'farmId': docRef.id},
+    ));
   }
 
   @override

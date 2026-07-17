@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../shared/models/activity_model.dart';
+import '../../../shared/repositories/activity_repository.dart';
 import 'package:lakshya_aerotech/features/booking/models/booking_model.dart';
 import 'package:lakshya_aerotech/features/operations/models/operations_models.dart';
 import 'package:lakshya_aerotech/shared/enums/booking_status.dart';
@@ -58,6 +60,7 @@ class OperationsRepositoryImpl implements OperationsRepository {
     BookingStatus status,
     StatusHistoryEntry historyEntry, {
     OperationsRemark? remark,
+    BookingModel? booking, // Add optional booking for better logging
   }) async {
     final updates = <String, dynamic>{
       'status': status.toFirestore(),
@@ -68,6 +71,17 @@ class OperationsRepositoryImpl implements OperationsRepository {
       updates['operationsRemarks'] = FieldValue.arrayUnion([remark.toMap()]);
     }
     await _firestore.collection('bookings').doc(docId).update(updates);
+
+    // Log Activity
+    final isApproved = status == BookingStatus.reviewed;
+    final bookingId = booking?.bookingId ?? docId;
+    await ActivityRepository.logActivity(ActivityModel(
+      type: isApproved ? ActivityType.bookingApproved : ActivityType.bookingRejected,
+      description: 'Booking ${isApproved ? 'approved' : 'rejected'}: $bookingId',
+      userName: historyEntry.updatedBy,
+      timestamp: DateTime.now(),
+      metadata: {'bookingId': docId},
+    ));
   }
 
   @override
@@ -268,6 +282,15 @@ class OperationsRepositoryImpl implements OperationsRepository {
       'updatedAt': FieldValue.serverTimestamp(),
       'statusHistory': FieldValue.arrayUnion([historyEntry.toMap()]),
     });
+
+    // Log Activity
+    await ActivityRepository.logActivity(ActivityModel(
+      type: ActivityType.pilotAssigned,
+      description: 'Pilot $pilotName assigned to booking: $bookingDocId',
+      userName: historyEntry.updatedBy,
+      timestamp: DateTime.now(),
+      metadata: {'bookingId': bookingDocId},
+    ));
   }
 
   @override
@@ -284,6 +307,15 @@ class OperationsRepositoryImpl implements OperationsRepository {
       'updatedAt': FieldValue.serverTimestamp(),
       'statusHistory': FieldValue.arrayUnion([historyEntry.toMap()]),
     });
+
+    // Log Activity
+    await ActivityRepository.logActivity(ActivityModel(
+      type: ActivityType.droneAssigned,
+      description: 'Drone $droneName assigned to booking: $bookingDocId',
+      userName: historyEntry.updatedBy,
+      timestamp: DateTime.now(),
+      metadata: {'bookingId': bookingDocId},
+    ));
   }
 
   @override
@@ -417,6 +449,15 @@ class OperationsRepositoryImpl implements OperationsRepository {
         'updatedAt': timestamp,
       });
     });
+
+    // Log Activity
+    await ActivityRepository.logActivity(ActivityModel(
+      type: ActivityType.pilotAssigned,
+      description: 'Pilot ${request.pilot.name} assigned to booking: ${request.bookingDocId}',
+      userName: historyEntry.updatedBy,
+      timestamp: DateTime.now(),
+      metadata: {'bookingId': request.bookingDocId},
+    ));
   }
 
   bool _isAwaitingAssignment(Map<String, dynamic> data) {

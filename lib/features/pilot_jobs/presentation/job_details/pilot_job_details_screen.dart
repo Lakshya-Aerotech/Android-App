@@ -227,11 +227,6 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
 
     switch (job.status) {
       case BookingStatus.droneAssigned:
-        return PrimaryButton(
-          text: 'Accept Assignment',
-          onPressed: () => notifier.acceptJob(job.docId!),
-          isLoading: isLoading,
-        );
       case BookingStatus.accepted:
         return PrimaryButton(
           text: 'Start Navigation',

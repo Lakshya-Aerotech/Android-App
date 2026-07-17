@@ -16,7 +16,15 @@ final userModelProvider = StateProvider<UserModel?>((ref) => null);
 
 final isAuthInitializingProvider = StateProvider<bool>((ref) => true);
 
-enum AuthStatus { initial, loading, otpSent, authenticated, unauthenticated, error }
+enum AuthStatus {
+  initial,
+  loading,
+  otpSent,
+  authenticated,
+  unauthenticated,
+  error,
+  passwordResetSent,
+}
 
 class AuthState {
   final AuthStatus status;
@@ -195,6 +203,59 @@ class AuthViewModel extends StateNotifier<AuthState> {
       state = state.copyWith(status: AuthStatus.authenticated);
     } catch (e) {
       state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+    }
+  }
+
+  Future<void> sendPasswordReset(String email) async {
+    state = state.copyWith(status: AuthStatus.loading);
+    try {
+      await _repository.sendPasswordResetEmail(email.trim().toLowerCase());
+      state = state.copyWith(status: AuthStatus.passwordResetSent);
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: _getAuthErrorMessage(e),
+      );
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
+  Future<void> updateProfile({
+    String? name,
+    String? phoneNumber,
+    String? village,
+    String? district,
+    String? stateName,
+    String? language,
+  }) async {
+    final user = _ref.read(userModelProvider);
+    if (user == null || user.docId == null) return;
+
+    state = state.copyWith(status: AuthStatus.loading);
+    try {
+      final Map<String, dynamic> updates = {};
+      if (name != null) updates['name'] = name;
+      if (phoneNumber != null) updates['phoneNumber'] = phoneNumber;
+      if (village != null) updates['village'] = village;
+      if (district != null) updates['district'] = district;
+      if (stateName != null) updates['state'] = stateName;
+      if (language != null) updates['preferredLanguage'] = language;
+
+      await _repository.updateProfile(user.docId!, updates);
+
+      // Refresh data using UID
+      final updatedUser = await _repository.getUserData(user.uid!);
+      _ref.read(userModelProvider.notifier).state = updatedUser;
+      state = state.copyWith(status: AuthStatus.authenticated);
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
     }
   }
 

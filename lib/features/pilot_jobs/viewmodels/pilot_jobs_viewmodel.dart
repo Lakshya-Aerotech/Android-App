@@ -221,3 +221,9 @@ final pilotJobHistoryProvider = StreamProvider<List<BookingModel>>((ref) {
     BookingStatus.closed
   ]);
 });
+
+final pilotAverageRatingProvider = FutureProvider<double>((ref) async {
+  final user = ref.watch(userModelProvider);
+  if (user == null || user.uid == null) return 0.0;
+  return ref.watch(pilotJobsRepositoryProvider).getAverageRating(user.uid!);
+});
