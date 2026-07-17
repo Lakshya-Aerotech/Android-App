@@ -15,7 +15,9 @@ final employeesStreamProvider = StreamProvider<List<UserModel>>((ref) {
   return ref.watch(adminRepositoryProvider).getEmployeesStream();
 });
 
-final adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((ref) {
+final adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((
+  ref,
+) {
   final repository = ref.watch(adminRepositoryProvider);
   return repository.getDashboardStats().map((stats) {
     return [
@@ -65,8 +67,14 @@ final adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((ref)
   });
 });
 
-final recentActivitiesStreamProvider = StreamProvider<List<ActivityModel>>((ref) {
+final recentActivitiesStreamProvider = StreamProvider<List<ActivityModel>>((
+  ref,
+) {
   return ActivityRepository.getRecentActivities();
+});
+
+final allActivitiesStreamProvider = StreamProvider<List<ActivityModel>>((ref) {
+  return ActivityRepository.getAllActivities();
 });
 
 class AdminViewModel extends StateNotifier<AsyncValue<void>> {

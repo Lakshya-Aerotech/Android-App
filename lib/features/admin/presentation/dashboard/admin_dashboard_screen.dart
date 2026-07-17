@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../shared/components/dashboard_header.dart';
 import '../../../../shared/models/activity_model.dart';
 import '../widgets/admin_statistic_card.dart';
@@ -36,7 +37,7 @@ class AdminDashboardScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DashboardHeader(
-                userName: user?.name ?? 'Admin',
+                userName: user?.name ?? context.tr('Admin'),
                 subtitle: today,
                 onNotificationPressed: () {},
               ),
@@ -50,7 +51,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionTitle('Overview'),
+                    _buildSectionTitle(context.tr('Overview')),
                     const SizedBox(height: 16),
                     statsAsync.when(
                       data: (stats) => LayoutBuilder(
@@ -67,12 +68,13 @@ class AdminDashboardScreen extends ConsumerWidget {
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: stats.length,
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
-                              childAspectRatio: ratio,
-                            ),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                  childAspectRatio: ratio,
+                                ),
                             itemBuilder: (context, index) {
                               final stat = stats[index];
                               return AdminStatisticCard(
@@ -86,15 +88,16 @@ class AdminDashboardScreen extends ConsumerWidget {
                           );
                         },
                       ),
-                      loading: () => const Center(child: CircularProgressIndicator()),
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
                       error: (e, st) => Center(child: Text('Error: $e')),
                     ),
                     const SizedBox(height: 32),
-                    _buildSectionTitle('Quick Actions'),
+                    _buildSectionTitle(context.tr('Quick Actions')),
                     const SizedBox(height: 16),
                     QuickActionCard(
                       icon: Icons.person_add_outlined,
-                      title: 'Add Employee',
+                      title: context.tr('Add Employee'),
                       subtitle: 'Register new Pilot or Operations staff',
                       iconColor: AppColors.success,
                       onTap: () => context.push('/admin/add-employee'),
@@ -102,21 +105,21 @@ class AdminDashboardScreen extends ConsumerWidget {
                     const SizedBox(height: 12),
                     QuickActionCard(
                       icon: Icons.people_outline,
-                      title: 'Manage Employees',
+                      title: context.tr('Manage Employees'),
                       subtitle: 'View and manage all staff members',
                       onTap: () => context.push('/admin/employees'),
                     ),
                     const SizedBox(height: 12),
                     QuickActionCard(
                       icon: Icons.grid_view_outlined,
-                      title: 'Manage Drones',
+                      title: context.tr('Manage Drones'),
                       subtitle: 'Register and track drone fleet',
                       onTap: () => context.push('/admin/drones'),
                     ),
                     const SizedBox(height: 12),
                     QuickActionCard(
                       icon: Icons.analytics_outlined,
-                      title: 'Analytics & Reports',
+                      title: context.tr('Analytics & Reports'),
                       subtitle: 'View business insights and download reports',
                       iconColor: AppColors.info,
                       onTap: () => context.push('/admin/analytics'),
@@ -125,10 +128,11 @@ class AdminDashboardScreen extends ConsumerWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildSectionTitle('Recent Activity'),
+                        _buildSectionTitle(context.tr('Recent Activity')),
                         TextButton(
-                          onPressed: () {},
-                          child: const Text('View All'),
+                          onPressed: () =>
+                              context.push('/admin/recent-activity'),
+                          child: Text(context.tr('View All')),
                         ),
                       ],
                     ),
@@ -148,11 +152,17 @@ class AdminDashboardScreen extends ConsumerWidget {
                             ),
                           ),
                           child: Column(
-                            children: activities.map((activity) => _ActivityItem(activity: activity)).toList(),
+                            children: activities
+                                .map(
+                                  (activity) =>
+                                      _ActivityItem(activity: activity),
+                                )
+                                .toList(),
                           ),
                         );
                       },
-                      loading: () => const Center(child: CircularProgressIndicator()),
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
                       error: (e, st) => Center(child: Text('Error: $e')),
                     ),
                     const SizedBox(height: 24),
@@ -173,17 +183,11 @@ class AdminDashboardScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.border.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
       ),
       child: Column(
         children: [
-          const Icon(
-            Icons.history,
-            size: 48,
-            color: AppColors.textTertiary,
-          ),
+          const Icon(Icons.history, size: 48, color: AppColors.textTertiary),
           const SizedBox(height: 12),
           Text(
             'No recent activity',

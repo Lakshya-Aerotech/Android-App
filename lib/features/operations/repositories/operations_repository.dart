@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../core/notifications/notification_repository.dart';
 import '../../../shared/models/activity_model.dart';
 import '../../../shared/repositories/activity_repository.dart';
 import 'package:lakshya_aerotech/features/booking/models/booking_model.dart';
+import 'package:lakshya_aerotech/features/auth/models/user_model.dart';
 import 'package:lakshya_aerotech/features/operations/models/operations_models.dart';
 import 'package:lakshya_aerotech/shared/enums/booking_status.dart';
 
@@ -39,6 +41,7 @@ abstract class OperationsRepository {
 
 class OperationsRepositoryImpl implements OperationsRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final NotificationRepository _notifications = NotificationRepository();
 
   @override
   Stream<List<BookingModel>> getBookingsByStatus(List<BookingStatus> statuses) {
@@ -75,13 +78,31 @@ class OperationsRepositoryImpl implements OperationsRepository {
     // Log Activity
     final isApproved = status == BookingStatus.reviewed;
     final bookingId = booking?.bookingId ?? docId;
-    await ActivityRepository.logActivity(ActivityModel(
-      type: isApproved ? ActivityType.bookingApproved : ActivityType.bookingRejected,
-      description: 'Booking ${isApproved ? 'approved' : 'rejected'}: $bookingId',
-      userName: historyEntry.updatedBy,
-      timestamp: DateTime.now(),
-      metadata: {'bookingId': docId},
-    ));
+    await ActivityRepository.logActivity(
+      ActivityModel(
+        type: isApproved
+            ? ActivityType.bookingApproved
+            : ActivityType.bookingRejected,
+        description:
+            'Booking ${isApproved ? 'approved' : 'rejected'}: $bookingId',
+        userName: historyEntry.updatedBy,
+        timestamp: DateTime.now(),
+        metadata: {'bookingId': docId},
+      ),
+    );
+
+    if (booking != null) {
+      await _notifications.createForUser(
+        recipientUid: booking.farmerUid,
+        eventKey:
+            '${isApproved ? 'booking-approved' : 'booking-rejected'}-$docId',
+        title: isApproved ? 'Booking approved' : 'Booking rejected',
+        message: isApproved
+            ? 'Your booking ${booking.bookingId} for ${booking.farmName} has been approved.'
+            : 'Your booking ${booking.bookingId} for ${booking.farmName} has been rejected.',
+        bookingId: docId,
+      );
+    }
   }
 
   @override
@@ -284,13 +305,35 @@ class OperationsRepositoryImpl implements OperationsRepository {
     });
 
     // Log Activity
-    await ActivityRepository.logActivity(ActivityModel(
-      type: ActivityType.pilotAssigned,
-      description: 'Pilot $pilotName assigned to booking: $bookingDocId',
-      userName: historyEntry.updatedBy,
-      timestamp: DateTime.now(),
-      metadata: {'bookingId': bookingDocId},
-    ));
+    await ActivityRepository.logActivity(
+      ActivityModel(
+        type: ActivityType.pilotAssigned,
+        description: 'Pilot $pilotName assigned to booking: $bookingDocId',
+        userName: historyEntry.updatedBy,
+        timestamp: DateTime.now(),
+        metadata: {'bookingId': bookingDocId},
+      ),
+    );
+
+    final booking = await _bookingSnapshot(bookingDocId);
+    if (booking != null) {
+      await _notifications.createForUser(
+        recipientUid: booking.farmerUid,
+        eventKey: 'pilot-assigned-farmer-$bookingDocId',
+        title: 'Pilot assigned',
+        message:
+            'Pilot $pilotName has been assigned to booking ${booking.bookingId}.',
+        bookingId: bookingDocId,
+      );
+      await _notifications.createForUser(
+        recipientUid: pilotId,
+        eventKey: 'new-job-assigned-$bookingDocId-$pilotId',
+        title: 'New job assigned',
+        message:
+            'You have a new job for ${booking.farmName} on ${booking.bookingId}.',
+        bookingId: bookingDocId,
+      );
+    }
   }
 
   @override
@@ -309,13 +352,15 @@ class OperationsRepositoryImpl implements OperationsRepository {
     });
 
     // Log Activity
-    await ActivityRepository.logActivity(ActivityModel(
-      type: ActivityType.droneAssigned,
-      description: 'Drone $droneName assigned to booking: $bookingDocId',
-      userName: historyEntry.updatedBy,
-      timestamp: DateTime.now(),
-      metadata: {'bookingId': bookingDocId},
-    ));
+    await ActivityRepository.logActivity(
+      ActivityModel(
+        type: ActivityType.droneAssigned,
+        description: 'Drone $droneName assigned to booking: $bookingDocId',
+        userName: historyEntry.updatedBy,
+        timestamp: DateTime.now(),
+        metadata: {'bookingId': bookingDocId},
+      ),
+    );
   }
 
   @override
@@ -451,13 +496,62 @@ class OperationsRepositoryImpl implements OperationsRepository {
     });
 
     // Log Activity
-    await ActivityRepository.logActivity(ActivityModel(
-      type: ActivityType.pilotAssigned,
-      description: 'Pilot ${request.pilot.name} assigned to booking: ${request.bookingDocId}',
-      userName: historyEntry.updatedBy,
-      timestamp: DateTime.now(),
-      metadata: {'bookingId': request.bookingDocId},
-    ));
+    await ActivityRepository.logActivity(
+      ActivityModel(
+        type: ActivityType.pilotAssigned,
+        description:
+            'Pilot ${request.pilot.name} assigned to booking: ${request.bookingDocId}',
+        userName: historyEntry.updatedBy,
+        timestamp: DateTime.now(),
+        metadata: {'bookingId': request.bookingDocId},
+      ),
+    );
+
+    final booking = await _bookingSnapshot(request.bookingDocId);
+    if (booking != null) {
+      await _notifications.createForUser(
+        recipientUid: booking.farmerUid,
+        eventKey: 'pilot-assigned-farmer-${request.bookingDocId}',
+        title: 'Pilot assigned',
+        message:
+            'Pilot ${request.pilot.name} has been assigned to booking ${booking.bookingId}.',
+        bookingId: request.bookingDocId,
+      );
+      await _notifications.createForUser(
+        recipientUid: request.pilot.uid,
+        eventKey:
+            'new-job-assigned-${request.bookingDocId}-${request.pilot.uid}',
+        title: 'New job assigned',
+        message:
+            'You have a new job for ${booking.farmName} with drone ${request.drone.name}.',
+        bookingId: request.bookingDocId,
+      );
+      if (request.copilot != null) {
+        await _notifications.createForUser(
+          recipientUid: request.copilot!.uid,
+          eventKey:
+              'new-job-assigned-${request.bookingDocId}-${request.copilot!.uid}',
+          title: 'New job assigned',
+          message:
+              'You have a co-pilot job for ${booking.farmName} with drone ${request.drone.name}.',
+          bookingId: request.bookingDocId,
+        );
+      }
+      await _notifications.createForRole(
+        role: UserRole.operations,
+        eventKey: 'assignment-completed-${request.bookingDocId}',
+        title: 'Assignment completed',
+        message:
+            '${request.pilot.name} and ${request.drone.name} were assigned to booking ${booking.bookingId}.',
+        bookingId: request.bookingDocId,
+      );
+    }
+  }
+
+  Future<BookingModel?> _bookingSnapshot(String bookingDocId) async {
+    final doc = await _firestore.collection('bookings').doc(bookingDocId).get();
+    if (!doc.exists || doc.data() == null) return null;
+    return BookingModel.fromMap(doc.data()!, doc.id);
   }
 
   bool _isAwaitingAssignment(Map<String, dynamic> data) {

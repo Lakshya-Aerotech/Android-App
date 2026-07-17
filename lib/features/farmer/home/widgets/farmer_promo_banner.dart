@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
@@ -59,24 +60,24 @@ class FarmerPromoBanner extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Precision Spraying',
+                      context.tr('Precision Spraying'),
                       style: AppTextStyles.titleLarge.copyWith(
-                        color: AppColors.textPrimary,
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     AppSpacing.verticalXs,
                     Text(
-                      'Better Yield',
+                      context.tr('Better Yield'),
                       style: AppTextStyles.bodyLarge.copyWith(
-                        color: AppColors.textPrimary,
+                        color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
-                      'Healthy Fields',
+                      context.tr('Healthy Fields'),
                       style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
+                        color: Colors.white,
                       ),
                     ),
                     AppSpacing.verticalMd,
@@ -97,7 +98,7 @@ class FarmerPromoBanner extends StatelessWidget {
                           elevation: 0,
                         ),
                         child: Text(
-                          'Book Now',
+                          context.tr('Book Now'),
                           style: AppTextStyles.labelLarge.copyWith(
                             color: AppColors.textInverted,
                             fontWeight: FontWeight.bold,

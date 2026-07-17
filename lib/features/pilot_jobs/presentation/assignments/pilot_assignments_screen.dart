@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/empty_state.dart';
@@ -55,13 +56,13 @@ class _OpsAssignmentTab extends StatelessWidget {
   }
 }
 
-class _PilotAssignmentsScreenState extends ConsumerState<PilotAssignmentsScreen> {
+class _PilotAssignmentsScreenState
+    extends ConsumerState<PilotAssignmentsScreen> {
   int _selectedTabIndex = 0;
 
   @override
   Widget build(BuildContext context) {
     final assignedJobsAsync = ref.watch(assignedJobsProvider);
-    final acceptedJobsAsync = ref.watch(acceptedJobsProvider);
     final inProgressJobsAsync = ref.watch(inProgressJobsProvider);
 
     return Scaffold(
@@ -71,7 +72,7 @@ class _PilotAssignmentsScreenState extends ConsumerState<PilotAssignmentsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DashboardHeader(
-              userName: 'Pilot',
+              userName: context.tr('Pilot'),
               subtitle: 'Manage your job assignments.',
             ),
             Padding(
@@ -80,7 +81,7 @@ class _PilotAssignmentsScreenState extends ConsumerState<PilotAssignmentsScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'My Jobs',
+                    context.tr('My Jobs'),
                     style: AppTextStyles.headlineLarge.copyWith(
                       color: AppColors.textDark,
                       fontWeight: FontWeight.bold,
@@ -93,21 +94,15 @@ class _PilotAssignmentsScreenState extends ConsumerState<PilotAssignmentsScreen>
                     child: Row(
                       children: [
                         _OpsAssignmentTab(
-                          label: 'Assigned',
+                          label: context.tr('Assigned'),
                           isSelected: _selectedTabIndex == 0,
                           onTap: () => setState(() => _selectedTabIndex = 0),
                         ),
                         const SizedBox(width: 8),
                         _OpsAssignmentTab(
-                          label: 'Accepted',
+                          label: context.tr('In Progress'),
                           isSelected: _selectedTabIndex == 1,
                           onTap: () => setState(() => _selectedTabIndex = 1),
-                        ),
-                        const SizedBox(width: 8),
-                        _OpsAssignmentTab(
-                          label: 'Active',
-                          isSelected: _selectedTabIndex == 2,
-                          onTap: () => setState(() => _selectedTabIndex = 2),
                         ),
                       ],
                     ),
@@ -115,11 +110,7 @@ class _PilotAssignmentsScreenState extends ConsumerState<PilotAssignmentsScreen>
 
                   AppSpacing.verticalLg,
 
-                  _buildList(
-                    assignedJobsAsync,
-                    acceptedJobsAsync,
-                    inProgressJobsAsync,
-                  ),
+                  _buildList(assignedJobsAsync, inProgressJobsAsync),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -132,38 +123,36 @@ class _PilotAssignmentsScreenState extends ConsumerState<PilotAssignmentsScreen>
 
   Widget _buildList(
     AsyncValue<List<BookingModel>> assigned,
-    AsyncValue<List<BookingModel>> accepted,
-    AsyncValue<List<BookingModel>> active,
+    AsyncValue<List<BookingModel>> inProgress,
   ) {
-    final asyncValue =
-        _selectedTabIndex == 0
-            ? assigned
-            : (_selectedTabIndex == 1 ? accepted : active);
+    final asyncValue = _selectedTabIndex == 0 ? assigned : inProgress;
 
     return switch (asyncValue) {
       AsyncData(:final value) =>
         value.isEmpty
-            ? const Padding(
-              padding: EdgeInsets.only(top: 40),
-              child: EmptyState(
-                title: 'No jobs found',
-                message: 'Check back later for new assignments.',
-                icon: Icons.assignment_outlined,
-              ),
-            )
+            ? Padding(
+                padding: const EdgeInsets.only(top: 40),
+                child: EmptyState(
+                  title: context.tr('No jobs found'),
+                  message: context.tr('Check back later for new assignments.'),
+                  icon: Icons.assignment_outlined,
+                ),
+              )
             : ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: value.length,
-              itemBuilder: (context, index) {
-                return PilotJobCard(
-                  job: value[index],
-                  onTap:
-                      () => context.push('/pilot/job-details', extra: value[index]),
-                );
-              },
-            ),
-      AsyncError(:final error) => Center(child: Text('Error loading jobs: $error')),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: value.length,
+                itemBuilder: (context, index) {
+                  return PilotJobCard(
+                    job: value[index],
+                    onTap: () =>
+                        context.push('/pilot/job-details', extra: value[index]),
+                  );
+                },
+              ),
+      AsyncError(:final error) => Center(
+        child: Text('Error loading jobs: $error'),
+      ),
       _ => const Center(child: CircularProgressIndicator()),
     };
   }

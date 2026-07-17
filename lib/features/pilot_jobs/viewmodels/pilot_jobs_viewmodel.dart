@@ -13,13 +13,9 @@ final pilotJobsRepositoryProvider = Provider<PilotJobsRepository>((ref) {
 final assignedJobsProvider = StreamProvider<List<BookingModel>>((ref) {
   final user = ref.watch(userModelProvider);
   if (user == null || user.uid == null) return Stream.value([]);
-  return ref.watch(pilotJobsRepositoryProvider).getJobsByStatus(user.uid!, [BookingStatus.droneAssigned]);
-});
-
-final acceptedJobsProvider = StreamProvider<List<BookingModel>>((ref) {
-  final user = ref.watch(userModelProvider);
-  if (user == null || user.uid == null) return Stream.value([]);
-  return ref.watch(pilotJobsRepositoryProvider).getJobsByStatus(user.uid!, [BookingStatus.accepted]);
+  return ref.watch(pilotJobsRepositoryProvider).getJobsByStatus(user.uid!, [
+    BookingStatus.droneAssigned,
+  ]);
 });
 
 final inProgressJobsProvider = StreamProvider<List<BookingModel>>((ref) {
@@ -29,50 +25,65 @@ final inProgressJobsProvider = StreamProvider<List<BookingModel>>((ref) {
     BookingStatus.accepted,
     BookingStatus.enRoute,
     BookingStatus.arrived,
-    BookingStatus.inProgress
+    BookingStatus.inProgress,
   ]);
 });
 
 final pilotDashboardStatsProvider = StreamProvider<Map<String, dynamic>>((ref) {
   final user = ref.watch(userModelProvider);
   if (user == null || user.uid == null) return Stream.value({});
-  
-  return ref.watch(pilotJobsRepositoryProvider).getAllPilotJobsStream(user.uid!).map((jobs) {
-    final now = DateTime.now();
-    
-    int pending = 0;
-    int completedCount = 0;
-    int todayAssignments = 0;
 
-    for (var job in jobs) {
-      if ([BookingStatus.accepted, BookingStatus.enRoute, BookingStatus.arrived, BookingStatus.inProgress].contains(job.status)) {
-        pending++;
-      }
-          
-      if ([BookingStatus.completed, BookingStatus.farmerConfirmed, BookingStatus.closed].contains(job.status)) {
-        completedCount++;
-      }
-      
-      if (job.bookingDate.year == now.year && job.bookingDate.month == now.month && job.bookingDate.day == now.day) {
-        todayAssignments++;
-      }
-    }
+  return ref
+      .watch(pilotJobsRepositoryProvider)
+      .getAllPilotJobsStream(user.uid!)
+      .map((jobs) {
+        final now = DateTime.now();
 
-    return {
-      'todayAssignments': todayAssignments,
-      'pendingJobs': pending,
-      'completedJobs': completedCount,
-      'totalAcresCovered': user.totalAcresCovered,
-      'totalFlightHours': user.totalFlightHours,
-    };
-  });
+        int pending = 0;
+        int completedCount = 0;
+        int todayAssignments = 0;
+
+        for (var job in jobs) {
+          if ([
+            BookingStatus.accepted,
+            BookingStatus.enRoute,
+            BookingStatus.arrived,
+            BookingStatus.inProgress,
+          ].contains(job.status)) {
+            pending++;
+          }
+
+          if ([
+            BookingStatus.completed,
+            BookingStatus.farmerConfirmed,
+            BookingStatus.closed,
+          ].contains(job.status)) {
+            completedCount++;
+          }
+
+          if (job.bookingDate.year == now.year &&
+              job.bookingDate.month == now.month &&
+              job.bookingDate.day == now.day) {
+            todayAssignments++;
+          }
+        }
+
+        return {
+          'todayAssignments': todayAssignments,
+          'pendingJobs': pending,
+          'completedJobs': completedCount,
+          'totalAcresCovered': user.totalAcresCovered,
+          'totalFlightHours': user.totalFlightHours,
+        };
+      });
 });
 
 class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
   final PilotJobsRepository _repository;
   final Ref _ref;
 
-  PilotJobsViewModel(this._repository, this._ref) : super(const AsyncData(null));
+  PilotJobsViewModel(this._repository, this._ref)
+    : super(const AsyncData(null));
 
   Future<void> acceptJob(String docId) async {
     state = const AsyncLoading();
@@ -85,7 +96,11 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
         timestamp: DateTime.now(),
         remarks: 'Pilot accepted the assignment.',
       );
-      await _repository.updateJobStatus(docId, BookingStatus.accepted, historyEntry);
+      await _repository.updateJobStatus(
+        docId,
+        BookingStatus.accepted,
+        historyEntry,
+      );
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -103,7 +118,11 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
         timestamp: DateTime.now(),
         remarks: 'Pilot started navigation to farm.',
       );
-      await _repository.updateJobStatus(docId, BookingStatus.enRoute, historyEntry);
+      await _repository.updateJobStatus(
+        docId,
+        BookingStatus.enRoute,
+        historyEntry,
+      );
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -121,7 +140,11 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
         timestamp: DateTime.now(),
         remarks: 'Pilot arrived at farm.',
       );
-      await _repository.updateJobStatus(docId, BookingStatus.arrived, historyEntry);
+      await _repository.updateJobStatus(
+        docId,
+        BookingStatus.arrived,
+        historyEntry,
+      );
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -140,8 +163,8 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
         remarks: 'Pilot started drone mission.',
       );
       await _repository.updateJobStatus(
-        docId, 
-        BookingStatus.inProgress, 
+        docId,
+        BookingStatus.inProgress,
         historyEntry,
         additionalUpdates: {'missionStartedAt': FieldValue.serverTimestamp()},
       );
@@ -151,17 +174,18 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  Future<void> completeMission({
-    required BookingModel job,
-  }) async {
+  Future<void> completeMission({required BookingModel job}) async {
     if (job.docId == null || job.assignedDroneId == null) {
-      state = AsyncError('Invalid job or drone information.', StackTrace.current);
+      state = AsyncError(
+        'Invalid job or drone information.',
+        StackTrace.current,
+      );
       return;
     }
 
     state = const AsyncLoading();
     final user = _ref.read(userModelProvider);
-    
+
     if (user == null || user.docId == null) {
       state = AsyncError('User profile not found.', StackTrace.current);
       return;
@@ -170,9 +194,11 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
     try {
       final now = DateTime.now();
       final startTime = job.missionStartedAt ?? now;
-      
+
       final durationMinutes = now.difference(startTime).inMinutes;
-      final durationHours = double.parse((durationMinutes / 60.0).toStringAsFixed(2));
+      final durationHours = double.parse(
+        (durationMinutes / 60.0).toStringAsFixed(2),
+      );
 
       final historyEntry = StatusHistoryEntry(
         status: BookingStatus.completed,
@@ -204,11 +230,15 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
   }
 }
 
-final pilotJobsViewModelProvider = StateNotifierProvider<PilotJobsViewModel, AsyncValue<void>>((ref) {
-  return PilotJobsViewModel(ref.watch(pilotJobsRepositoryProvider), ref);
-});
+final pilotJobsViewModelProvider =
+    StateNotifierProvider<PilotJobsViewModel, AsyncValue<void>>((ref) {
+      return PilotJobsViewModel(ref.watch(pilotJobsRepositoryProvider), ref);
+    });
 
-final pilotJobDetailsProvider = StreamProvider.family<BookingModel, String>((ref, bookingDocId) {
+final pilotJobDetailsProvider = StreamProvider.family<BookingModel, String>((
+  ref,
+  bookingDocId,
+) {
   return ref.watch(pilotJobsRepositoryProvider).getJobStream(bookingDocId);
 });
 
@@ -218,7 +248,7 @@ final pilotJobHistoryProvider = StreamProvider<List<BookingModel>>((ref) {
   return ref.watch(pilotJobsRepositoryProvider).getJobsByStatus(user.uid!, [
     BookingStatus.completed,
     BookingStatus.farmerConfirmed,
-    BookingStatus.closed
+    BookingStatus.closed,
   ]);
 });
 

@@ -19,6 +19,7 @@ import 'package:lakshya_aerotech/features/booking/presentation/booking_details/b
 import 'package:lakshya_aerotech/features/booking/presentation/success/booking_success_screen.dart';
 import 'package:lakshya_aerotech/features/booking/models/booking_model.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/admin_main_screen.dart';
+import 'package:lakshya_aerotech/features/admin/presentation/activity/admin_recent_activity_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/analytics/admin_analytics_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/employees/employee_list_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/employees/add_employee_screen.dart';
@@ -40,7 +41,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/splash',
     redirect: (context, state) {
       final isAuthPath =
-          state.matchedLocation == '/login' || 
+          state.matchedLocation == '/login' ||
           state.matchedLocation == '/otp' ||
           state.matchedLocation == '/forgot-password';
       final isSplash = state.matchedLocation == '/splash';
@@ -212,6 +213,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'analytics',
             builder: (context, state) => const AdminAnalyticsScreen(),
+          ),
+          GoRoute(
+            path: 'recent-activity',
+            builder: (context, state) => const AdminRecentActivityScreen(),
           ),
           GoRoute(
             path: 'settings',

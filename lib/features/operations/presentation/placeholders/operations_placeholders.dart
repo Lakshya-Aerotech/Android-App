@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lakshya_aerotech/features/auth/viewmodel/auth_viewmodel.dart';
+import 'package:lakshya_aerotech/core/localization/app_localizations.dart';
 import 'package:lakshya_aerotech/core/theme/app_colors.dart';
 import 'package:lakshya_aerotech/core/theme/app_text_styles.dart';
+import 'package:lakshya_aerotech/core/widgets/logout_confirmation.dart';
 
 class ModulePlaceholder extends StatelessWidget {
   final String title;
@@ -18,7 +20,9 @@ class ModulePlaceholder extends StatelessWidget {
           children: [
             Text(
               title,
-              style: AppTextStyles.headlineLarge.copyWith(color: AppColors.primary),
+              style: AppTextStyles.headlineLarge.copyWith(
+                color: AppColors.primary,
+              ),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -35,13 +39,15 @@ class ModulePlaceholder extends StatelessWidget {
 class OpsAssignmentsPlaceholder extends StatelessWidget {
   const OpsAssignmentsPlaceholder({super.key});
   @override
-  Widget build(BuildContext context) => const ModulePlaceholder(title: 'Pilot & Drone Assignment');
+  Widget build(BuildContext context) =>
+      const ModulePlaceholder(title: 'Pilot & Drone Assignment');
 }
 
 class OpsTrackJobsPlaceholder extends StatelessWidget {
   const OpsTrackJobsPlaceholder({super.key});
   @override
-  Widget build(BuildContext context) => const ModulePlaceholder(title: 'Job Tracking');
+  Widget build(BuildContext context) =>
+      const ModulePlaceholder(title: 'Job Tracking');
 }
 
 class OperationsProfilePlaceholder extends ConsumerWidget {
@@ -51,7 +57,7 @@ class OperationsProfilePlaceholder extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userModelProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Operations Profile')),
+      appBar: AppBar(title: Text(context.tr('Operations Profile'))),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -62,13 +68,22 @@ class OperationsProfilePlaceholder extends ConsumerWidget {
               child: Icon(Icons.person, size: 50, color: Colors.white),
             ),
             const SizedBox(height: 24),
-            Text(user?.name ?? 'Operations Member', style: AppTextStyles.titleLarge),
-            Text(user?.email ?? 'ops@lakshya.com', style: AppTextStyles.bodyMedium),
+            Text(
+              user?.name ?? context.tr('Operations Member'),
+              style: AppTextStyles.titleLarge,
+            ),
+            Text(
+              user?.email ?? 'ops@lakshya.com',
+              style: AppTextStyles.bodyMedium,
+            ),
             const SizedBox(height: 32),
             ElevatedButton(
-              onPressed: () => ref.read(authViewModelProvider.notifier).logout(),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
-              child: const Text('Logout'),
+              onPressed: () => showLogoutConfirmation(context, ref),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(context.tr('Logout')),
             ),
           ],
         ),

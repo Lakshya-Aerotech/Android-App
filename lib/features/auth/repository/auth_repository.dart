@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../core/notifications/notification_repository.dart';
 import '../../../shared/models/activity_model.dart';
 import '../../../shared/repositories/activity_repository.dart';
 import '../models/user_model.dart';
@@ -32,6 +33,7 @@ abstract class AuthRepository {
 class AuthRepositoryImpl implements AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final NotificationRepository _notifications = NotificationRepository();
 
   @override
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -88,9 +90,12 @@ class AuthRepositoryImpl implements AuthRepository {
         .where('uid', isEqualTo: uid)
         .limit(1)
         .get();
-    
+
     if (query.docs.isNotEmpty) {
-      return UserModel.fromMap(query.docs.first.data(), docId: query.docs.first.id);
+      return UserModel.fromMap(
+        query.docs.first.data(),
+        docId: query.docs.first.id,
+      );
     }
     return null;
   }
@@ -101,13 +106,23 @@ class AuthRepositoryImpl implements AuthRepository {
     await _firestore.collection('users').doc(user.uid).set(user.toMap());
 
     // Log Activity
-    await ActivityRepository.logActivity(ActivityModel(
-      type: ActivityType.farmerRegistered,
-      description: 'New farmer registered: ${user.name}',
-      userId: user.uid,
-      userName: user.name,
-      timestamp: DateTime.now(),
-    ));
+    await ActivityRepository.logActivity(
+      ActivityModel(
+        type: ActivityType.farmerRegistered,
+        description: 'New farmer registered: ${user.name}',
+        userId: user.uid,
+        userName: user.name,
+        timestamp: DateTime.now(),
+      ),
+    );
+
+    await _notifications.createForRole(
+      role: UserRole.admin,
+      eventKey: 'farmer-registered-${user.uid}',
+      title: 'New farmer registered',
+      message: '${user.name ?? 'A farmer'} registered with Lakshya Aerotech.',
+      data: {'farmerUid': user.uid},
+    );
   }
 
   @override
@@ -126,7 +141,10 @@ class AuthRepositoryImpl implements AuthRepository {
         .limit(1)
         .get();
     if (query.docs.isNotEmpty) {
-      return UserModel.fromMap(query.docs.first.data(), docId: query.docs.first.id);
+      return UserModel.fromMap(
+        query.docs.first.data(),
+        docId: query.docs.first.id,
+      );
     }
     return null;
   }

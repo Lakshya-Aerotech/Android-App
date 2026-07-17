@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../core/notifications/notification_repository.dart';
 import '../../../shared/models/activity_model.dart';
 import '../../../shared/repositories/activity_repository.dart';
 import '../../booking/models/booking_model.dart';
+import '../../auth/models/user_model.dart';
 import '../../../shared/enums/booking_status.dart';
 
 abstract class PilotJobsRepository {
@@ -31,6 +33,7 @@ abstract class PilotJobsRepository {
 
 class PilotJobsRepositoryImpl implements PilotJobsRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final NotificationRepository _notifications = NotificationRepository();
 
   @override
   Stream<List<BookingModel>> getJobsByStatus(
@@ -76,15 +79,41 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
 
     await _firestore.collection('bookings').doc(bookingDocId).update(updates);
 
+    final booking = await _bookingSnapshot(bookingDocId);
+
     // Log Activity if mission started
     if (status == BookingStatus.inProgress) {
-      await ActivityRepository.logActivity(ActivityModel(
-        type: ActivityType.missionStarted,
-        description: 'Mission started for booking: $bookingDocId',
-        userName: historyEntry.updatedBy,
-        timestamp: DateTime.now(),
-        metadata: {'bookingId': bookingDocId},
-      ));
+      await ActivityRepository.logActivity(
+        ActivityModel(
+          type: ActivityType.missionStarted,
+          description: 'Mission started for booking: $bookingDocId',
+          userName: historyEntry.updatedBy,
+          timestamp: DateTime.now(),
+          metadata: {'bookingId': bookingDocId},
+        ),
+      );
+    }
+
+    if (booking != null && status == BookingStatus.arrived) {
+      await _notifications.createForUser(
+        recipientUid: booking.farmerUid,
+        eventKey: 'pilot-arrived-$bookingDocId',
+        title: 'Pilot arrived',
+        message:
+            '${booking.assignedPilotName ?? 'Your pilot'} arrived for booking ${booking.bookingId}.',
+        bookingId: bookingDocId,
+      );
+    }
+
+    if (booking != null && status == BookingStatus.inProgress) {
+      await _notifications.createForUser(
+        recipientUid: booking.farmerUid,
+        eventKey: 'spraying-started-$bookingDocId',
+        title: 'Spraying started',
+        message:
+            'Spraying has started for booking ${booking.bookingId} at ${booking.farmName}.',
+        bookingId: bookingDocId,
+      );
     }
   }
 
@@ -160,13 +189,35 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
     });
 
     // Log Activity
-    await ActivityRepository.logActivity(ActivityModel(
-      type: ActivityType.missionCompleted,
-      description: 'Mission completed for booking: $bookingDocId',
-      userName: historyEntry.updatedBy,
-      timestamp: DateTime.now(),
-      metadata: {'bookingId': bookingDocId},
-    ));
+    await ActivityRepository.logActivity(
+      ActivityModel(
+        type: ActivityType.missionCompleted,
+        description: 'Mission completed for booking: $bookingDocId',
+        userName: historyEntry.updatedBy,
+        timestamp: DateTime.now(),
+        metadata: {'bookingId': bookingDocId},
+      ),
+    );
+
+    final booking = await _bookingSnapshot(bookingDocId);
+    if (booking != null) {
+      await _notifications.createForUser(
+        recipientUid: booking.farmerUid,
+        eventKey: 'job-completed-farmer-$bookingDocId',
+        title: 'Job completed',
+        message:
+            'Spraying is complete for booking ${booking.bookingId} at ${booking.farmName}.',
+        bookingId: bookingDocId,
+      );
+      await _notifications.createForRole(
+        role: UserRole.admin,
+        eventKey: 'booking-completed-admin-$bookingDocId',
+        title: 'Booking completed',
+        message:
+            'Booking ${booking.bookingId} for ${booking.farmName} has been completed.',
+        bookingId: bookingDocId,
+      );
+    }
   }
 
   @override
@@ -185,9 +236,9 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
         .where('assignedPilotId', isEqualTo: pilotId)
         .where('status', isEqualTo: BookingStatus.closed.toFirestore())
         .get();
-    
+
     if (query.docs.isEmpty) return 0.0;
-    
+
     double total = 0;
     int count = 0;
     for (var doc in query.docs) {
@@ -197,8 +248,14 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
         count++;
       }
     }
-    
+
     return count > 0 ? total / count : 0.0;
+  }
+
+  Future<BookingModel?> _bookingSnapshot(String bookingDocId) async {
+    final doc = await _firestore.collection('bookings').doc(bookingDocId).get();
+    if (!doc.exists || doc.data() == null) return null;
+    return BookingModel.fromMap(doc.data()!, doc.id);
   }
 
   Stream<List<BookingModel>> _getAssignedOrCopilotJobsStream({

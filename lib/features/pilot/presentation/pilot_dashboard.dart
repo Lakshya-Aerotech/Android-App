@@ -4,12 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../auth/viewmodel/auth_viewmodel.dart';
 import '../widgets/pilot_home_header.dart';
-import '../widgets/pilot_status_card.dart';
 import '../../profile/presentation/profile_screen.dart';
 import '../../pilot_jobs/viewmodels/pilot_jobs_viewmodel.dart';
 import '../../pilot_jobs/widgets/pilot_job_card.dart';
@@ -115,65 +115,80 @@ class _PilotHomeContent extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _SectionTitle(title: "Execution Overview"),
+                _SectionTitle(title: context.tr('Execution Overview')),
                 AppSpacing.verticalMd,
                 switch (statsAsync) {
-                  AsyncData(:final value) => GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 1.5,
-                    children: [
-                      _StatCard(
-                        title: 'Today',
-                        value: value['todayAssignments'].toString(),
-                        color: Colors.blue,
-                        icon: Icons.calendar_today,
-                      ),
-                      _StatCard(
-                        title: 'Pending',
-                        value: value['pendingJobs'].toString(),
-                        color: Colors.orange,
-                        icon: Icons.pending_actions,
-                      ),
-                      _StatCard(
-                        title: 'Completed',
-                        value: value['completedJobs'].toString(),
-                        color: Colors.green,
-                        icon: Icons.task_alt,
-                      ),
-                      _StatCard(
-                        title: 'Acres',
-                        value: (value['totalAcresCovered'] as num).toStringAsFixed(1),
-                        color: Colors.purple,
-                        icon: Icons.crop_free,
-                      ),
-                    ],
+                  AsyncData(:final value) => LayoutBuilder(
+                    builder: (context, constraints) {
+                      final itemWidth = (constraints.maxWidth - 16) / 2;
+                      final minHeight = itemWidth < 160 ? 126.0 : 138.0;
+                      return GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
+                        childAspectRatio: itemWidth / minHeight,
+                        children: [
+                          _StatCard(
+                            title: context.tr('Today'),
+                            value: value['todayAssignments'].toString(),
+                            color: Colors.blue,
+                            icon: Icons.calendar_today,
+                          ),
+                          _StatCard(
+                            title: context.tr('Pending'),
+                            value: value['pendingJobs'].toString(),
+                            color: Colors.orange,
+                            icon: Icons.pending_actions,
+                          ),
+                          _StatCard(
+                            title: context.tr('Completed'),
+                            value: value['completedJobs'].toString(),
+                            color: Colors.green,
+                            icon: Icons.task_alt,
+                          ),
+                          _StatCard(
+                            title: context.tr('Acres'),
+                            value: (value['totalAcresCovered'] as num)
+                                .toStringAsFixed(1),
+                            color: Colors.purple,
+                            icon: Icons.crop_free,
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   AsyncError(:final error) => Text('Error: $error'),
                   _ => const Center(child: CircularProgressIndicator()),
                 },
 
                 AppSpacing.verticalXl,
-                const _SectionTitle(title: 'Active Mission'),
+                _SectionTitle(title: context.tr('Active Mission')),
                 AppSpacing.verticalMd,
                 switch (activeJobsAsync) {
-                  AsyncData(:final value) => value.isEmpty
-                      ? const Text('No active mission.')
-                      : Column(
-                        children: value.map((job) => PilotJobCard(
-                          job: job,
-                          onTap: () => context.push('/pilot/job-details', extra: job),
-                        )).toList(),
-                      ),
+                  AsyncData(:final value) =>
+                    value.isEmpty
+                        ? Text(context.tr('No active mission.'))
+                        : Column(
+                            children: value
+                                .map(
+                                  (job) => PilotJobCard(
+                                    job: job,
+                                    onTap: () => context.push(
+                                      '/pilot/job-details',
+                                      extra: job,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
                   AsyncError(:final error) => Text('Error: $error'),
                   _ => const LinearProgressIndicator(),
                 },
-                
+
                 AppSpacing.verticalXl,
-                const _SectionTitle(title: 'Overall Pilot Stats'),
+                _SectionTitle(title: context.tr('Overall Pilot Stats')),
                 AppSpacing.verticalMd,
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -188,13 +203,15 @@ class _PilotHomeContent extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _StatItem(
-                        label: 'Total Flight Hours',
-                        value: (user?.totalFlightHours ?? 0.0).toStringAsFixed(1),
+                        label: context.tr('Total Flight Hours'),
+                        value: (user?.totalFlightHours ?? 0.0).toStringAsFixed(
+                          1,
+                        ),
                         icon: Icons.timer_outlined,
                       ),
                       const VerticalDivider(),
                       _StatItem(
-                        label: 'Total Missions',
+                        label: context.tr('Total Missions'),
                         value: (user?.completedMissions ?? 0).toString(),
                         icon: Icons.history,
                       ),
@@ -226,7 +243,7 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -238,15 +255,26 @@ class _StatCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 14, color: AppColors.textSecondary),
-              const SizedBox(width: 4),
-              Text(title, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 10)),
+              Icon(icon, size: 18, color: AppColors.textSecondary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 10),
           Text(
             value,
             style: AppTextStyles.headlineMedium.copyWith(
+              fontSize: 24,
               color: color,
               fontWeight: FontWeight.bold,
             ),

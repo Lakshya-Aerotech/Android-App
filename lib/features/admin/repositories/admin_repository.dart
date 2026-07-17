@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../core/notifications/notification_repository.dart';
 import '../../../shared/models/activity_model.dart';
 import '../../../shared/repositories/activity_repository.dart';
 import '../../auth/models/user_model.dart';
@@ -23,6 +24,7 @@ abstract class AdminRepository {
 
 class AdminRepositoryImpl implements AdminRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final NotificationRepository _notifications = NotificationRepository();
 
   @override
   Stream<List<UserModel>> getEmployeesStream() {
@@ -43,13 +45,25 @@ class AdminRepositoryImpl implements AdminRepository {
     final docRef = await _firestore.collection('users').add(employee.toMap());
 
     // Log Activity
-    await ActivityRepository.logActivity(ActivityModel(
-      type: ActivityType.employeeCreated,
-      description: 'New employee created: ${employee.name} (${employee.role.name})',
-      userId: docRef.id,
-      userName: employee.name,
-      timestamp: DateTime.now(),
-    ));
+    await ActivityRepository.logActivity(
+      ActivityModel(
+        type: ActivityType.employeeCreated,
+        description:
+            'New employee created: ${employee.name} (${employee.role.name})',
+        userId: docRef.id,
+        userName: employee.name,
+        timestamp: DateTime.now(),
+      ),
+    );
+
+    await _notifications.createForRole(
+      role: UserRole.admin,
+      eventKey: 'employee-added-${docRef.id}',
+      title: 'New employee added',
+      message:
+          '${employee.name ?? 'An employee'} was added as ${employee.role.name}.',
+      employeeId: docRef.id,
+    );
   }
 
   @override
@@ -106,10 +120,23 @@ class AdminRepositoryImpl implements AdminRepository {
       );
     }
 
+    final wasActive = UserModel.fromMap(doc.data()!, docId: doc.id).isActive;
+
     await docRef.update({
       'isActive': isActive,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    if (wasActive && !isActive) {
+      final employee = UserModel.fromMap(doc.data()!, docId: doc.id);
+      await _notifications.createForRole(
+        role: UserRole.admin,
+        eventKey: 'employee-deactivated-$docId',
+        title: 'Employee deactivated',
+        message: '${employee.name ?? 'An employee'} was deactivated.',
+        employeeId: docId,
+      );
+    }
   }
 
   @override
@@ -120,13 +147,15 @@ class AdminRepositoryImpl implements AdminRepository {
   @override
   Stream<Map<String, dynamic>> getDashboardStats() {
     // Note: In a large production app, these would be aggregated using Cloud Functions
-    // or by listening to a dedicated metadata document. 
+    // or by listening to a dedicated metadata document.
     // For now, we use real-time listeners on filtered collections.
-    
-    final employeesStream = _firestore.collection('users')
+
+    final employeesStream = _firestore
+        .collection('users')
         .where('role', whereIn: ['pilot', 'operations', 'admin'])
         .snapshots();
-    final farmersStream = _firestore.collection('users')
+    final farmersStream = _firestore
+        .collection('users')
         .where('role', isEqualTo: 'farmer')
         .snapshots();
     final bookingsStream = _firestore.collection('bookings').snapshots();
@@ -157,7 +186,13 @@ class AdminRepositoryImpl implements AdminRepository {
 
       final employeesSub = employeesStream.listen((snapshot) {
         totalEmployees = snapshot.docs.length;
-        activePilots = snapshot.docs.where((doc) => doc.data()['role'] == 'pilot' && doc.data()['isActive'] == true).length;
+        activePilots = snapshot.docs
+            .where(
+              (doc) =>
+                  doc.data()['role'] == 'pilot' &&
+                  doc.data()['isActive'] == true,
+            )
+            .length;
         emit();
       });
 
@@ -170,14 +205,20 @@ class AdminRepositoryImpl implements AdminRepository {
         totalBookings = snapshot.docs.length;
         completedMissions = snapshot.docs.where((doc) {
           final status = doc.data()['status'];
-          return status == 'completed' || status == 'farmerConfirmed' || status == 'closed';
+          return status == 'completed' ||
+              status == 'farmerConfirmed' ||
+              status == 'closed';
         }).length;
-        pendingBookings = snapshot.docs.where((doc) => doc.data()['status'] == 'pending').length;
+        pendingBookings = snapshot.docs
+            .where((doc) => doc.data()['status'] == 'pending')
+            .length;
         emit();
       });
 
       final dronesSub = dronesStream.listen((snapshot) {
-        activeDrones = snapshot.docs.where((doc) => doc.data()['isActive'] == true).length;
+        activeDrones = snapshot.docs
+            .where((doc) => doc.data()['isActive'] == true)
+            .length;
         emit();
       });
 

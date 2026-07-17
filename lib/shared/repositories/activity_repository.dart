@@ -20,8 +20,22 @@ class ActivityRepository {
         .orderBy('timestamp', descending: true)
         .limit(limit)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ActivityModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => ActivityModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
+  }
+
+  static Stream<List<ActivityModel>> getAllActivities() {
+    return _firestore
+        .collection('activities')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => ActivityModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
   }
 }
