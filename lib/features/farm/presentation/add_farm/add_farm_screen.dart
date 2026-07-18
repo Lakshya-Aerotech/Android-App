@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -233,7 +233,7 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
                         child: Text(
                           _selectedLocation != null
                               ? 'Location Selected (${_selectedLocation!.latitude.toStringAsFixed(4)}, ${_selectedLocation!.longitude.toStringAsFixed(4)})'
-                              : 'Select Location on Google Maps',
+                              : 'Select Location on Map',
                           style: TextStyle(
                             color: _selectedLocation != null ? AppColors.success : AppColors.textPrimary,
                             fontWeight: _selectedLocation != null ? FontWeight.bold : FontWeight.normal,

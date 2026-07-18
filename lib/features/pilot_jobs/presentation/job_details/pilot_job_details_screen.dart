@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:maps_launcher/maps_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/primary_button.dart';
@@ -58,18 +59,11 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
 
   Future<void> _navigate(BookingModel job) async {
     if (job.latitude == null || job.longitude == null) return;
-    final url = 'google.navigation:q=${job.latitude},${job.longitude}';
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url));
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not launch Google Maps navigation'),
-          ),
-        );
-      }
-    }
+    await MapsLauncher.launchCoordinates(
+      job.latitude!,
+      job.longitude!,
+      job.farmName,
+    );
   }
 
   void _showCompleteMissionConfirmation(BookingModel job) {
@@ -228,15 +222,6 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
     switch (job.status) {
       case BookingStatus.droneAssigned:
       case BookingStatus.accepted:
-        return PrimaryButton(
-          text: 'Start Navigation',
-          icon: const Icon(Icons.navigation_outlined, color: Colors.white),
-          onPressed: () async {
-            await notifier.startNavigation(job.docId!);
-            await _navigate(job);
-          },
-          isLoading: isLoading,
-        );
       case BookingStatus.enRoute:
         return PrimaryButton(
           text: 'Arrived At Farm',
@@ -367,20 +352,43 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: GoogleMap(
-          initialCameraPosition: CameraPosition(
-            target: LatLng(lat, lng),
-            zoom: 15,
-          ),
-          markers: {
-            Marker(
-              markerId: const MarkerId('farm'),
-              position: LatLng(lat, lng),
+        child: FlutterMap(
+          options: MapOptions(
+            initialCenter: LatLng(lat, lng),
+            initialZoom: 15,
+            interactionOptions: const InteractionOptions(
+              flags: InteractiveFlag.none,
             ),
-          },
-          liteModeEnabled: true,
-          zoomControlsEnabled: false,
-          myLocationButtonEnabled: false,
+            onTap: (_, __) async {
+              if (widget.job.status == BookingStatus.droneAssigned ||
+                  widget.job.status == BookingStatus.accepted) {
+                await ref
+                    .read(pilotJobsViewModelProvider.notifier)
+                    .startNavigation(widget.job.docId!);
+              }
+              await _navigate(widget.job);
+            },
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.lakshya_aerotech.app',
+            ),
+            MarkerLayer(
+              markers: [
+                Marker(
+                  point: LatLng(lat, lng),
+                  width: 60,
+                  height: 60,
+                  child: const Icon(
+                    Icons.location_on,
+                    color: Colors.red,
+                    size: 30,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

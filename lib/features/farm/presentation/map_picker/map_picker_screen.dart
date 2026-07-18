@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -17,12 +18,12 @@ class MapPickerScreen extends StatefulWidget {
 
 class _MapPickerScreenState extends State<MapPickerScreen> {
   LatLng? _selectedLocation;
-  GoogleMapController? _mapController;
+  final MapController _mapController = MapController();
   String _statusMessage = 'Initializing...';
   bool _isLoading = true;
   
   // Default location: Hyderabad
-  static const LatLng _defaultLocation = LatLng(17.3850, 78.4867);
+  static final LatLng _defaultLocation = LatLng(17.3850, 78.4867);
 
   @override
   void initState() {
@@ -35,6 +36,12 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       setState(() {
         _selectedLocation = widget.initialLocation;
         _isLoading = false;
+      });
+      // Small delay to ensure map controller is ready
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted && _selectedLocation != null) {
+          _mapController.move(_selectedLocation!, 15);
+        }
       });
       return;
     }
@@ -118,7 +125,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       _selectedLocation = location;
       _isLoading = false;
     });
-    _mapController?.animateCamera(CameraUpdate.newLatLngZoom(location, 15));
+    _mapController.move(location, 15);
   }
 
   Future<void> _showGpsDialog() async {
@@ -178,32 +185,38 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       ),
       body: Stack(
         children: [
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: _selectedLocation ?? _defaultLocation,
-              zoom: 15,
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _selectedLocation ?? _defaultLocation,
+              initialZoom: 15,
+              onTap: (tapPosition, latLng) {
+                setState(() {
+                  _selectedLocation = latLng;
+                });
+              },
             ),
-            onMapCreated: (controller) {
-              _mapController = controller;
-              if (_selectedLocation != null) {
-                _mapController!.animateCamera(CameraUpdate.newLatLngZoom(_selectedLocation!, 15));
-              }
-            },
-            onTap: (latLng) {
-              setState(() {
-                _selectedLocation = latLng;
-              });
-            },
-            markers: _selectedLocation != null
-                ? {
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.lakshya_aerotech.app',
+              ),
+              if (_selectedLocation != null)
+                MarkerLayer(
+                  markers: [
                     Marker(
-                      markerId: const MarkerId('selected'),
-                      position: _selectedLocation!,
+                      point: _selectedLocation!,
+                      width: 80,
+                      height: 80,
+                      child: const Icon(
+                        Icons.location_on,
+                        color: Colors.red,
+                        size: 40,
+                      ),
                     ),
-                  }
-                : {},
-            myLocationEnabled: true,
-            myLocationButtonEnabled: true,
+                  ],
+                ),
+            ],
           ),
           
           if (_isLoading)
@@ -233,6 +246,17 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
               onPressed: _isLoading || _selectedLocation == null
                   ? null
                   : () => Navigator.pop(context, _selectedLocation),
+            ),
+          ),
+          
+          Positioned(
+            top: 20,
+            right: 20,
+            child: FloatingActionButton(
+              mini: true,
+              backgroundColor: Colors.white,
+              onPressed: () => _handleLocationFlow(),
+              child: const Icon(Icons.my_location, color: AppColors.primary),
             ),
           ),
         ],

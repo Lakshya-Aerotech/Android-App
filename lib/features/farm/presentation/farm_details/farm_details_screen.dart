@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
+import 'package:maps_launcher/maps_launcher.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -45,20 +47,39 @@ class FarmDetailsScreen extends ConsumerWidget {
             SizedBox(
               height: 200,
               width: double.infinity,
-              child: GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: LatLng(farm.latitude, farm.longitude),
-                  zoom: 16,
-                ),
-                markers: {
-                  Marker(
-                    markerId: const MarkerId('farm'),
-                    position: LatLng(farm.latitude, farm.longitude),
+              child: FlutterMap(
+                options: MapOptions(
+                  initialCenter: LatLng(farm.latitude, farm.longitude),
+                  initialZoom: 16,
+                  interactionOptions: const InteractionOptions(
+                    flags: InteractiveFlag.none,
                   ),
-                },
-                liteModeEnabled: true,
-                zoomControlsEnabled: false,
-                myLocationButtonEnabled: false,
+                  onTap: (_, __) => MapsLauncher.launchCoordinates(
+                    farm.latitude,
+                    farm.longitude,
+                    farm.farmName,
+                  ),
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.lakshya_aerotech.app',
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: LatLng(farm.latitude, farm.longitude),
+                        width: 80,
+                        height: 80,
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.red,
+                          size: 40,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
             
