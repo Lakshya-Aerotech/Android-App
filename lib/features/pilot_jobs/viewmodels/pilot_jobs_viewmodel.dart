@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../auth/models/user_model.dart';
 import '../../auth/viewmodel/auth_viewmodel.dart';
 import '../../booking/models/booking_model.dart';
 import '../../../shared/enums/booking_status.dart';
@@ -13,6 +14,7 @@ final pilotJobsRepositoryProvider = Provider<PilotJobsRepository>((ref) {
 final assignedJobsProvider = StreamProvider<List<BookingModel>>((ref) {
   final user = ref.watch(userModelProvider);
   if (user == null || user.uid == null) return Stream.value([]);
+  if (user.role != UserRole.pilot && user.role != UserRole.externalPilot) return Stream.value([]);
   return ref.watch(pilotJobsRepositoryProvider).getJobsByStatus(user.uid!, [
     BookingStatus.droneAssigned,
   ]);
@@ -21,6 +23,7 @@ final assignedJobsProvider = StreamProvider<List<BookingModel>>((ref) {
 final inProgressJobsProvider = StreamProvider<List<BookingModel>>((ref) {
   final user = ref.watch(userModelProvider);
   if (user == null || user.uid == null) return Stream.value([]);
+  if (user.role != UserRole.pilot && user.role != UserRole.externalPilot) return Stream.value([]);
   return ref.watch(pilotJobsRepositoryProvider).getJobsByStatus(user.uid!, [
     BookingStatus.accepted,
     BookingStatus.enRoute,
@@ -32,6 +35,7 @@ final inProgressJobsProvider = StreamProvider<List<BookingModel>>((ref) {
 final pilotDashboardStatsProvider = StreamProvider<Map<String, dynamic>>((ref) {
   final user = ref.watch(userModelProvider);
   if (user == null || user.uid == null) return Stream.value({});
+  if (user.role != UserRole.pilot && user.role != UserRole.externalPilot) return Stream.value({});
 
   return ref
       .watch(pilotJobsRepositoryProvider)
@@ -245,6 +249,7 @@ final pilotJobDetailsProvider = StreamProvider.family<BookingModel, String>((
 final pilotJobHistoryProvider = StreamProvider<List<BookingModel>>((ref) {
   final user = ref.watch(userModelProvider);
   if (user == null || user.uid == null) return Stream.value([]);
+  if (user.role != UserRole.pilot && user.role != UserRole.externalPilot) return Stream.value([]);
   return ref.watch(pilotJobsRepositoryProvider).getJobsByStatus(user.uid!, [
     BookingStatus.completed,
     BookingStatus.farmerConfirmed,
@@ -255,5 +260,6 @@ final pilotJobHistoryProvider = StreamProvider<List<BookingModel>>((ref) {
 final pilotAverageRatingProvider = FutureProvider<double>((ref) async {
   final user = ref.watch(userModelProvider);
   if (user == null || user.uid == null) return 0.0;
+  if (user.role != UserRole.pilot && user.role != UserRole.externalPilot) return 0.0;
   return ref.watch(pilotJobsRepositoryProvider).getAverageRating(user.uid!);
 });

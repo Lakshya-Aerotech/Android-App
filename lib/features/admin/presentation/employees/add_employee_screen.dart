@@ -190,6 +190,7 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
                 value: _selectedRole,
                 items: const [
                   UserRole.pilot,
+                  UserRole.externalPilot,
                   UserRole.operations,
                   UserRole.admin,
                 ],

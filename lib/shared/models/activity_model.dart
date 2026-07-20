@@ -13,6 +13,7 @@ enum ActivityType {
   missionStarted,
   missionCompleted,
   farmerConfirmedService,
+  externalPilotRegistered,
 }
 
 class ActivityModel {
@@ -81,6 +82,8 @@ class ActivityModel {
         return Icons.check_circle_outline;
       case ActivityType.farmerConfirmedService:
         return Icons.star_border;
+      case ActivityType.externalPilotRegistered:
+        return Icons.person_add_alt_1;
     }
   }
 
@@ -108,6 +111,8 @@ class ActivityModel {
         return Colors.lightGreen;
       case ActivityType.farmerConfirmedService:
         return Colors.pink;
+      case ActivityType.externalPilotRegistered:
+        return Colors.cyan;
     }
   }
 }

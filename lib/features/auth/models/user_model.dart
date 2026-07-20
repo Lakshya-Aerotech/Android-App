@@ -1,6 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum UserRole { farmer, pilot, operations, admin }
+enum UserRole { farmer, pilot, operations, admin, externalPilot }
+
+enum ApprovalStatus { pending, approved, rejected }
+
+enum AccountStatus { active, inactive, suspended }
 
 class UserModel {
   final String? docId; // Firestore Document ID
@@ -32,6 +36,19 @@ class UserModel {
   final int totalFlightMinutes;
   final double totalFlightHours;
 
+  // External Pilot Specific Fields
+  final String? address;
+  final String? aadhaarNumber;
+  final String? dronePilotCertificateUrl;
+  final String? dgcaCertificateUrl;
+  final String? droneDetails;
+  final List<String> operatingDistricts;
+  final double? operatingRadius;
+  final String? profilePhotographUrl;
+  final ApprovalStatus? approvalStatus;
+  final AccountStatus? accountStatus;
+  final String? rejectionReason;
+
   UserModel({
     this.docId,
     this.uid,
@@ -57,6 +74,17 @@ class UserModel {
     this.totalAcresCovered = 0.0,
     this.totalFlightMinutes = 0,
     this.totalFlightHours = 0.0,
+    this.address,
+    this.aadhaarNumber,
+    this.dronePilotCertificateUrl,
+    this.dgcaCertificateUrl,
+    this.droneDetails,
+    this.operatingDistricts = const [],
+    this.operatingRadius,
+    this.profilePhotographUrl,
+    this.approvalStatus,
+    this.accountStatus,
+    this.rejectionReason,
   });
 
   Map<String, dynamic> toMap() {
@@ -84,6 +112,17 @@ class UserModel {
       'totalAcresCovered': totalAcresCovered,
       'totalFlightMinutes': totalFlightMinutes,
       'totalFlightHours': totalFlightHours,
+      'address': address,
+      'aadhaarNumber': aadhaarNumber,
+      'dronePilotCertificateUrl': dronePilotCertificateUrl,
+      'dgcaCertificateUrl': dgcaCertificateUrl,
+      'droneDetails': droneDetails,
+      'operatingDistricts': operatingDistricts,
+      'operatingRadius': operatingRadius,
+      'profilePhotographUrl': profilePhotographUrl,
+      'approvalStatus': approvalStatus?.name,
+      'accountStatus': accountStatus?.name,
+      'rejectionReason': rejectionReason,
     };
   }
 
@@ -116,6 +155,23 @@ class UserModel {
       totalAcresCovered: (map['totalAcresCovered'] as num?)?.toDouble() ?? 0.0,
       totalFlightMinutes: map['totalFlightMinutes'] ?? 0,
       totalFlightHours: (map['totalFlightHours'] as num?)?.toDouble() ?? 0.0,
+      address: map['address'],
+      aadhaarNumber: map['aadhaarNumber'],
+      dronePilotCertificateUrl: map['dronePilotCertificateUrl'],
+      dgcaCertificateUrl: map['dgcaCertificateUrl'],
+      droneDetails: map['droneDetails'],
+      operatingDistricts: List<String>.from(map['operatingDistricts'] ?? []),
+      operatingRadius: (map['operatingRadius'] as num?)?.toDouble(),
+      profilePhotographUrl: map['profilePhotographUrl'],
+      approvalStatus:
+          map['approvalStatus'] != null
+              ? ApprovalStatus.values.byName(map['approvalStatus'])
+              : null,
+      accountStatus:
+          map['accountStatus'] != null
+              ? AccountStatus.values.byName(map['accountStatus'])
+              : null,
+      rejectionReason: map['rejectionReason'],
     );
   }
 
@@ -144,6 +200,17 @@ class UserModel {
     double? totalAcresCovered,
     int? totalFlightMinutes,
     double? totalFlightHours,
+    String? address,
+    String? aadhaarNumber,
+    String? dronePilotCertificateUrl,
+    String? dgcaCertificateUrl,
+    String? droneDetails,
+    List<String>? operatingDistricts,
+    double? operatingRadius,
+    String? profilePhotographUrl,
+    ApprovalStatus? approvalStatus,
+    AccountStatus? accountStatus,
+    String? rejectionReason,
   }) {
     return UserModel(
       docId: docId ?? this.docId,
@@ -170,6 +237,19 @@ class UserModel {
       totalAcresCovered: totalAcresCovered ?? this.totalAcresCovered,
       totalFlightMinutes: totalFlightMinutes ?? this.totalFlightMinutes,
       totalFlightHours: totalFlightHours ?? this.totalFlightHours,
+      address: address ?? this.address,
+      aadhaarNumber: aadhaarNumber ?? this.aadhaarNumber,
+      dronePilotCertificateUrl:
+          dronePilotCertificateUrl ?? this.dronePilotCertificateUrl,
+      dgcaCertificateUrl: dgcaCertificateUrl ?? this.dgcaCertificateUrl,
+      droneDetails: droneDetails ?? this.droneDetails,
+      operatingDistricts: operatingDistricts ?? this.operatingDistricts,
+      operatingRadius: operatingRadius ?? this.operatingRadius,
+      profilePhotographUrl: profilePhotographUrl ?? this.profilePhotographUrl,
+      approvalStatus: approvalStatus ?? this.approvalStatus,
+      accountStatus: accountStatus ?? this.accountStatus,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
     );
   }
 }
+

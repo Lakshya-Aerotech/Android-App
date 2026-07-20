@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../viewmodel/auth_viewmodel.dart';
+import '../models/user_model.dart';
 import '../../drone/repositories/drone_repository.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -40,7 +41,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         final userData = await repository.getUserData(authUser.uid);
         
         if (userData != null) {
-          ref.read(userModelProvider.notifier).state = userData;
+          // Check for Approval/Account Status (Phase 5)
+          bool isAllowed = true;
+          if (userData.role == UserRole.externalPilot) {
+            if (userData.approvalStatus != ApprovalStatus.approved) isAllowed = false;
+          }
+          if (userData.accountStatus == AccountStatus.suspended || !userData.isActive) isAllowed = false;
+
+          if (isAllowed) {
+            ref.read(userModelProvider.notifier).state = userData;
+          } else {
+            await repository.logout();
+            ref.read(userModelProvider.notifier).state = null;
+          }
         }
       }
     } catch (e) {

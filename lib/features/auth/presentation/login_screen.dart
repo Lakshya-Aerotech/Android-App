@@ -31,17 +31,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _onFarmerSubmit() {
-    final phone = _phoneController.text.trim();
-    if (phone.isEmpty) return;
-    final fullPhone = phone.startsWith('+') ? phone : '+91$phone';
-    ref.read(authViewModelProvider.notifier).sendOtp(fullPhone);
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (email.isEmpty || password.isEmpty) return;
+    ref.read(authViewModelProvider.notifier).loginWithEmail(email, password);
   }
 
   void _onEmployeeSubmit() {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) return;
-    ref.read(authViewModelProvider.notifier).loginEmployee(email, password);
+    ref.read(authViewModelProvider.notifier).loginWithEmail(email, password);
   }
 
   @override
@@ -49,9 +49,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final state = ref.watch(authViewModelProvider);
 
     ref.listen(authViewModelProvider, (previous, next) {
-      if (next.status == AuthStatus.otpSent) {
-        context.push('/otp', extra: _phoneController.text.trim());
-      } else if (next.status == AuthStatus.authenticated) {
+      if (next.status == AuthStatus.authenticated) {
         context.go('/');
       } else if (next.status == AuthStatus.error && next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -112,67 +110,52 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 32),
 
+              // Common Email/Password Login for all roles
+              CustomTextField(
+                label: 'Email',
+                hintText: _isEmployeeMode ? 'employee@lakshya.com' : 'name@example.com',
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+              ),
+              AppSpacing.verticalMd,
+              CustomTextField(
+                label: 'Password',
+                hintText: '••••••••',
+                controller: _passwordController,
+                obscureText: true,
+              ),
+              
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => context.push('/forgot-password'),
+                  child: Text(
+                    'Forgot Password?',
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+              
+              AppSpacing.verticalLg,
+              PrimaryButton(
+                text: 'Login',
+                isLoading: state.status == AuthStatus.loading,
+                onPressed: _isEmployeeMode ? _onEmployeeSubmit : _onFarmerSubmit,
+              ),
+
               if (!_isEmployeeMode) ...[
-                // Farmer Section
-                CustomTextField(
-                  label: 'Mobile Number',
-                  hintText: '98 7654 3210',
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  prefixIcon: Container(
-                    width: 60,
-                    alignment: Alignment.center,
-                    child: Text(
-                      '+91',
-                      style: AppTextStyles.bodyLarge.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('New farmer?'),
+                    TextButton(
+                      onPressed: () => context.push('/farmer-registration'),
+                      child: const Text('Register Now'),
                     ),
-                  ),
-                ),
-                AppSpacing.verticalLg,
-                PrimaryButton(
-                  text: 'Send OTP',
-                  isLoading: state.status == AuthStatus.loading,
-                  onPressed: _onFarmerSubmit,
-                  icon: const Icon(
-                    Icons.send_rounded,
-                    size: 18,
-                    color: Colors.white,
-                  ),
-                ),
-              ] else ...[
-                // Employee Section
-                CustomTextField(
-                  label: 'Email',
-                  hintText: 'employee@lakshya.com',
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                AppSpacing.verticalMd,
-                CustomTextField(
-                  label: 'Password',
-                  hintText: '••••••••',
-                  controller: _passwordController,
-                  obscureText: true,
-                ),
-                AppSpacing.verticalLg,
-                PrimaryButton(
-                  text: 'Login',
-                  isLoading: state.status == AuthStatus.loading,
-                  onPressed: _onEmployeeSubmit,
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => context.push('/forgot-password'),
-                    child: Text(
-                      'Forgot Password?',
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
+                  ],
                 ),
               ],
 
@@ -200,6 +183,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 onPressed: () {
                   setState(() {
                     _isEmployeeMode = !_isEmployeeMode;
+                    _emailController.clear();
+                    _passwordController.clear();
                   });
                 },
                 child: Text(
@@ -209,6 +194,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ),
+
+              if (!_isEmployeeMode) ...[
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: () => context.push('/external-pilot-registration'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                    side: const BorderSide(color: AppColors.primary),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Register as External Pilot'),
+                ),
+              ],
 
               const SizedBox(height: 48),
               // Footer

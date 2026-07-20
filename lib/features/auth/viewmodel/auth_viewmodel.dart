@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../repository/auth_repository.dart';
 import '../models/user_model.dart';
+import '../../../core/services/file_service.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl();
@@ -24,6 +26,9 @@ enum AuthStatus {
   unauthenticated,
   error,
   passwordResetSent,
+  awaitingApproval,
+  rejected,
+  suspended,
 }
 
 class AuthState {
@@ -89,7 +94,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> loginEmployee(String email, String password) async {
+  Future<void> loginWithEmail(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading);
     try {
       final processedEmail = email.trim().toLowerCase();
@@ -102,6 +107,108 @@ class AuthViewModel extends StateNotifier<AuthState> {
       state = state.copyWith(status: AuthStatus.error, errorMessage: _getAuthErrorMessage(e));
     } catch (e) {
       state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+    }
+  }
+
+  Future<void> registerFarmer(UserModel user, String password) async {
+    state = state.copyWith(status: AuthStatus.loading);
+    try {
+      await _repository.registerFarmer(user, password);
+      final currentUser = FirebaseAuth.instance.currentUser;
+      await _handleUserSignIn(currentUser);
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: _getAuthErrorMessage(e),
+      );
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
+  Future<void> registerExternalPilot(UserModel user, String password) async {
+    state = state.copyWith(status: AuthStatus.loading);
+    try {
+      await _repository.registerExternalPilot(user, password);
+      await _repository.logout(); // Logout after registration to prevent immediate access
+      state = state.copyWith(status: AuthStatus.unauthenticated); // Reset state
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: _getAuthErrorMessage(e),
+      );
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
+  Future<void> registerExternalPilotWithFiles({
+    required UserModel user,
+    required String password,
+    required File profileImage,
+    File? pilotCert,
+    File? dgcaCert,
+  }) async {
+    state = state.copyWith(status: AuthStatus.loading);
+    try {
+      // 1. First register to get UID
+      await _repository.registerExternalPilot(user, password);
+      
+      // Since we just registered, we are signed in. Let's get the user.
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) throw Exception('User creation failed');
+      final uid = currentUser.uid;
+
+      final fileService = _ref.read(fileServiceProvider);
+      
+      // 2. Upload files
+      final profileUrl = await fileService.uploadProfileImage(uid: uid, file: profileImage);
+      
+      String? pilotCertUrl;
+      if (pilotCert != null) {
+        pilotCertUrl = await fileService.uploadUserDocument(
+          uid: uid, 
+          file: pilotCert, 
+          documentType: 'drone_pilot_certificate',
+        );
+      }
+
+      String? dgcaCertUrl;
+      if (dgcaCert != null) {
+        dgcaCertUrl = await fileService.uploadUserDocument(
+          uid: uid, 
+          file: dgcaCert, 
+          documentType: 'dgca_certificate',
+        );
+      }
+
+      // 3. Update Firestore doc with URLs
+      await _repository.updateProfile(uid, {
+        'profilePhotographUrl': profileUrl,
+        'profileImageUrl': profileUrl, // redundant but good for consistency
+        'dronePilotCertificateUrl': pilotCertUrl,
+        'dgcaCertificateUrl': dgcaCertUrl,
+      });
+
+      // 4. Logout (Phase 4 requirement: User must NOT gain application access)
+      await _repository.logout();
+      state = state.copyWith(status: AuthStatus.unauthenticated);
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: _getAuthErrorMessage(e),
+      );
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
     }
   }
 
@@ -127,35 +234,40 @@ class AuthViewModel extends StateNotifier<AuthState> {
     }
 
     if (userData == null) {
-      // If it's an email login but still no userData, it's unauthorized
-      if (user.email != null) {
-        await _repository.logout();
-        state = state.copyWith(
-          status: AuthStatus.error,
-          errorMessage: 'Unauthorized employee.',
-        );
-        return;
+      // If it's still null, it's unauthorized or a legacy phone user trying to login with email (which shouldn't happen)
+      await _repository.logout();
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: 'User record not found. Please register.',
+      );
+      return;
+    } else {
+      // Login Rules (Phase 5)
+      if (userData.role == UserRole.externalPilot) {
+        if (userData.approvalStatus == ApprovalStatus.pending) {
+          await _repository.logout();
+          state = state.copyWith(
+            status: AuthStatus.awaitingApproval,
+            errorMessage: 'Your account is awaiting administrator approval.',
+          );
+          return;
+        }
+        if (userData.approvalStatus == ApprovalStatus.rejected) {
+          await _repository.logout();
+          state = state.copyWith(
+            status: AuthStatus.rejected,
+            errorMessage: 'Your registration has been rejected. Please contact Lakshya Aerotech.',
+          );
+          return;
+        }
       }
 
-      // New Farmer (Phone Login)
-      final newUser = UserModel(
-        uid: user.uid,
-        docId: user.uid, // For farmers, we use UID as DocID
-        phoneNumber: user.phoneNumber,
-        email: user.email,
-        role: UserRole.farmer,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-      await _repository.createFarmerProfile(newUser);
-      _ref.read(userModelProvider.notifier).state = newUser;
-    } else {
-      if (!userData.isActive) {
+      if (userData.accountStatus == AccountStatus.suspended || !userData.isActive) {
         await _repository.logout();
         _ref.read(userModelProvider.notifier).state = null;
         state = state.copyWith(
-          status: AuthStatus.error,
-          errorMessage: 'Your account has been disabled. Please contact the administrator.',
+          status: AuthStatus.suspended,
+          errorMessage: 'Your account has been suspended. Please contact the administrator.',
         );
         return;
       }

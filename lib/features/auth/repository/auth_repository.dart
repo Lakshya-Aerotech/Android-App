@@ -28,6 +28,8 @@ abstract class AuthRepository {
   Future<void> linkAuthWithEmployee(String docId, String uid);
   Future<void> updateLastLogin(String docId);
   Future<void> sendPasswordResetEmail(String email);
+  Future<void> registerExternalPilot(UserModel user, String password);
+  Future<void> registerFarmer(UserModel user, String password);
 }
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -170,5 +172,89 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> sendPasswordResetEmail(String email) async {
     await _auth.sendPasswordResetEmail(email: email);
+  }
+
+  @override
+  Future<void> registerExternalPilot(UserModel user, String password) async {
+    if (user.email == null) {
+      throw FirebaseAuthException(
+        code: 'email-required',
+        message: 'Email is required for registration.',
+      );
+    }
+
+    // 1. Create Firebase Auth account
+    final credential = await _auth.createUserWithEmailAndPassword(
+      email: user.email!,
+      password: password,
+    );
+
+    final uid = credential.user!.uid;
+
+    // 2. Create Firestore user document
+    final userWithUid = user.copyWith(uid: uid, docId: uid);
+    await _firestore.collection('users').doc(uid).set(userWithUid.toMap());
+
+    // 3. Log Activity
+    await ActivityRepository.logActivity(
+      ActivityModel(
+        type: ActivityType.externalPilotRegistered,
+        description: 'New external pilot registered: ${user.name}',
+        userId: uid,
+        userName: user.name,
+        timestamp: DateTime.now(),
+      ),
+    );
+
+    // 4. Notify Admin
+    await _notifications.createForRole(
+      role: UserRole.admin,
+      eventKey: 'external-pilot-registered-$uid',
+      title: 'New external pilot registration',
+      message: '${user.name} has registered as an external pilot and is awaiting approval.',
+      data: {'pilotUid': uid},
+    );
+  }
+
+  @override
+  Future<void> registerFarmer(UserModel user, String password) async {
+    if (user.email == null) {
+      throw FirebaseAuthException(
+        code: 'email-required',
+        message: 'Email is required for registration.',
+      );
+    }
+
+    // 1. Create Firebase Auth account
+    final credential = await _auth.createUserWithEmailAndPassword(
+      email: user.email!,
+      password: password,
+    );
+
+    final uid = credential.user!.uid;
+
+    // 2. Create Firestore user document
+    final userWithUid = user.copyWith(uid: uid, docId: uid);
+    await _firestore.collection('users').doc(uid).set(userWithUid.toMap());
+
+    // 3. Log Activity
+    await ActivityRepository.logActivity(
+      ActivityModel(
+        type: ActivityType.farmerRegistered,
+        description: 'New farmer registered: ${user.name}',
+        userId: uid,
+        userName: user.name,
+        timestamp: DateTime.now(),
+      ),
+    );
+
+    // 4. Notify Admin
+    await _notifications.createForRole(
+      role: UserRole.admin,
+      eventKey: 'farmer-registered-$uid',
+      title: 'New farmer registration',
+      message: '${user.name ?? 'A farmer'} registered with Lakshya Aerotech.',
+      data: {'farmerUid': uid},
+    );
   }
 }

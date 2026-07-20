@@ -582,7 +582,7 @@ class OperationsRepositoryImpl implements OperationsRepository {
     if (data == null) return null;
 
     final role = (data['role'] ?? '').toString();
-    const pilotRoles = {'pilot', 'drone_operator', 'droneOperator'};
+    const pilotRoles = {'pilot', 'drone_operator', 'droneOperator', 'externalPilot'};
     if (!pilotRoles.contains(role)) return null;
 
     final isDeleted = data['isDeleted'] == true || data['deleted'] == true;
@@ -628,7 +628,7 @@ class OperationsRepositoryImpl implements OperationsRepository {
     if (data == null) return false;
 
     final role = (data['role'] ?? '').toString();
-    const pilotRoles = {'pilot', 'drone_operator', 'droneOperator'};
+    const pilotRoles = {'pilot', 'drone_operator', 'droneOperator', 'externalPilot'};
     if (!pilotRoles.contains(role)) return false;
 
     final isDeleted = data['isDeleted'] == true || data['deleted'] == true;

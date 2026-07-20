@@ -3,9 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:lakshya_aerotech/features/auth/presentation/splash_screen.dart';
 import 'package:lakshya_aerotech/features/auth/presentation/login_screen.dart';
 import 'package:lakshya_aerotech/features/auth/presentation/forgot_password_screen.dart';
-import 'package:lakshya_aerotech/features/auth/presentation/otp_screen.dart';
 import 'package:lakshya_aerotech/features/profile/presentation/edit_profile_screen.dart';
 import 'package:lakshya_aerotech/features/auth/presentation/complete_profile_screen.dart';
+import 'package:lakshya_aerotech/features/auth/presentation/external_pilot_registration_screen.dart';
+import 'package:lakshya_aerotech/features/auth/presentation/farmer_registration_screen.dart';
 import 'package:lakshya_aerotech/features/auth/viewmodel/auth_viewmodel.dart';
 import 'package:lakshya_aerotech/features/auth/models/user_model.dart';
 import 'package:lakshya_aerotech/features/farmer/home/farmer_home_screen.dart';
@@ -23,6 +24,8 @@ import 'package:lakshya_aerotech/features/admin/presentation/activity/admin_rece
 import 'package:lakshya_aerotech/features/admin/presentation/analytics/admin_analytics_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/employees/employee_list_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/employees/add_employee_screen.dart';
+import 'package:lakshya_aerotech/features/admin/presentation/external_pilots/external_pilot_list_screen.dart';
+import 'package:lakshya_aerotech/features/admin/presentation/external_pilots/external_pilot_details_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/placeholders/admin_placeholders.dart';
 import 'package:lakshya_aerotech/features/pilot/presentation/pilot_dashboard.dart';
 import 'package:lakshya_aerotech/features/pilot_jobs/presentation/job_details/pilot_job_details_screen.dart';
@@ -42,8 +45,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isAuthPath =
           state.matchedLocation == '/login' ||
-          state.matchedLocation == '/otp' ||
-          state.matchedLocation == '/forgot-password';
+          state.matchedLocation == '/forgot-password' ||
+          state.matchedLocation == '/external-pilot-registration' ||
+          state.matchedLocation == '/farmer-registration';
       final isSplash = state.matchedLocation == '/splash';
 
       if (isInitializing) return '/splash';
@@ -76,15 +80,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
-        path: '/forgot-password',
-        builder: (context, state) => const ForgotPasswordScreen(),
+        path: '/external-pilot-registration',
+        builder: (context, state) => const ExternalPilotRegistrationScreen(),
       ),
       GoRoute(
-        path: '/otp',
-        builder: (context, state) {
-          final phone = state.extra as String;
-          return OtpScreen(phoneNumber: phone);
-        },
+        path: '/farmer-registration',
+        builder: (context, state) => const FarmerRegistrationScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
       ),
       GoRoute(
         path: '/complete-profile',
@@ -207,6 +212,17 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const AddEmployeeScreen(),
           ),
           GoRoute(
+            path: 'external-pilots',
+            builder: (context, state) => const ExternalPilotListScreen(),
+          ),
+          GoRoute(
+            path: 'external-pilot-details',
+            builder: (context, state) {
+              final pilot = state.extra as UserModel;
+              return ExternalPilotDetailsScreen(pilot: pilot);
+            },
+          ),
+          GoRoute(
             path: 'drones',
             builder: (context, state) => const DronesPlaceholder(),
           ),
@@ -235,6 +251,8 @@ String _getRoleDashboard(UserRole role) {
     case UserRole.farmer:
       return '/farmer';
     case UserRole.pilot:
+      return '/pilot';
+    case UserRole.externalPilot:
       return '/pilot';
     case UserRole.operations:
       return '/operations';

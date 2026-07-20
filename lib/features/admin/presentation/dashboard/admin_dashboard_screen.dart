@@ -111,6 +111,14 @@ class AdminDashboardScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     QuickActionCard(
+                      icon: Icons.verified_user_outlined,
+                      title: 'External Pilot Approvals',
+                      subtitle: 'Approve or reject external pilot registrations',
+                      iconColor: Colors.orange,
+                      onTap: () => context.push('/admin/external-pilots'),
+                    ),
+                    const SizedBox(height: 12),
+                    QuickActionCard(
                       icon: Icons.grid_view_outlined,
                       title: context.tr('Manage Drones'),
                       subtitle: 'Register and track drone fleet',

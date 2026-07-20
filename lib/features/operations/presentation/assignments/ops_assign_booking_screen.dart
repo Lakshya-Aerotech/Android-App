@@ -389,6 +389,14 @@ class _PilotCard extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    AppSpacing.verticalXs,
+                    Text(
+                      pilot.role == 'externalPilot' ? 'External Pilot' : 'Internal Pilot',
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: pilot.role == 'externalPilot' ? Colors.orange : Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     if (pilot.phoneNumber != null) ...[
                       AppSpacing.verticalXs,
                       Text(pilot.phoneNumber!, style: AppTextStyles.bodySmall),

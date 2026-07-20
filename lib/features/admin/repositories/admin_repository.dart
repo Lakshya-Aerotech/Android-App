@@ -20,6 +20,18 @@ abstract class AdminRepository {
   Future<void> updateEmployeeStatus(String docId, bool isActive);
   Future<void> deleteEmployee(String docId);
   Stream<Map<String, dynamic>> getDashboardStats();
+
+  // External Pilot Management
+  Stream<List<UserModel>> getExternalPilotsStream();
+  Future<void> updateExternalPilotApproval({
+    required String docId,
+    required ApprovalStatus status,
+    String? rejectionReason,
+  });
+  Future<void> updateExternalPilotAccountStatus({
+    required String docId,
+    required AccountStatus status,
+  });
 }
 
 class AdminRepositoryImpl implements AdminRepository {
@@ -189,7 +201,7 @@ class AdminRepositoryImpl implements AdminRepository {
         activePilots = snapshot.docs
             .where(
               (doc) =>
-                  doc.data()['role'] == 'pilot' &&
+                  (doc.data()['role'] == 'pilot' || doc.data()['role'] == 'externalPilot') &&
                   doc.data()['isActive'] == true,
             )
             .length;
@@ -229,5 +241,73 @@ class AdminRepositoryImpl implements AdminRepository {
         dronesSub.cancel();
       };
     });
+  }
+
+  @override
+  Stream<List<UserModel>> getExternalPilotsStream() {
+    return _firestore
+        .collection('users')
+        .where('role', isEqualTo: UserRole.externalPilot.name)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => UserModel.fromMap(doc.data(), docId: doc.id))
+              .toList(),
+        );
+  }
+
+  @override
+  Future<void> updateExternalPilotApproval({
+    required String docId,
+    required ApprovalStatus status,
+    String? rejectionReason,
+  }) async {
+    final updates = <String, dynamic>{
+      'approvalStatus': status.name,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (status == ApprovalStatus.approved) {
+      updates['accountStatus'] = AccountStatus.active.name;
+      updates['isActive'] = true;
+    } else if (status == ApprovalStatus.rejected) {
+      updates['rejectionReason'] = rejectionReason;
+      updates['accountStatus'] = AccountStatus.inactive.name;
+      updates['isActive'] = false;
+    }
+
+    await _firestore.collection('users').doc(docId).update(updates);
+
+    // Notify user
+    await _notifications.createForUser(
+      recipientUid: docId,
+      eventKey: 'external-pilot-approval-$status-$docId',
+      title: 'Account ${status.name}',
+      message: status == ApprovalStatus.approved
+          ? 'Your account has been approved. You can now login.'
+          : 'Your registration has been rejected. Reason: $rejectionReason',
+    );
+  }
+
+  @override
+  Future<void> updateExternalPilotAccountStatus({
+    required String docId,
+    required AccountStatus status,
+  }) async {
+    await _firestore.collection('users').doc(docId).update({
+      'accountStatus': status.name,
+      'isActive': status == AccountStatus.active,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    if (status == AccountStatus.suspended) {
+      await _notifications.createForUser(
+        recipientUid: docId,
+        eventKey: 'external-pilot-suspended-$docId',
+        title: 'Account Suspended',
+        message: 'Your account has been suspended. Please contact support.',
+      );
+    }
   }
 }

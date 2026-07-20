@@ -15,6 +15,10 @@ final employeesStreamProvider = StreamProvider<List<UserModel>>((ref) {
   return ref.watch(adminRepositoryProvider).getEmployeesStream();
 });
 
+final externalPilotsStreamProvider = StreamProvider<List<UserModel>>((ref) {
+  return ref.watch(adminRepositoryProvider).getExternalPilotsStream();
+});
+
 final adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((
   ref,
 ) {
@@ -179,6 +183,49 @@ class AdminViewModel extends StateNotifier<AsyncValue<void>> {
       await _repository.deleteEmployee(docId);
     } catch (e) {
       // Handle error
+    }
+  }
+
+  Future<void> approveExternalPilot(String docId) async {
+    state = const AsyncValue.loading();
+    try {
+      await _repository.updateExternalPilotApproval(
+        docId: docId,
+        status: ApprovalStatus.approved,
+      );
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<void> rejectExternalPilot(String docId, String reason) async {
+    state = const AsyncValue.loading();
+    try {
+      await _repository.updateExternalPilotApproval(
+        docId: docId,
+        status: ApprovalStatus.rejected,
+        rejectionReason: reason,
+      );
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<void> updateExternalPilotAccountStatus(
+    String docId,
+    AccountStatus status,
+  ) async {
+    state = const AsyncValue.loading();
+    try {
+      await _repository.updateExternalPilotAccountStatus(
+        docId: docId,
+        status: status,
+      );
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
     }
   }
 
