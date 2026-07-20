@@ -8,11 +8,18 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/confirmation_dialog.dart';
 import 'add_employee_screen.dart';
 
-class EmployeeListScreen extends ConsumerWidget {
+class EmployeeListScreen extends ConsumerStatefulWidget {
   const EmployeeListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EmployeeListScreen> createState() => _EmployeeListScreenState();
+}
+
+class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
+  UserRole? _filterRole;
+
+  @override
+  Widget build(BuildContext context) {
     final employeesAsync = ref.watch(employeesStreamProvider);
 
     return Scaffold(
@@ -20,7 +27,13 @@ class EmployeeListScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Employees'),
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.filter_list)),
+          IconButton(
+            onPressed: () => _showFilterDialog(),
+            icon: Icon(
+              Icons.filter_list,
+              color: _filterRole != null ? AppColors.primary : null,
+            ),
+          ),
           IconButton(
             onPressed: () => context.push('/admin/add-employee'),
             icon: const Icon(Icons.add),
@@ -29,7 +42,11 @@ class EmployeeListScreen extends ConsumerWidget {
       ),
       body: employeesAsync.when(
         data: (employees) {
-          if (employees.isEmpty) {
+          final filteredEmployees = _filterRole == null
+              ? employees
+              : employees.where((e) => e.role == _filterRole).toList();
+
+          if (filteredEmployees.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -40,11 +57,14 @@ class EmployeeListScreen extends ConsumerWidget {
                     color: AppColors.border,
                   ),
                   const SizedBox(height: 16),
-                  const Text('No employees found'),
-                  TextButton(
-                    onPressed: () => context.push('/admin/add-employee'),
-                    child: const Text('Add your first employee'),
-                  ),
+                  Text(_filterRole == null
+                      ? 'No employees found'
+                      : 'No ${ _filterRole!.name}s found'),
+                  if (_filterRole == null)
+                    TextButton(
+                      onPressed: () => context.push('/admin/add-employee'),
+                      child: const Text('Add your first employee'),
+                    ),
                 ],
               ),
             );
@@ -52,10 +72,10 @@ class EmployeeListScreen extends ConsumerWidget {
 
           return ListView.separated(
             padding: const EdgeInsets.all(20),
-            itemCount: employees.length,
+            itemCount: filteredEmployees.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              final employee = employees[index];
+              final employee = filteredEmployees[index];
               return _buildEmployeeCard(context, ref, employee);
             },
           );
@@ -63,6 +83,80 @@ class EmployeeListScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, st) => Center(child: Text('Error: $e')),
       ),
+    );
+  }
+
+  void _showFilterDialog() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Filter by Role',
+                style: AppTextStyles.titleLarge.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _FilterChip(
+                    label: 'All Employees',
+                    selected: _filterRole == null,
+                    onSelected: (selected) {
+                      setState(() => _filterRole = null);
+                      Navigator.pop(context);
+                    },
+                  ),
+                  _FilterChip(
+                    label: 'Operations',
+                    selected: _filterRole == UserRole.operations,
+                    onSelected: (selected) {
+                      setState(() => _filterRole = UserRole.operations);
+                      Navigator.pop(context);
+                    },
+                  ),
+                  _FilterChip(
+                    label: 'Pilots',
+                    selected: _filterRole == UserRole.pilot,
+                    onSelected: (selected) {
+                      setState(() => _filterRole = UserRole.pilot);
+                      Navigator.pop(context);
+                    },
+                  ),
+                  _FilterChip(
+                    label: 'External Pilots',
+                    selected: _filterRole == UserRole.externalPilot,
+                    onSelected: (selected) {
+                      setState(() => _filterRole = UserRole.externalPilot);
+                      Navigator.pop(context);
+                    },
+                  ),
+                  _FilterChip(
+                    label: 'Retailers',
+                    selected: _filterRole == UserRole.retailer,
+                    onSelected: (selected) {
+                      setState(() => _filterRole = UserRole.retailer);
+                      Navigator.pop(context);
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -277,5 +371,32 @@ class EmployeeListScreen extends ConsumerWidget {
         SnackBar(content: Text(error), backgroundColor: AppColors.error),
       );
     }
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final Function(bool) onSelected;
+
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: onSelected,
+      selectedColor: AppColors.primary.withValues(alpha: 0.2),
+      checkmarkColor: AppColors.primary,
+      labelStyle: TextStyle(
+        color: selected ? AppColors.primary : AppColors.textSecondary,
+        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+      ),
+    );
   }
 }

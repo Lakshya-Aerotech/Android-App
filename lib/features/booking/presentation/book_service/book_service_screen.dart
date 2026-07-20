@@ -17,7 +17,8 @@ import '../../widgets/booking_summary_card.dart';
 
 class BookServiceScreen extends ConsumerStatefulWidget {
   final UserModel? farmerOverride;
-  const BookServiceScreen({super.key, this.farmerOverride});
+  final FarmModel? initialFarm;
+  const BookServiceScreen({super.key, this.farmerOverride, this.initialFarm});
 
   @override
   ConsumerState<BookServiceScreen> createState() => _BookServiceScreenState();
@@ -36,6 +37,15 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
   final TextEditingController _remarksController = TextEditingController();
 
   final List<String> _stepTitles = ['Farm', 'Service', 'Schedule', 'Review'];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialFarm != null) {
+      _selectedFarm = widget.initialFarm;
+      _areaController.text = _selectedFarm!.area.toString();
+    }
+  }
 
   @override
   void dispose() {

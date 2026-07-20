@@ -119,7 +119,7 @@ class FarmDetailsScreen extends ConsumerWidget {
                   PrimaryButton(
                     text: 'Book Service for this Farm',
                     onPressed: () {
-                      // Future Booking Module Integration
+                      context.push('/book-service', extra: farm);
                     },
                   ),
                   const SizedBox(height: 16),

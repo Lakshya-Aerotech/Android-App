@@ -50,6 +50,10 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   }
 
   Future<void> _handleLocationFlow() async {
+    // Prevent multiple simultaneous location requests
+    if (_isLoading && _selectedLocation != null) return;
+    
+    setState(() => _isLoading = true);
     try {
       // 1. Check if Location Services are enabled
       setState(() => _statusMessage = 'Checking GPS status...');
@@ -86,20 +90,55 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       setState(() => _statusMessage = 'Getting Current Location...');
       
       try {
-        Position position = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.high,
-            timeLimit: Duration(seconds: 10),
-          ),
-        ).timeout(
-          const Duration(seconds: 12),
-        );
+        // Try to get last known position first for a quick response
+        Position? lastPosition = await Geolocator.getLastKnownPosition();
+        if (lastPosition != null && _selectedLocation == null) {
+          final lastLatLng = LatLng(lastPosition.latitude, lastPosition.longitude);
+          _setMapPosition(lastLatLng, isLoading: true);
+        }
 
-        final currentLatLng = LatLng(position.latitude, position.longitude);
-        _setMapPosition(currentLatLng);
+        // Try getting current position with high accuracy first
+        Position? position;
+        try {
+          setState(() => _statusMessage = 'Fetching Precise GPS Lock...');
+          position = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              timeLimit: Duration(seconds: 12),
+            ),
+          );
+        } catch (e) {
+          debugPrint('High accuracy failed, trying medium: $e');
+          setState(() => _statusMessage = 'Weak signal, trying medium accuracy...');
+          // Fallback to medium accuracy if high fails or times out
+          position = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.medium,
+              timeLimit: Duration(seconds: 10),
+            ),
+          );
+        }
+
+        if (position != null) {
+          final currentLatLng = LatLng(position.latitude, position.longitude);
+          _setMapPosition(currentLatLng);
+        } else if (_selectedLocation == null) {
+          _useDefaultLocation('Unable to determine location.');
+        } else {
+          setState(() => _isLoading = false);
+        }
       } catch (e) {
         debugPrint('Geolocator Error: $e');
-        _useDefaultLocation('Unable to determine location.');
+        
+        // If we managed to get a last known position earlier, we are good enough
+        if (_selectedLocation != null) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Using last known location. Precise location unavailable.')),
+          );
+        } else {
+          _useDefaultLocation('Unable to determine location.');
+        }
       }
 
     } catch (e) {
@@ -112,18 +151,25 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
     debugPrint('Using fallback location: $reason');
     if (!mounted) return;
     
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$reason Using default location.')),
-    );
-    
-    _setMapPosition(_defaultLocation);
+    // Only use default if we haven't found any location at all
+    if (_selectedLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$reason Using default location.')),
+      );
+      _setMapPosition(_defaultLocation);
+    } else {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(reason)),
+      );
+    }
   }
 
-  void _setMapPosition(LatLng location) {
+  void _setMapPosition(LatLng location, {bool isLoading = false}) {
     if (!mounted) return;
     setState(() {
       _selectedLocation = location;
-      _isLoading = false;
+      _isLoading = isLoading;
     });
     _mapController.move(location, 15);
   }

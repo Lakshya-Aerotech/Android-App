@@ -48,7 +48,16 @@ class AdminRepositoryImpl implements AdminRepository {
   Stream<List<UserModel>> getEmployeesStream() {
     return _firestore
         .collection('users')
-        .where('role', whereIn: ['pilot', 'operations', 'admin'])
+        .where(
+          'role',
+          whereIn: [
+            'pilot',
+            'operations',
+            'admin',
+            'externalPilot',
+            'retailer',
+          ],
+        )
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map(

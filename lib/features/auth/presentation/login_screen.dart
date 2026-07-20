@@ -19,7 +19,6 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isEmployeeMode = false;
 
   @override
   void dispose() {
@@ -101,10 +100,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Common Email/Password Login for all roles
+              // Email/Password Login
               CustomTextField(
                 label: 'Email',
-                hintText: _isEmployeeMode ? 'employee@lakshya.com' : 'name@example.com',
+                hintText: 'name@example.com',
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
               ),
@@ -136,19 +135,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 onPressed: _onSubmit,
               ),
 
-              if (!_isEmployeeMode) ...[
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('New farmer?'),
-                    TextButton(
-                      onPressed: () => context.push('/farmer-registration'),
-                      child: const Text('Register Now'),
-                    ),
-                  ],
-                ),
-              ],
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('New farmer?'),
+                  TextButton(
+                    onPressed: () => context.push('/farmer-registration'),
+                    child: const Text('Register Now'),
+                  ),
+                ],
+              ),
 
               const SizedBox(height: 24),
               // Divider
@@ -158,7 +155,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
-                      'OR',
+                      'OTHER OPTIONS',
                       style: AppTextStyles.labelSmall.copyWith(
                         color: AppColors.textTertiary,
                       ),
@@ -169,49 +166,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Switch Mode Button
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _isEmployeeMode = !_isEmployeeMode;
-                    _emailController.clear();
-                    _passwordController.clear();
-                  });
-                },
-                child: Text(
-                  _isEmployeeMode ? 'Continue as Farmer' : 'Employee Login',
-                  style: AppTextStyles.labelLarge.copyWith(
-                    color: AppColors.primary,
+              OutlinedButton(
+                onPressed: () => context.push('/retailer-registration'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                  side: const BorderSide(color: AppColors.success),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
+                child: const Text('Register as Retailer', style: TextStyle(color: AppColors.success)),
               ),
-
-              if (!_isEmployeeMode) ...[
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: () => context.push('/retailer-registration'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 48),
-                    side: const BorderSide(color: AppColors.success),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: () => context.push('/external-pilot-registration'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                  side: const BorderSide(color: AppColors.primary),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text('Register as Retailer', style: TextStyle(color: AppColors.success)),
                 ),
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: () => context.push('/external-pilot-registration'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 48),
-                    side: const BorderSide(color: AppColors.primary),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('Register as External Pilot'),
-                ),
-              ],
+                child: const Text('Register as External Pilot'),
+              ),
 
               const SizedBox(height: 48),
               // Footer

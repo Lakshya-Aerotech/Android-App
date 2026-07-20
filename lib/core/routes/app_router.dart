@@ -149,7 +149,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Booking Module
       GoRoute(
         path: '/book-service',
-        builder: (context, state) => const BookServiceScreen(),
+        builder: (context, state) {
+          final farm = state.extra as FarmModel?;
+          return BookServiceScreen(initialFarm: farm);
+        },
       ),
       GoRoute(
         path: '/my-bookings',
