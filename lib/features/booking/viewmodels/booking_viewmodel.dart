@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../shared/enums/booking_status.dart';
+import '../../auth/models/user_model.dart';
 import '../../auth/viewmodel/auth_viewmodel.dart';
 import '../models/booking_model.dart';
 import '../repositories/booking_repository.dart';
@@ -10,14 +11,34 @@ final bookingRepositoryProvider = Provider<BookingRepository>((ref) {
   return BookingRepositoryImpl();
 });
 
-final singleBookingStreamProvider = StreamProvider.family<BookingModel?, String>((ref, docId) {
-  return ref.watch(bookingRepositoryProvider).getBookingStream(docId);
-});
+final singleBookingStreamProvider =
+    StreamProvider.family<BookingModel?, String>((ref, docId) {
+      return ref.watch(bookingRepositoryProvider).getBookingStream(docId);
+    });
 
 final farmerBookingsStreamProvider = StreamProvider<List<BookingModel>>((ref) {
   final user = ref.watch(userModelProvider);
   if (user == null || user.uid == null) return Stream.value([]);
-  return ref.watch(bookingRepositoryProvider).getFarmerBookingsStream(user.uid!);
+  return ref
+      .watch(bookingRepositoryProvider)
+      .getFarmerBookingsStream(user.uid!);
+});
+
+final farmerBookingsStreamByUidProvider =
+    StreamProvider.family<List<BookingModel>, String>((ref, farmerUid) {
+      return ref
+          .watch(bookingRepositoryProvider)
+          .getFarmerBookingsStream(farmerUid);
+    });
+
+final retailerBookingsStreamProvider = StreamProvider<List<BookingModel>>((
+  ref,
+) {
+  final user = ref.watch(userModelProvider);
+  if (user == null || user.uid == null) return Stream.value([]);
+  return ref
+      .watch(bookingRepositoryProvider)
+      .getRetailerBookingsStream(user.uid!);
 });
 
 class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
@@ -41,6 +62,7 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
     required double? latitude,
     required double? longitude,
     String? remarks,
+    UserModel? farmerOverride,
   }) async {
     state = const AsyncLoading();
     final user = _ref.read(userModelProvider);
@@ -51,12 +73,19 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
 
     final bookingId = _generateBookingId();
 
+    final actingAsRetailer =
+        user.role == UserRole.retailer && farmerOverride != null;
+    final farmer = farmerOverride ?? user;
+
     final booking = BookingModel(
       bookingId: bookingId,
-      farmerUid: user.uid!,
-      farmerName: user.name,
-      farmerPhone: user.phoneNumber,
-      preferredLanguage: user.preferredLanguage,
+      farmerUid: farmer.uid!,
+      farmerName: farmer.name,
+      farmerPhone: farmer.phoneNumber,
+      preferredLanguage: farmer.preferredLanguage,
+      farmerId: farmer.uid,
+      createdByRole: actingAsRetailer ? 'retailer' : 'farmer',
+      createdByRetailerId: actingAsRetailer ? user.uid : null,
       farmId: farmId,
       farmName: farmName,
       village: village,
@@ -120,7 +149,11 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
     }
   }
 
-  Future<void> submitRating(String docId, double rating, String feedback) async {
+  Future<void> submitRating(
+    String docId,
+    double rating,
+    String feedback,
+  ) async {
     state = const AsyncLoading();
     try {
       await _repository.submitRating(docId, rating, feedback);
@@ -130,7 +163,11 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
     }
   }
 
-  Future<void> reportIssue(String docId, String category, String description) async {
+  Future<void> reportIssue(
+    String docId,
+    String category,
+    String description,
+  ) async {
     state = const AsyncLoading();
     final user = _ref.read(userModelProvider);
     try {
@@ -155,6 +192,7 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
   }
 }
 
-final bookingViewModelProvider = StateNotifierProvider<BookingViewModel, AsyncValue<String?>>((ref) {
-  return BookingViewModel(ref.watch(bookingRepositoryProvider), ref);
-});
+final bookingViewModelProvider =
+    StateNotifierProvider<BookingViewModel, AsyncValue<String?>>((ref) {
+      return BookingViewModel(ref.watch(bookingRepositoryProvider), ref);
+    });

@@ -8,13 +8,15 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
+import '../../../auth/models/user_model.dart';
 import '../../viewmodels/farm_viewmodel.dart';
 import '../../models/farm_model.dart';
 import '../map_picker/map_picker_screen.dart';
 
 class AddFarmScreen extends ConsumerStatefulWidget {
   final FarmModel? existingFarm;
-  const AddFarmScreen({super.key, this.existingFarm});
+  final UserModel? farmerOverride;
+  const AddFarmScreen({super.key, this.existingFarm, this.farmerOverride});
 
   @override
   ConsumerState<AddFarmScreen> createState() => _AddFarmScreenState();
@@ -27,7 +29,7 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
   late TextEditingController _districtController;
   late TextEditingController _stateController;
   late TextEditingController _areaController;
-  
+
   String _selectedCrop = 'Cotton';
   String _selectedUnit = 'Acres';
   LatLng? _selectedLocation;
@@ -41,7 +43,7 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
     _districtController = TextEditingController(text: farm?.district);
     _stateController = TextEditingController(text: farm?.state ?? 'Telangana');
     _areaController = TextEditingController(text: farm?.area.toString());
-    
+
     if (farm != null) {
       _selectedCrop = farm.cropType;
       _selectedUnit = farm.unit;
@@ -63,7 +65,8 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
     final result = await Navigator.push<LatLng>(
       context,
       MaterialPageRoute(
-        builder: (context) => MapPickerScreen(initialLocation: _selectedLocation),
+        builder: (context) =>
+            MapPickerScreen(initialLocation: _selectedLocation),
       ),
     );
     if (result != null) {
@@ -81,7 +84,7 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
     }
 
     final notifier = ref.read(farmViewModelProvider.notifier);
-    
+
     if (widget.existingFarm != null) {
       final updatedFarm = widget.existingFarm!.copyWith(
         farmName: _nameController.text.trim(),
@@ -106,6 +109,7 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
         stateName: _stateController.text.trim(),
         latitude: _selectedLocation!.latitude,
         longitude: _selectedLocation!.longitude,
+        farmerUidOverride: widget.farmerOverride?.uid,
       );
     }
 
@@ -140,7 +144,7 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
                 validator: (v) => v!.isEmpty ? 'Farm name is required' : null,
               ),
               AppSpacing.verticalMd,
-              
+
               Text('Crop Type *', style: AppTextStyles.labelLarge),
               const SizedBox(height: 8),
               _buildDropdown<String>(
@@ -150,7 +154,7 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
                 labelBuilder: (v) => v,
               ),
               AppSpacing.verticalMd,
-              
+
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -184,7 +188,7 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
                 ],
               ),
               AppSpacing.verticalMd,
-              
+
               CustomTextField(
                 label: 'Village *',
                 hintText: 'Enter village',
@@ -192,7 +196,7 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
                 validator: (v) => v!.isEmpty ? 'Village is required' : null,
               ),
               AppSpacing.verticalMd,
-              
+
               CustomTextField(
                 label: 'District *',
                 hintText: 'Enter district',
@@ -200,7 +204,7 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
                 validator: (v) => v!.isEmpty ? 'District is required' : null,
               ),
               AppSpacing.verticalMd,
-              
+
               CustomTextField(
                 label: 'State *',
                 hintText: 'Enter state',
@@ -208,7 +212,7 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
                 validator: (v) => v!.isEmpty ? 'State is required' : null,
               ),
               AppSpacing.verticalLg,
-              
+
               Text('Farm Location *', style: AppTextStyles.labelLarge),
               const SizedBox(height: 12),
               InkWell(
@@ -219,14 +223,18 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
                     color: AppColors.lightBackground,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: _selectedLocation != null ? AppColors.success : AppColors.border,
+                      color: _selectedLocation != null
+                          ? AppColors.success
+                          : AppColors.border,
                     ),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         Icons.map_outlined,
-                        color: _selectedLocation != null ? AppColors.success : AppColors.primary,
+                        color: _selectedLocation != null
+                            ? AppColors.success
+                            : AppColors.primary,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -235,18 +243,26 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
                               ? 'Location Selected (${_selectedLocation!.latitude.toStringAsFixed(4)}, ${_selectedLocation!.longitude.toStringAsFixed(4)})'
                               : 'Select Location on Google Maps',
                           style: TextStyle(
-                            color: _selectedLocation != null ? AppColors.success : AppColors.textPrimary,
-                            fontWeight: _selectedLocation != null ? FontWeight.bold : FontWeight.normal,
+                            color: _selectedLocation != null
+                                ? AppColors.success
+                                : AppColors.textPrimary,
+                            fontWeight: _selectedLocation != null
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                         ),
                       ),
                       if (_selectedLocation != null)
-                        const Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                        const Icon(
+                          Icons.check_circle,
+                          color: AppColors.success,
+                          size: 20,
+                        ),
                     ],
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 48),
               PrimaryButton(
                 text: widget.existingFarm != null ? 'Update Farm' : 'Save Farm',

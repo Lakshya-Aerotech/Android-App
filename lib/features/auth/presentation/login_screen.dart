@@ -9,6 +9,8 @@ import '../../../core/constants/app_sizes.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
 
+enum _LoginMode { farmer, retailer, employee }
+
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -20,7 +22,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isEmployeeMode = false;
+  _LoginMode _selectedMode = _LoginMode.farmer;
 
   @override
   void dispose() {
@@ -35,6 +37,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (phone.isEmpty) return;
     final fullPhone = phone.startsWith('+') ? phone : '+91$phone';
     ref.read(authViewModelProvider.notifier).sendOtp(fullPhone);
+  }
+
+  void _onRetailerSubmit() {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (email.isEmpty || password.isEmpty) return;
+    ref.read(authViewModelProvider.notifier).loginRetailer(email, password);
   }
 
   void _onEmployeeSubmit() {
@@ -67,7 +76,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: AppSizes.screenPadding),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.screenPadding,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -112,8 +123,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 32),
 
-              if (!_isEmployeeMode) ...[
-                // Farmer Section
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _ModeChip(
+                    label: 'Farmer',
+                    selected: _selectedMode == _LoginMode.farmer,
+                    onTap: () =>
+                        setState(() => _selectedMode = _LoginMode.farmer),
+                  ),
+                  _ModeChip(
+                    label: 'Retailer',
+                    selected: _selectedMode == _LoginMode.retailer,
+                    onTap: () =>
+                        setState(() => _selectedMode = _LoginMode.retailer),
+                  ),
+                  _ModeChip(
+                    label: 'Employee',
+                    selected: _selectedMode == _LoginMode.employee,
+                    onTap: () =>
+                        setState(() => _selectedMode = _LoginMode.employee),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              if (_selectedMode == _LoginMode.farmer) ...[
                 CustomTextField(
                   label: 'Mobile Number',
                   hintText: '98 7654 3210',
@@ -142,10 +177,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ] else ...[
-                // Employee Section
                 CustomTextField(
                   label: 'Email',
-                  hintText: 'employee@lakshya.com',
+                  hintText: _selectedMode == _LoginMode.retailer
+                      ? 'retailer@lakshya.com'
+                      : 'employee@lakshya.com',
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                 ),
@@ -158,22 +194,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 AppSpacing.verticalLg,
                 PrimaryButton(
-                  text: 'Login',
+                  text: _selectedMode == _LoginMode.retailer
+                      ? 'Login as Retailer'
+                      : 'Login as Employee',
                   isLoading: state.status == AuthStatus.loading,
-                  onPressed: _onEmployeeSubmit,
+                  onPressed: _selectedMode == _LoginMode.retailer
+                      ? _onRetailerSubmit
+                      : _onEmployeeSubmit,
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => context.push('/forgot-password'),
-                    child: Text(
-                      'Forgot Password?',
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: AppColors.textSecondary,
+                if (_selectedMode == _LoginMode.employee)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => context.push('/forgot-password'),
+                      child: Text(
+                        'Forgot Password?',
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
 
               const SizedBox(height: 24),
@@ -195,17 +236,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Switch Mode Button
               TextButton(
-                onPressed: () {
-                  setState(() {
-                    _isEmployeeMode = !_isEmployeeMode;
-                  });
-                },
+                onPressed: () => context.push('/retailer-registration'),
                 child: Text(
-                  _isEmployeeMode ? 'Continue as Farmer' : 'Employee Login',
+                  'Create Retailer Account',
                   style: AppTextStyles.labelLarge.copyWith(
-                    color: AppColors.primary,
+                    color: AppColors.success,
                   ),
                 ),
               ),
@@ -240,6 +276,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ModeChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ModeChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      selectedColor: AppColors.primary,
+      labelStyle: AppTextStyles.labelMedium.copyWith(
+        color: selected ? Colors.white : AppColors.textPrimary,
       ),
     );
   }

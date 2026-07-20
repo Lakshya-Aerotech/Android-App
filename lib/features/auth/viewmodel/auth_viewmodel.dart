@@ -16,6 +16,9 @@ final userModelProvider = StateProvider<UserModel?>((ref) => null);
 
 final isAuthInitializingProvider = StateProvider<bool>((ref) => true);
 
+final pendingRetailerRegistrationProvider =
+    StateProvider<Map<String, dynamic>?>((ref) => null);
+
 enum AuthStatus {
   initial,
   loading,
@@ -31,11 +34,7 @@ class AuthState {
   final String? errorMessage;
   final String? verificationId;
 
-  AuthState({
-    required this.status,
-    this.errorMessage,
-    this.verificationId,
-  });
+  AuthState({required this.status, this.errorMessage, this.verificationId});
 
   AuthState copyWith({
     AuthStatus? status,
@@ -54,7 +53,8 @@ class AuthViewModel extends StateNotifier<AuthState> {
   final AuthRepository _repository;
   final Ref _ref;
 
-  AuthViewModel(this._repository, this._ref) : super(AuthState(status: AuthStatus.initial));
+  AuthViewModel(this._repository, this._ref)
+    : super(AuthState(status: AuthStatus.initial));
 
   Future<void> sendOtp(String phoneNumber) async {
     state = state.copyWith(status: AuthStatus.loading);
@@ -62,14 +62,23 @@ class AuthViewModel extends StateNotifier<AuthState> {
       await _repository.sendOtp(
         phoneNumber: phoneNumber,
         codeSent: (verificationId, resendToken) {
-          state = state.copyWith(status: AuthStatus.otpSent, verificationId: verificationId);
+          state = state.copyWith(
+            status: AuthStatus.otpSent,
+            verificationId: verificationId,
+          );
         },
         verificationFailed: (e) {
-          state = state.copyWith(status: AuthStatus.error, errorMessage: e.message);
+          state = state.copyWith(
+            status: AuthStatus.error,
+            errorMessage: e.message,
+          );
         },
       );
     } catch (e) {
-      state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
     }
   }
 
@@ -83,9 +92,15 @@ class AuthViewModel extends StateNotifier<AuthState> {
       );
       await _handleUserSignIn(credential.user);
     } on FirebaseAuthException catch (e) {
-      state = state.copyWith(status: AuthStatus.error, errorMessage: _getAuthErrorMessage(e));
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: _getAuthErrorMessage(e),
+      );
     } catch (e) {
-      state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
     }
   }
 
@@ -99,9 +114,90 @@ class AuthViewModel extends StateNotifier<AuthState> {
       );
       await _handleUserSignIn(credential.user);
     } on FirebaseAuthException catch (e) {
-      state = state.copyWith(status: AuthStatus.error, errorMessage: _getAuthErrorMessage(e));
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: _getAuthErrorMessage(e),
+      );
     } catch (e) {
-      state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
+  Future<void> loginRetailer(String email, String password) async {
+    await loginEmployee(email, password);
+  }
+
+  Future<void> registerRetailer({
+    required String shopName,
+    required String ownerName,
+    required String email,
+    required String password,
+    String? gstNumber,
+    String? aadhaarPan,
+    required String shopAddress,
+    required String state,
+    required String district,
+    required String mandal,
+    required String village,
+    required double latitude,
+    required double longitude,
+  }) async {
+    this.state = this.state.copyWith(status: AuthStatus.loading);
+    try {
+      final credential = await _repository.registerWithEmailAndPassword(
+        email: email.trim().toLowerCase(),
+        password: password,
+      );
+      final user = credential.user;
+      if (user == null) {
+        throw Exception('Unable to create retailer account.');
+      }
+
+      final now = DateTime.now();
+      final retailer = UserModel(
+        uid: user.uid,
+        docId: user.uid,
+        email: email.trim().toLowerCase(),
+        role: UserRole.retailer,
+        profileCompleted: true,
+        approvalStatus: ApprovalStatus.pending,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+        name: ownerName.trim(),
+        shopName: shopName.trim(),
+        ownerName: ownerName.trim(),
+        gstNumber: gstNumber?.trim().isEmpty ?? true ? null : gstNumber!.trim(),
+        aadhaarPan: aadhaarPan?.trim().isEmpty ?? true
+            ? null
+            : aadhaarPan!.trim(),
+        shopAddress: shopAddress.trim(),
+        state: state.trim(),
+        district: district.trim(),
+        mandal: mandal.trim(),
+        village: village.trim(),
+        latitude: latitude,
+        longitude: longitude,
+      );
+
+      await _repository.createRetailerProfile(retailer);
+      await _repository.logout();
+      _ref.read(pendingRetailerRegistrationProvider.notifier).state = null;
+      _ref.read(userModelProvider.notifier).state = null;
+      this.state = this.state.copyWith(status: AuthStatus.unauthenticated);
+    } on FirebaseAuthException catch (e) {
+      this.state = this.state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: _getAuthErrorMessage(e),
+      );
+    } catch (e) {
+      this.state = this.state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
     }
   }
 
@@ -113,7 +209,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
 
     // Attempt to find user by UID first
     var userData = await _repository.getUserData(user.uid);
-    
+
     // First Login Workflow for Employees (Email Login)
     // If not found by UID, try finding by email
     if (userData == null && user.email != null) {
@@ -137,32 +233,68 @@ class AuthViewModel extends StateNotifier<AuthState> {
         return;
       }
 
-      // New Farmer (Phone Login)
-      final newUser = UserModel(
-        uid: user.uid,
-        docId: user.uid, // For farmers, we use UID as DocID
-        phoneNumber: user.phoneNumber,
-        email: user.email,
-        role: UserRole.farmer,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+      final retailerRegistration = _ref.read(
+        pendingRetailerRegistrationProvider,
       );
-      await _repository.createFarmerProfile(newUser);
-      _ref.read(userModelProvider.notifier).state = newUser;
+      if (retailerRegistration != null) {
+        final now = DateTime.now();
+        final newRetailer = UserModel(
+          uid: user.uid,
+          docId: user.uid,
+          phoneNumber: user.phoneNumber,
+          email: retailerRegistration['email'],
+          role: UserRole.retailer,
+          profileCompleted: true,
+          approvalStatus: ApprovalStatus.pending,
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+          name: retailerRegistration['ownerName'],
+          village: retailerRegistration['village'],
+          district: retailerRegistration['district'],
+          state: retailerRegistration['state'],
+          shopName: retailerRegistration['shopName'],
+          ownerName: retailerRegistration['ownerName'],
+          gstNumber: retailerRegistration['gstNumber'],
+          aadhaarPan: retailerRegistration['aadhaarPan'],
+          shopAddress: retailerRegistration['shopAddress'],
+          mandal: retailerRegistration['mandal'],
+          latitude: retailerRegistration['latitude'],
+          longitude: retailerRegistration['longitude'],
+        );
+        await _repository.createRetailerProfile(newRetailer);
+        _ref.read(pendingRetailerRegistrationProvider.notifier).state = null;
+        _ref.read(userModelProvider.notifier).state = newRetailer;
+      } else {
+        // New Farmer (Phone Login)
+        final newUser = UserModel(
+          uid: user.uid,
+          docId: user.uid, // For farmers, we use UID as DocID
+          phoneNumber: user.phoneNumber,
+          email: user.email,
+          role: UserRole.farmer,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+        await _repository.createFarmerProfile(newUser);
+        _ref.read(userModelProvider.notifier).state = newUser;
+      }
     } else {
-      if (!userData.isActive) {
+      _ref.read(pendingRetailerRegistrationProvider.notifier).state = null;
+      if (!userData.isActive && userData.role != UserRole.retailer) {
         await _repository.logout();
         _ref.read(userModelProvider.notifier).state = null;
         state = state.copyWith(
           status: AuthStatus.error,
-          errorMessage: 'Your account has been disabled. Please contact the administrator.',
+          errorMessage:
+              'Your account has been disabled. Please contact the administrator.',
         );
         return;
       }
-      
+
       // Update last login for existing user using document ID
       await _repository.updateLastLogin(userData.docId!);
-      
+
       // Refresh user data to get updated lastLogin
       final refreshedUser = await _repository.getUserData(user.uid);
       _ref.read(userModelProvider.notifier).state = refreshedUser;
@@ -196,13 +328,16 @@ class AuthViewModel extends StateNotifier<AuthState> {
         'preferredLanguage': language,
         'profileCompleted': true,
       });
-      
+
       // Refresh data using UID
       final updatedUser = await _repository.getUserData(user.uid!);
       _ref.read(userModelProvider.notifier).state = updatedUser;
       state = state.copyWith(status: AuthStatus.authenticated);
     } catch (e) {
-      state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
     }
   }
 
@@ -262,7 +397,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
   String _getAuthErrorMessage(FirebaseAuthException e) {
     debugPrint("Firebase Code: ${e.code}");
     debugPrint("Firebase Message: ${e.message}");
-    
+
     switch (e.code) {
       case 'invalid-email':
         return 'The email address is badly formatted.';
@@ -288,7 +423,9 @@ class AuthViewModel extends StateNotifier<AuthState> {
   }
 }
 
-final authViewModelProvider = StateNotifierProvider<AuthViewModel, AuthState>((ref) {
+final authViewModelProvider = StateNotifierProvider<AuthViewModel, AuthState>((
+  ref,
+) {
   final repository = ref.watch(authRepositoryProvider);
   return AuthViewModel(repository, ref);
 });

@@ -74,6 +74,9 @@ class BookingModel {
   final String? farmerName;
   final String? farmerPhone;
   final String? preferredLanguage;
+  final String? farmerId;
+  final String? createdByRole;
+  final String? createdByRetailerId;
 
   // Farm Snapshot
   final String farmId;
@@ -137,6 +140,9 @@ class BookingModel {
     this.farmerName,
     this.farmerPhone,
     this.preferredLanguage,
+    this.farmerId,
+    this.createdByRole,
+    this.createdByRetailerId,
     required this.farmId,
     required this.farmName,
     this.village,
@@ -187,6 +193,9 @@ class BookingModel {
       'farmerName': farmerName,
       'farmerPhone': farmerPhone,
       'preferredLanguage': preferredLanguage,
+      'farmerId': farmerId,
+      'createdByRole': createdByRole,
+      'createdByRetailerId': createdByRetailerId,
       'farmId': farmId,
       'farmName': farmName,
       'village': village,
@@ -250,6 +259,9 @@ class BookingModel {
       farmerName: map['farmerName'] ?? map['farmer_name'],
       farmerPhone: map['farmerPhone'] ?? map['phone'],
       preferredLanguage: map['preferredLanguage'] ?? map['language'],
+      farmerId: map['farmerId'],
+      createdByRole: map['createdByRole'],
+      createdByRetailerId: map['createdByRetailerId'],
       farmId: map['farmId'] ?? '',
       farmName: map['farmName'] ?? '',
       village: map['village'],
@@ -311,6 +323,9 @@ class BookingModel {
     String? farmerName,
     String? farmerPhone,
     String? preferredLanguage,
+    String? farmerId,
+    String? createdByRole,
+    String? createdByRetailerId,
     String? farmId,
     String? farmName,
     String? village,
@@ -360,6 +375,9 @@ class BookingModel {
       farmerName: farmerName ?? this.farmerName,
       farmerPhone: farmerPhone ?? this.farmerPhone,
       preferredLanguage: preferredLanguage ?? this.preferredLanguage,
+      farmerId: farmerId ?? this.farmerId,
+      createdByRole: createdByRole ?? this.createdByRole,
+      createdByRetailerId: createdByRetailerId ?? this.createdByRetailerId,
       farmId: farmId ?? this.farmId,
       farmName: farmName ?? this.farmName,
       village: village ?? this.village,

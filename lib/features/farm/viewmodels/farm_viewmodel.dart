@@ -13,11 +13,17 @@ final farmsStreamProvider = StreamProvider<List<FarmModel>>((ref) {
   return ref.watch(farmRepositoryProvider).getFarmsStream(user.uid!);
 });
 
+final farmsStreamByFarmerUidProvider =
+    StreamProvider.family<List<FarmModel>, String>((ref, farmerUid) {
+      return ref.watch(farmRepositoryProvider).getFarmsStream(farmerUid);
+    });
+
 class FarmViewModel extends StateNotifier<AsyncValue<void>> {
   final FarmRepository _repository;
   final Ref _ref;
 
-  FarmViewModel(this._repository, this._ref) : super(const AsyncValue.data(null));
+  FarmViewModel(this._repository, this._ref)
+    : super(const AsyncValue.data(null));
 
   Future<void> addFarm({
     required String farmName,
@@ -29,16 +35,18 @@ class FarmViewModel extends StateNotifier<AsyncValue<void>> {
     required String stateName,
     required double latitude,
     required double longitude,
+    String? farmerUidOverride,
   }) async {
     state = const AsyncLoading();
     final user = _ref.read(userModelProvider);
-    if (user == null || user.uid == null) {
+    final farmerUid = farmerUidOverride ?? user?.uid;
+    if (farmerUid == null) {
       state = AsyncError('User not authenticated', StackTrace.current);
       return;
     }
 
     final farm = FarmModel(
-      farmerUid: user.uid!,
+      farmerUid: farmerUid,
       farmName: farmName,
       cropType: cropType,
       area: area,
@@ -81,6 +89,7 @@ class FarmViewModel extends StateNotifier<AsyncValue<void>> {
   }
 }
 
-final farmViewModelProvider = StateNotifierProvider<FarmViewModel, AsyncValue<void>>((ref) {
-  return FarmViewModel(ref.watch(farmRepositoryProvider), ref);
-});
+final farmViewModelProvider =
+    StateNotifierProvider<FarmViewModel, AsyncValue<void>>((ref) {
+      return FarmViewModel(ref.watch(farmRepositoryProvider), ref);
+    });

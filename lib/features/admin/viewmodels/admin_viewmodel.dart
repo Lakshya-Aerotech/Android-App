@@ -15,6 +15,10 @@ final employeesStreamProvider = StreamProvider<List<UserModel>>((ref) {
   return ref.watch(adminRepositoryProvider).getEmployeesStream();
 });
 
+final retailersStreamProvider = StreamProvider<List<UserModel>>((ref) {
+  return ref.watch(adminRepositoryProvider).getRetailersStream();
+});
+
 final adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((
   ref,
 ) {
@@ -38,6 +42,12 @@ final adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((
         iconColor: Colors.green,
         title: 'Total Bookings',
         value: stats['totalBookings'].toString(),
+      ),
+      AdminStatistic(
+        icon: Icons.storefront_outlined,
+        iconColor: Colors.deepOrange,
+        title: 'Total Retailers',
+        value: stats['totalRetailers'].toString(),
       ),
       AdminStatistic(
         icon: Icons.task_alt,
@@ -166,6 +176,26 @@ class AdminViewModel extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       await _repository.updateEmployeeStatus(docId, isActive);
+      state = const AsyncValue.data(null);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return _friendlyError(e);
+    }
+  }
+
+  Future<String?> updateRetailerStatus({
+    required String docId,
+    required ApprovalStatus approvalStatus,
+    required bool isActive,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      await _repository.updateRetailerStatus(
+        docId: docId,
+        approvalStatus: approvalStatus,
+        isActive: isActive,
+      );
       state = const AsyncValue.data(null);
       return null;
     } catch (e, st) {

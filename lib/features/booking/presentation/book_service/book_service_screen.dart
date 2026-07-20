@@ -9,13 +9,15 @@ import '../../../../core/widgets/step_indicator.dart';
 import '../../../../core/widgets/section_header.dart';
 import '../../../farm/models/farm_model.dart';
 import '../../../farm/viewmodels/farm_viewmodel.dart';
+import '../../../auth/models/user_model.dart';
 import '../../viewmodels/booking_viewmodel.dart';
 import '../../../auth/viewmodel/auth_viewmodel.dart';
 import '../../widgets/farm_selection_card.dart';
 import '../../widgets/booking_summary_card.dart';
 
 class BookServiceScreen extends ConsumerStatefulWidget {
-  const BookServiceScreen({super.key});
+  final UserModel? farmerOverride;
+  const BookServiceScreen({super.key, this.farmerOverride});
 
   @override
   ConsumerState<BookServiceScreen> createState() => _BookServiceScreenState();
@@ -27,7 +29,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
 
   FarmModel? _selectedFarm;
   final String _selectedService = "Pesticide Spraying";
-  
+
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 0);
   final TextEditingController _areaController = TextEditingController();
@@ -81,29 +83,38 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
   }
 
   Future<void> _submit() async {
-    final formattedTime = '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}';
+    final formattedTime =
+        '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}';
 
-    await ref.read(bookingViewModelProvider.notifier).createBooking(
-      farmId: _selectedFarm!.docId!,
-      farmName: _selectedFarm!.farmName,
-      cropType: _selectedFarm!.cropType,
-      serviceType: _selectedService,
-      bookingDate: _selectedDate,
-      preferredTime: formattedTime,
-      estimatedArea: double.parse(_areaController.text),
-      village: _selectedFarm!.village,
-      district: _selectedFarm!.district,
-      stateName: _selectedFarm!.state,
-      farmArea: _selectedFarm!.area,
-      latitude: _selectedFarm!.latitude,
-      longitude: _selectedFarm!.longitude,
-      remarks: _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
-    );
+    await ref
+        .read(bookingViewModelProvider.notifier)
+        .createBooking(
+          farmId: _selectedFarm!.docId!,
+          farmName: _selectedFarm!.farmName,
+          cropType: _selectedFarm!.cropType,
+          serviceType: _selectedService,
+          bookingDate: _selectedDate,
+          preferredTime: formattedTime,
+          estimatedArea: double.parse(_areaController.text),
+          village: _selectedFarm!.village,
+          district: _selectedFarm!.district,
+          stateName: _selectedFarm!.state,
+          farmArea: _selectedFarm!.area,
+          latitude: _selectedFarm!.latitude,
+          longitude: _selectedFarm!.longitude,
+          remarks: _remarksController.text.trim().isEmpty
+              ? null
+              : _remarksController.text.trim(),
+          farmerOverride: widget.farmerOverride,
+        );
   }
 
   @override
   Widget build(BuildContext context) {
-    final farmsAsync = ref.watch(farmsStreamProvider);
+    final farmerOverride = widget.farmerOverride;
+    final farmsAsync = farmerOverride?.uid != null
+        ? ref.watch(farmsStreamByFarmerUidProvider(farmerOverride!.uid!))
+        : ref.watch(farmsStreamProvider);
     final bookingState = ref.watch(bookingViewModelProvider);
 
     ref.listen(bookingViewModelProvider, (previous, next) {
@@ -170,7 +181,11 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
                   child: Column(
                     children: [
                       const SizedBox(height: 40),
-                      const Icon(Icons.landscape_outlined, size: 64, color: AppColors.border),
+                      const Icon(
+                        Icons.landscape_outlined,
+                        size: 64,
+                        color: AppColors.border,
+                      ),
                       const SizedBox(height: 16),
                       const Text('No farms registered yet.'),
                       TextButton(
@@ -182,16 +197,20 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
                 );
               }
               return Column(
-                children: farms.map((farm) => FarmSelectionCard(
-                  farm: farm,
-                  isSelected: _selectedFarm?.docId == farm.docId,
-                  onTap: () {
-                    setState(() {
-                      _selectedFarm = farm;
-                      _areaController.text = farm.area.toString();
-                    });
-                  },
-                )).toList(),
+                children: farms
+                    .map(
+                      (farm) => FarmSelectionCard(
+                        farm: farm,
+                        isSelected: _selectedFarm?.docId == farm.docId,
+                        onTap: () {
+                          setState(() {
+                            _selectedFarm = farm;
+                            _areaController.text = farm.area.toString();
+                          });
+                        },
+                      ),
+                    )
+                    .toList(),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -215,7 +234,9 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.1),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: AppColors.primary.withValues(alpha: 0.05),
@@ -232,12 +253,19 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
                     color: AppColors.primary.withValues(alpha: 0.05),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.water_drop, color: AppColors.primary, size: 40),
+                  child: const Icon(
+                    Icons.water_drop,
+                    color: AppColors.primary,
+                    size: 40,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Text(
                   _selectedService,
-                  style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
+                  style: AppTextStyles.titleLarge.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -246,9 +274,17 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
                   style: AppTextStyles.bodyMedium,
                 ),
                 const Divider(height: 40),
-                _buildInfoRow(Icons.timer_outlined, 'Estimated Duration', '15-20 min / acre'),
+                _buildInfoRow(
+                  Icons.timer_outlined,
+                  'Estimated Duration',
+                  '15-20 min / acre',
+                ),
                 const SizedBox(height: 12),
-                _buildInfoRow(Icons.check_circle_outline, 'Benefit', 'Saves water and chemical usage'),
+                _buildInfoRow(
+                  Icons.check_circle_outline,
+                  'Benefit',
+                  'Saves water and chemical usage',
+                ),
               ],
             ),
           ),
@@ -264,7 +300,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
         const SizedBox(width: 12),
         Expanded(
           child: Text(
-            label, 
+            label,
             style: AppTextStyles.bodySmall,
             overflow: TextOverflow.ellipsis,
           ),
@@ -272,8 +308,10 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
         const SizedBox(width: 8),
         Flexible(
           child: Text(
-            value, 
-            style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+            value,
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
             textAlign: TextAlign.end,
             overflow: TextOverflow.ellipsis,
           ),
@@ -290,7 +328,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
         children: [
           const SectionHeader(title: 'Schedule Service'),
           const SizedBox(height: 16),
-          
+
           _buildClickableCard(
             label: 'Preferred Date',
             value: DateFormat('EEEE, dd MMM yyyy').format(_selectedDate),
@@ -305,19 +343,25 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
               if (picked != null) setState(() => _selectedDate = picked);
             },
           ),
-          
+
           _buildClickableCard(
             label: 'Preferred Time',
             value: _selectedTime.format(context),
             icon: Icons.access_time_outlined,
             onTap: () async {
-              final picked = await showTimePicker(context: context, initialTime: _selectedTime);
+              final picked = await showTimePicker(
+                context: context,
+                initialTime: _selectedTime,
+              );
               if (picked != null) setState(() => _selectedTime = picked);
             },
           ),
 
           const SizedBox(height: 24),
-          const Text('Estimated Area', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text(
+            'Estimated Area',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -332,20 +376,30 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
                   child: TextField(
                     controller: _areaController,
                     keyboardType: TextInputType.number,
-                    style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold),
+                    style: AppTextStyles.titleLarge.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                     decoration: const InputDecoration(
                       border: InputBorder.none,
                       hintText: '0.0',
                     ),
                   ),
                 ),
-                Text('Acres', style: AppTextStyles.titleMedium.copyWith(color: AppColors.textSecondary)),
+                Text(
+                  'Acres',
+                  style: AppTextStyles.titleMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ],
             ),
           ),
 
           const SizedBox(height: 24),
-          const Text('Additional Notes', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text(
+            'Additional Notes',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(16),
@@ -379,7 +433,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
           const SizedBox(height: 16),
           BookingSummaryCard(
             label: 'Farmer',
-            value: user?.name ?? 'Not Set',
+            value: widget.farmerOverride?.name ?? user?.name ?? 'Not Set',
             icon: Icons.person_outline,
           ),
           BookingSummaryCard(
@@ -418,7 +472,12 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
     );
   }
 
-  Widget _buildClickableCard({required String label, required String value, required IconData icon, required VoidCallback onTap}) {
+  Widget _buildClickableCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -437,12 +496,24 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: AppTextStyles.bodySmall.copyWith(fontSize: 10)),
-                  Text(value, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold)),
+                  Text(
+                    label,
+                    style: AppTextStyles.bodySmall.copyWith(fontSize: 10),
+                  ),
+                  Text(
+                    value,
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ),
-            const Icon(Icons.edit_outlined, size: 16, color: AppColors.textSecondary),
+            const Icon(
+              Icons.edit_outlined,
+              size: 16,
+              color: AppColors.textSecondary,
+            ),
           ],
         ),
       ),
@@ -470,7 +541,9 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
                 onPressed: isLoading ? null : _previousPage,
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(0, 56),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: const Text('Previous'),
               ),
@@ -481,7 +554,9 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
             flex: 2,
             child: PrimaryButton(
               text: _currentStep == 3 ? 'Confirm & Book' : 'Next →',
-              onPressed: isLoading ? null : (_currentStep == 3 ? _submit : _nextPage),
+              onPressed: isLoading
+                  ? null
+                  : (_currentStep == 3 ? _submit : _nextPage),
               isLoading: isLoading,
             ),
           ),

@@ -202,7 +202,36 @@ class ProfileScreen extends ConsumerWidget {
         return _OperationsStatsSection();
       case UserRole.admin:
         return _AdminStatsSection(user: user);
+      case UserRole.retailer:
+        return _RetailerStatsSection(user: user);
     }
+  }
+}
+
+class _RetailerStatsSection extends StatelessWidget {
+  final UserModel user;
+  const _RetailerStatsSection({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Retailer Details',
+          style: AppTextStyles.titleMedium.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _InfoTile(label: 'Shop Name', value: user.shopName ?? 'N/A'),
+        _InfoTile(label: 'Owner Name', value: user.ownerName ?? 'N/A'),
+        _InfoTile(
+          label: 'Approval Status',
+          value: (user.approvalStatus ?? ApprovalStatus.pending).name,
+        ),
+      ],
+    );
   }
 }
 
