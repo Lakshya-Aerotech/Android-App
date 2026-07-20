@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../localization/app_localizations.dart';
 import '../theme/app_text_styles.dart';
 
 class SectionHeader extends StatelessWidget {
@@ -19,7 +20,7 @@ class SectionHeader extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          title,
+          context.tr(title),
           style:
               titleStyle ??
               AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../localization/app_localizations.dart';
 import '../theme/app_colors.dart';
 
 class PrimaryButton extends StatelessWidget {
@@ -41,15 +42,12 @@ class PrimaryButton extends StatelessWidget {
           : Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (icon != null) ...[
-                  icon!,
-                  const SizedBox(width: 8),
-                ],
+                if (icon != null) ...[icon!, const SizedBox(width: 8)],
                 Flexible(
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
-                      text,
+                      context.tr(text),
                       textAlign: TextAlign.center,
                       maxLines: 1,
                     ),

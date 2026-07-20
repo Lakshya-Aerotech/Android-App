@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/booking_card.dart';
@@ -128,13 +129,12 @@ class _FarmerHomeContent extends ConsumerWidget {
                   itemCount: farmerQuickActions.length,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: AppSpacing.md,
-                        crossAxisSpacing: AppSpacing.md,
-                        childAspectRatio: 1.22,
-                      ),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: AppSpacing.md,
+                    crossAxisSpacing: AppSpacing.md,
+                    childAspectRatio: 1.22,
+                  ),
                   itemBuilder: (context, index) {
                     final action = farmerQuickActions[index];
                     return QuickActionCard(
@@ -167,8 +167,10 @@ class _FarmerHomeContent extends ConsumerWidget {
                 ),
                 AppSpacing.verticalMd,
                 switch (bookingsAsync) {
-                  AsyncData(:final value) =>
-                    _buildUpcomingBookingCard(context, value),
+                  AsyncData(:final value) => _buildUpcomingBookingCard(
+                    context,
+                    value,
+                  ),
                   AsyncError(:final error) => Text('Error: $error'),
                   _ => const LinearProgressIndicator(),
                 },
@@ -184,16 +186,15 @@ class _FarmerHomeContent extends ConsumerWidget {
     BuildContext context,
     List<BookingModel> bookings,
   ) {
-    final upcoming =
-        bookings
-            .where(
-              (b) =>
-                  b.status != BookingStatus.completed &&
-                  b.status != BookingStatus.cancelled &&
-                  b.status != BookingStatus.closed &&
-                  b.status != BookingStatus.farmerConfirmed,
-            )
-            .toList();
+    final upcoming = bookings
+        .where(
+          (b) =>
+              b.status != BookingStatus.completed &&
+              b.status != BookingStatus.cancelled &&
+              b.status != BookingStatus.closed &&
+              b.status != BookingStatus.farmerConfirmed,
+        )
+        .toList();
 
     if (upcoming.isEmpty) {
       return Container(
@@ -208,10 +209,13 @@ class _FarmerHomeContent extends ConsumerWidget {
           children: [
             const Icon(Icons.calendar_today, color: AppColors.border, size: 40),
             const SizedBox(height: 12),
-            Text('No upcoming bookings', style: AppTextStyles.bodyMedium),
+            Text(
+              context.tr('No upcoming bookings'),
+              style: AppTextStyles.bodyMedium,
+            ),
             TextButton(
               onPressed: () => context.push('/book-service'),
-              child: const Text('Book a Service Now'),
+              child: Text(context.tr('Book a Service Now')),
             ),
           ],
         ),
@@ -223,7 +227,8 @@ class _FarmerHomeContent extends ConsumerWidget {
       dateTime:
           '${DateFormat('dd MMM').format(b.bookingDate)}, ${b.preferredTime}',
       farmName: b.farmName,
-      cropInfo: '${b.cropType} • ${b.estimatedArea} Acres',
+      cropInfo:
+          '${context.tr(b.cropType)} • ${b.estimatedArea} ${context.tr('Acres')}',
       status: b.status,
       onTap: () => context.push('/booking-details', extra: b),
     );
@@ -244,6 +249,7 @@ class _FarmerHomeContent extends ConsumerWidget {
           childAspectRatio: 1.8,
           children: [
             _buildStatCard(
+              context,
               'Total Farms',
               switch (farmsAsync) {
                 AsyncData(:final value) => value.length.toString(),
@@ -253,6 +259,7 @@ class _FarmerHomeContent extends ConsumerWidget {
               Colors.green,
             ),
             _buildStatCard(
+              context,
               'Total Bookings',
               switch (bookingsAsync) {
                 AsyncData(:final value) => value.length.toString(),
@@ -262,6 +269,7 @@ class _FarmerHomeContent extends ConsumerWidget {
               Colors.blue,
             ),
             _buildStatCard(
+              context,
               'Completed',
               switch (bookingsAsync) {
                 AsyncData(:final value) =>
@@ -281,12 +289,13 @@ class _FarmerHomeContent extends ConsumerWidget {
               Colors.orange,
             ),
             _buildStatCard(
+              context,
               'Total Acres',
               switch (farmsAsync) {
                 AsyncData(:final value) =>
-                  value.fold(0.0, (sum, item) => sum + item.area).toStringAsFixed(
-                    1,
-                  ),
+                  value
+                      .fold(0.0, (sum, item) => sum + item.area)
+                      .toStringAsFixed(1),
                 _ => '0.0',
               },
               Icons.crop_free,
@@ -298,7 +307,13 @@ class _FarmerHomeContent extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -329,7 +344,7 @@ class _FarmerHomeContent extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  label,
+                  context.tr(label),
                   style: AppTextStyles.bodySmall.copyWith(fontSize: 10),
                   overflow: TextOverflow.ellipsis,
                 ),

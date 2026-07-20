@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../auth/models/user_model.dart';
@@ -31,7 +32,7 @@ class _RetailerManagementScreenState
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(title: const Text('Retailer Management')),
+      appBar: AppBar(title: Text(context.tr('Retailer Management'))),
       body: Column(
         children: [
           Padding(
@@ -40,9 +41,9 @@ class _RetailerManagementScreenState
               controller: _searchController,
               onChanged: (value) =>
                   setState(() => _query = value.toLowerCase()),
-              decoration: const InputDecoration(
-                hintText: 'Search retailers...',
-                prefixIcon: Icon(Icons.search),
+              decoration: InputDecoration(
+                hintText: context.tr('Search retailers...'),
+                prefixIcon: const Icon(Icons.search),
                 fillColor: Colors.white,
               ),
             ),
@@ -62,7 +63,7 @@ class _RetailerManagementScreenState
                 }).toList();
 
                 if (filtered.isEmpty) {
-                  return const Center(child: Text('No retailers found'));
+                  return Center(child: Text(context.tr('No retailers found')));
                 }
 
                 return ListView.separated(
@@ -142,12 +143,18 @@ class _RetailerCard extends ConsumerWidget {
               _update(ref, ApprovalStatus.approved, true);
             }
           },
-          itemBuilder: (_) => const [
-            PopupMenuItem(value: 'details', child: Text('View Details')),
-            PopupMenuItem(value: 'approve', child: Text('Approve')),
-            PopupMenuItem(value: 'reject', child: Text('Reject')),
-            PopupMenuItem(value: 'suspend', child: Text('Suspend')),
-            PopupMenuItem(value: 'reactivate', child: Text('Reactivate')),
+          itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 'details',
+              child: Text(context.tr('View Details')),
+            ),
+            PopupMenuItem(value: 'approve', child: Text(context.tr('Approve'))),
+            PopupMenuItem(value: 'reject', child: Text(context.tr('Reject'))),
+            PopupMenuItem(value: 'suspend', child: Text(context.tr('Suspend'))),
+            PopupMenuItem(
+              value: 'reactivate',
+              child: Text(context.tr('Reactivate')),
+            ),
           ],
         ),
       ),
@@ -171,48 +178,80 @@ class _RetailerCard extends ConsumerWidget {
   }
 
   void _showDetails(BuildContext context, UserModel retailer) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => Padding(
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => _RetailerDetailsScreen(retailer: retailer),
+      ),
+    );
+  }
+}
+
+class _RetailerDetailsScreen extends StatelessWidget {
+  final UserModel retailer;
+
+  const _RetailerDetailsScreen({required this.retailer});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(title: Text(retailer.shopName ?? context.tr('Retailer'))),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              retailer.shopName ?? 'Retailer',
-              style: AppTextStyles.titleLarge.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+        child: Card(
+          color: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: AppColors.border.withValues(alpha: 0.5)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  retailer.shopName ?? context.tr('Retailer'),
+                  style: AppTextStyles.titleLarge.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _detail(
+                  context,
+                  'Owner',
+                  retailer.ownerName ?? retailer.name ?? '-',
+                ),
+                _detail(context, 'Mobile', retailer.phoneNumber ?? '-'),
+                _detail(context, 'Email', retailer.email ?? '-'),
+                _detail(context, 'GST', retailer.gstNumber ?? '-'),
+                _detail(context, 'Aadhaar/PAN', retailer.aadhaarPan ?? '-'),
+                _detail(context, 'Address', retailer.shopAddress ?? '-'),
+                _detail(
+                  context,
+                  'Location',
+                  '${retailer.village ?? '-'}, ${retailer.mandal ?? '-'}, ${retailer.district ?? '-'}, ${retailer.state ?? '-'}',
+                ),
+                _detail(
+                  context,
+                  'GPS',
+                  retailer.latitude == null || retailer.longitude == null
+                      ? '-'
+                      : '${retailer.latitude}, ${retailer.longitude}',
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            _detail('Owner', retailer.ownerName ?? retailer.name ?? '-'),
-            _detail('Mobile', retailer.phoneNumber ?? '-'),
-            _detail('Email', retailer.email ?? '-'),
-            _detail('GST', retailer.gstNumber ?? '-'),
-            _detail('Aadhaar/PAN', retailer.aadhaarPan ?? '-'),
-            _detail('Address', retailer.shopAddress ?? '-'),
-            _detail(
-              'Location',
-              '${retailer.village ?? '-'}, ${retailer.mandal ?? '-'}, ${retailer.district ?? '-'}, ${retailer.state ?? '-'}',
-            ),
-            _detail(
-              'GPS',
-              retailer.latitude == null || retailer.longitude == null
-                  ? '-'
-                  : '${retailer.latitude}, ${retailer.longitude}',
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _detail(String label, String value) {
+  Widget _detail(BuildContext context, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Text('$label: $value'),
+      child: Text('${context.tr(label)}: $value'),
     );
   }
 }
@@ -232,7 +271,7 @@ class _Badge extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        label,
+        context.tr(label),
         style: TextStyle(
           color: color,
           fontSize: 10,

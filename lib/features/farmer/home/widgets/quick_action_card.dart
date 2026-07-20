@@ -4,6 +4,7 @@ import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_shadows.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
@@ -48,19 +49,15 @@ class QuickActionCard extends StatelessWidget {
                     width: AppSizes.iconSizeLg,
                     height: AppSizes.iconSizeLg,
                     fit: BoxFit.contain,
-                    errorBuilder:
-                        (context, error, stackTrace) => Icon(
-                          icon,
-                          size: AppSizes.iconSizeLg,
-                          color: iconColor,
-                        ),
+                    errorBuilder: (context, error, stackTrace) =>
+                        Icon(icon, size: AppSizes.iconSizeLg, color: iconColor),
                   )
                 else
                   Icon(icon, size: AppSizes.iconSizeLg, color: iconColor),
                 AppSpacing.verticalMd,
                 Flexible(
                   child: Text(
-                    label,
+                    context.tr(label),
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,

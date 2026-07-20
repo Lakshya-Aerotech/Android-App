@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../localization/app_localizations.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../constants/app_radius.dart';
@@ -38,7 +39,7 @@ class StatusChip extends StatelessWidget {
         borderRadius: AppRadius.radiusXs,
       ),
       child: Text(
-        label,
+        context.tr(label),
         style: AppTextStyles.bodySmall.copyWith(
           color: textColor ?? AppColors.accent,
           fontWeight: FontWeight.w600,

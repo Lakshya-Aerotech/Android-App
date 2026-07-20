@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/primary_button.dart';
@@ -29,10 +30,20 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
   late TextEditingController _districtController;
   late TextEditingController _stateController;
   late TextEditingController _areaController;
+  late TextEditingController _otherCropController;
 
   String _selectedCrop = 'Cotton';
   String _selectedUnit = 'Acres';
   LatLng? _selectedLocation;
+
+  static const List<String> _cropTypes = [
+    'Cotton',
+    'Paddy',
+    'Chilli',
+    'Maize',
+    'Soya',
+    'Other',
+  ];
 
   @override
   void initState() {
@@ -43,9 +54,17 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
     _districtController = TextEditingController(text: farm?.district);
     _stateController = TextEditingController(text: farm?.state ?? 'Telangana');
     _areaController = TextEditingController(text: farm?.area.toString());
+    _otherCropController = TextEditingController();
 
     if (farm != null) {
-      _selectedCrop = farm.cropType;
+      if (_cropTypes.contains(farm.cropType)) {
+        _selectedCrop = farm.cropType;
+      } else if (farm.cropType == 'Others') {
+        _selectedCrop = 'Other';
+      } else {
+        _selectedCrop = 'Other';
+        _otherCropController.text = farm.cropType;
+      }
       _selectedUnit = farm.unit;
       _selectedLocation = LatLng(farm.latitude, farm.longitude);
     }
@@ -58,6 +77,7 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
     _districtController.dispose();
     _stateController.dispose();
     _areaController.dispose();
+    _otherCropController.dispose();
     super.dispose();
   }
 
@@ -78,17 +98,22 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select farm location on map')),
+        SnackBar(
+          content: Text(context.tr('Please select farm location on map')),
+        ),
       );
       return;
     }
 
     final notifier = ref.read(farmViewModelProvider.notifier);
+    final cropType = _selectedCrop == 'Other'
+        ? _otherCropController.text.trim()
+        : _selectedCrop;
 
     if (widget.existingFarm != null) {
       final updatedFarm = widget.existingFarm!.copyWith(
         farmName: _nameController.text.trim(),
-        cropType: _selectedCrop,
+        cropType: cropType,
         area: double.parse(_areaController.text),
         unit: _selectedUnit,
         village: _villageController.text.trim(),
@@ -101,7 +126,7 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
     } else {
       await notifier.addFarm(
         farmName: _nameController.text.trim(),
-        cropType: _selectedCrop,
+        cropType: cropType,
         area: double.parse(_areaController.text),
         unit: _selectedUnit,
         village: _villageController.text.trim(),
@@ -125,7 +150,11 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(widget.existingFarm != null ? 'Edit Farm' : 'Add New Farm'),
+        title: Text(
+          context.tr(
+            widget.existingFarm != null ? 'Edit Farm' : 'Add New Farm',
+          ),
+        ),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.primary,
         elevation: 0,
@@ -145,14 +174,25 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
               ),
               AppSpacing.verticalMd,
 
-              Text('Crop Type *', style: AppTextStyles.labelLarge),
+              Text(context.tr('Crop Type *'), style: AppTextStyles.labelLarge),
               const SizedBox(height: 8),
               _buildDropdown<String>(
                 value: _selectedCrop,
-                items: ['Cotton', 'Paddy', 'Chilli', 'Maize', 'Soya', 'Others'],
+                items: _cropTypes,
                 onChanged: (v) => setState(() => _selectedCrop = v!),
                 labelBuilder: (v) => v,
               ),
+              if (_selectedCrop == 'Other') ...[
+                AppSpacing.verticalMd,
+                CustomTextField(
+                  label: 'Other Crop Type *',
+                  hintText: 'Enter crop name',
+                  controller: _otherCropController,
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Crop name is required'
+                      : null,
+                ),
+              ],
               AppSpacing.verticalMd,
 
               Row(
@@ -174,7 +214,10 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Unit', style: AppTextStyles.labelLarge),
+                        Text(
+                          context.tr('Unit'),
+                          style: AppTextStyles.labelLarge,
+                        ),
                         const SizedBox(height: 8),
                         _buildDropdown<String>(
                           value: _selectedUnit,
@@ -213,7 +256,10 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
               ),
               AppSpacing.verticalLg,
 
-              Text('Farm Location *', style: AppTextStyles.labelLarge),
+              Text(
+                context.tr('Farm Location *'),
+                style: AppTextStyles.labelLarge,
+              ),
               const SizedBox(height: 12),
               InkWell(
                 onTap: _pickLocation,
@@ -240,8 +286,8 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
                       Expanded(
                         child: Text(
                           _selectedLocation != null
-                              ? 'Location Selected (${_selectedLocation!.latitude.toStringAsFixed(4)}, ${_selectedLocation!.longitude.toStringAsFixed(4)})'
-                              : 'Select Location on Map',
+                              ? '${context.tr('Location Selected')} (${_selectedLocation!.latitude.toStringAsFixed(4)}, ${_selectedLocation!.longitude.toStringAsFixed(4)})'
+                              : context.tr('Select Location on Map'),
                           style: TextStyle(
                             color: _selectedLocation != null
                                 ? AppColors.success
@@ -298,7 +344,10 @@ class _AddFarmScreenState extends ConsumerState<AddFarmScreen> {
           items: items.map((T item) {
             return DropdownMenuItem<T>(
               value: item,
-              child: Text(labelBuilder(item), style: AppTextStyles.bodyLarge),
+              child: Text(
+                context.tr(labelBuilder(item)),
+                style: AppTextStyles.bodyLarge,
+              ),
             );
           }).toList(),
         ),

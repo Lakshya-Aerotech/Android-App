@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/constants/app_spacing.dart';
+import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 
@@ -60,7 +61,7 @@ class DashboardHeader extends StatelessWidget {
                         Icons.notifications_none,
                         color: Colors.white,
                       ),
-                      tooltip: 'Notifications',
+                      tooltip: context.tr('Notifications'),
                     ),
                     Positioned(
                       top: 10,
@@ -80,7 +81,7 @@ class DashboardHeader extends StatelessWidget {
             ),
             AppSpacing.verticalMd,
             Text(
-              'Hello, $userName',
+              '${context.tr('Hello')}, $userName',
               style: AppTextStyles.bodyLarge.copyWith(
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w500,
@@ -89,7 +90,7 @@ class DashboardHeader extends StatelessWidget {
             if (subtitle != null) ...[
               const SizedBox(height: 2),
               Text(
-                subtitle!,
+                context.tr(subtitle!),
                 style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.textSecondary,
                   fontSize: 12,
@@ -98,7 +99,7 @@ class DashboardHeader extends StatelessWidget {
             ],
             AppSpacing.verticalXs,
             Text(
-              _greetingFor(DateTime.now()),
+              context.tr(_greetingFor(DateTime.now())),
               style: AppTextStyles.headlineLarge.copyWith(
                 color: AppColors.textPrimaryDark,
                 fontWeight: FontWeight.bold,

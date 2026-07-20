@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lakshya_aerotech/core/localization/app_localizations.dart';
 import 'package:lakshya_aerotech/core/theme/app_colors.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/dashboard/operations_dashboard_screen.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/pending_bookings/ops_pending_bookings_screen.dart';
@@ -10,7 +11,8 @@ class OperationsMainScreen extends ConsumerStatefulWidget {
   const OperationsMainScreen({super.key});
 
   @override
-  ConsumerState<OperationsMainScreen> createState() => _OperationsMainScreenState();
+  ConsumerState<OperationsMainScreen> createState() =>
+      _OperationsMainScreenState();
 }
 
 class _OperationsMainScreenState extends ConsumerState<OperationsMainScreen> {
@@ -43,26 +45,26 @@ class _OperationsMainScreenState extends ConsumerState<OperationsMainScreen> {
           selectedItemColor: AppColors.accent,
           unselectedItemColor: AppColors.textSecondary,
           backgroundColor: AppColors.primary,
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_outlined),
-              activeIcon: Icon(Icons.dashboard),
-              label: 'Dashboard',
+              icon: const Icon(Icons.dashboard_outlined),
+              activeIcon: const Icon(Icons.dashboard),
+              label: context.tr('Dashboard'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month_outlined),
-              activeIcon: Icon(Icons.calendar_month),
-              label: 'Bookings',
+              icon: const Icon(Icons.calendar_month_outlined),
+              activeIcon: const Icon(Icons.calendar_month),
+              label: context.tr('Bookings'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.assignment_ind_outlined),
-              activeIcon: Icon(Icons.assignment_ind),
-              label: 'Assignments',
+              icon: const Icon(Icons.assignment_ind_outlined),
+              activeIcon: const Icon(Icons.assignment_ind),
+              label: context.tr('Assignments'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile',
+              icon: const Icon(Icons.person_outline),
+              activeIcon: const Icon(Icons.person),
+              label: context.tr('Profile'),
             ),
           ],
         ),

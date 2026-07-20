@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../features/auth/viewmodel/auth_viewmodel.dart';
@@ -45,26 +46,26 @@ class _RetailerDashboardScreenState
         selectedItemColor: AppColors.accent,
         unselectedItemColor: AppColors.textSecondary,
         backgroundColor: AppColors.primary,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_outlined),
-            activeIcon: Icon(Icons.dashboard),
-            label: 'Home',
+            icon: const Icon(Icons.dashboard_outlined),
+            activeIcon: const Icon(Icons.dashboard),
+            label: context.tr('Home'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.people_outline),
-            activeIcon: Icon(Icons.people),
-            label: 'Farmers',
+            icon: const Icon(Icons.people_outline),
+            activeIcon: const Icon(Icons.people),
+            label: context.tr('Farmers'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.assignment_outlined),
-            activeIcon: Icon(Icons.assignment),
-            label: 'Bookings',
+            icon: const Icon(Icons.assignment_outlined),
+            activeIcon: const Icon(Icons.assignment),
+            label: context.tr('Bookings'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
+            icon: const Icon(Icons.person_outline),
+            activeIcon: const Icon(Icons.person),
+            label: context.tr('Profile'),
           ),
         ],
       ),
@@ -124,7 +125,7 @@ class _RetailerHomeContent extends ConsumerWidget {
                 ),
                 AppSpacing.verticalXl,
                 Text(
-                  'Quick Actions',
+                  context.tr('Quick Actions'),
                   style: AppTextStyles.titleMedium.copyWith(
                     color: AppColors.textDark,
                     fontWeight: FontWeight.bold,
@@ -214,7 +215,7 @@ class _ActionTile extends StatelessWidget {
           children: [
             Icon(icon, color: AppColors.primary, size: 30),
             Text(
-              title,
+              context.tr(title),
               style: AppTextStyles.labelLarge.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -262,7 +263,7 @@ class _StatTile extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Text(label, style: AppTextStyles.bodySmall),
+                Text(context.tr(label), style: AppTextStyles.bodySmall),
               ],
             ),
           ),

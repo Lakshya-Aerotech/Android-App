@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../localization/app_localizations.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
@@ -39,7 +40,7 @@ class CustomTextField extends StatelessWidget {
       children: [
         if (label != null) ...[
           Text(
-            label!,
+            context.tr(label!),
             style: AppTextStyles.labelLarge.copyWith(
               color: enabled ? null : AppColors.textTertiary,
             ),
@@ -59,7 +60,7 @@ class CustomTextField extends StatelessWidget {
             color: enabled ? null : AppColors.textTertiary,
           ),
           decoration: InputDecoration(
-            hintText: hintText,
+            hintText: hintText == null ? null : context.tr(hintText!),
             prefixIcon: prefixIcon,
             suffixIcon: suffixIcon,
           ),
