@@ -13,7 +13,17 @@ final adminRepositoryProvider = Provider<AdminRepository>((ref) {
 
 final employeesStreamProvider = StreamProvider<List<UserModel>>((ref) {
   return ref.watch(adminRepositoryProvider).getEmployeesStream();
-adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((
+});
+
+final retailersStreamProvider = StreamProvider<List<UserModel>>((ref) {
+  return ref.watch(adminRepositoryProvider).getRetailersStream();
+});
+
+final externalPilotsStreamProvider = StreamProvider<List<UserModel>>((ref) {
+  return ref.watch(adminRepositoryProvider).getExternalPilotsStream();
+});
+
+final adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((
   ref,
 ) {
   final repository = ref.watch(adminRepositoryProvider);
@@ -36,6 +46,12 @@ adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((
         iconColor: Colors.green,
         title: 'Total Bookings',
         value: stats['totalBookings'].toString(),
+      ),
+      AdminStatistic(
+        icon: Icons.storefront_outlined,
+        iconColor: Colors.deepOrange,
+        title: 'Total Retailers',
+        value: stats['totalRetailers'].toString(),
       ),
       AdminStatistic(
         icon: Icons.task_alt,
@@ -172,6 +188,26 @@ class AdminViewModel extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  Future<String?> updateRetailerStatus({
+    required String docId,
+    required ApprovalStatus approvalStatus,
+    required bool isActive,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      await _repository.updateRetailerStatus(
+        docId: docId,
+        approvalStatus: approvalStatus,
+        isActive: isActive,
+      );
+      state = const AsyncValue.data(null);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return _friendlyError(e);
+    }
+  }
+
   Future<void> deleteEmployee(String docId) async {
     try {
       await _repository.deleteEmployee(docId);
@@ -215,7 +251,12 @@ class AdminViewModel extends StateNotifier<AsyncValue<void>> {
     try {
       await _repository.updateExternalPilotAccountStatus(
         docId: docId,
-        status: status    }
+        status: status,
+      );
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
   }
 
   String _friendlyError(Object error) {

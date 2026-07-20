@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lakshya_aerotech/features/auth/presentation/splash_screen.dart';
@@ -27,6 +28,7 @@ import 'package:lakshya_aerotech/features/admin/presentation/employees/add_emplo
 import 'package:lakshya_aerotech/features/admin/presentation/external_pilots/external_pilot_list_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/external_pilots/external_pilot_details_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/placeholders/admin_placeholders.dart';
+import 'package:lakshya_aerotech/features/admin/presentation/retailers/retailer_management_screen.dart';
 import 'package:lakshya_aerotech/features/pilot/presentation/pilot_dashboard.dart';
 import 'package:lakshya_aerotech/features/pilot_jobs/presentation/job_details/pilot_job_details_screen.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/operations_main_screen.dart';
@@ -35,6 +37,12 @@ import 'package:lakshya_aerotech/features/operations/presentation/pending_bookin
 import 'package:lakshya_aerotech/features/operations/presentation/booking_details/ops_booking_details_screen.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/assignments/ops_assignments_screen.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/assignments/ops_assign_booking_screen.dart';
+import 'package:lakshya_aerotech/features/retailer/presentation/retailer_dashboard_screen.dart';
+import 'package:lakshya_aerotech/features/retailer/presentation/retailer_farmer_details_screen.dart';
+import 'package:lakshya_aerotech/features/retailer/presentation/retailer_farmer_form_screen.dart';
+import 'package:lakshya_aerotech/features/retailer/presentation/retailer_farmer_list_screen.dart';
+import 'package:lakshya_aerotech/features/retailer/presentation/retailer_registration_screen.dart';
+import 'package:lakshya_aerotech/features/retailer/presentation/retailer_status_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final user = ref.watch(userModelProvider);
@@ -47,7 +55,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/forgot-password' ||
           state.matchedLocation == '/external-pilot-registration' ||
-          state.matchedLocation == '/farmer-registration';
+          state.matchedLocation == '/farmer-registration' ||
+          state.matchedLocation == '/retailer-registration';
       final isSplash = state.matchedLocation == '/splash';
 
       if (isInitializing) return '/splash';
@@ -62,6 +71,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         if (user.role == UserRole.farmer && !user.profileCompleted) {
           return '/complete-profile';
         }
+        if (user.role == UserRole.retailer &&
+            user.approvalStatus != ApprovalStatus.approved) {
+          return '/retailer-status';
+        }
         return _getRoleDashboard(user.role);
       }
 
@@ -69,6 +82,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           !user.profileCompleted &&
           state.matchedLocation != '/complete-profile') {
         return '/complete-profile';
+      }
+
+      if (user.role == UserRole.retailer &&
+          user.approvalStatus != ApprovalStatus.approved &&
+          state.matchedLocation != '/retailer-status') {
+        return '/retailer-status';
       }
 
       return null;
@@ -86,6 +105,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/farmer-registration',
         builder: (context, state) => const FarmerRegistrationScreen(),
+      ),
+      GoRoute(
+        path: '/retailer-registration',
+        builder: (context, state) => const RetailerRegistrationScreen(),
       ),
       GoRoute(
         path: '/forgot-password',
@@ -145,6 +168,65 @@ final routerProvider = Provider<GoRouter>((ref) {
           final bookingId = state.extra as String;
           return BookingSuccessScreen(bookingId: bookingId);
         },
+      ),
+
+      GoRoute(
+        path: '/retailer-status',
+        builder: (context, state) => const RetailerStatusScreen(),
+      ),
+      GoRoute(
+        path: '/retailer',
+        builder: (context, state) => const RetailerDashboardScreen(),
+        routes: [
+          GoRoute(
+            path: 'farmers',
+            builder: (context, state) => const RetailerFarmerListScreen(),
+          ),
+          GoRoute(
+            path: 'select-farmer',
+            builder: (context, state) =>
+                const RetailerFarmerListScreen(selectionMode: true),
+          ),
+          GoRoute(
+            path: 'register-farmer',
+            builder: (context, state) => const RetailerFarmerFormScreen(),
+          ),
+          GoRoute(
+            path: 'farmer-details',
+            builder: (context, state) {
+              final farmer = state.extra as UserModel;
+              return RetailerFarmerDetailsScreen(farmer: farmer);
+            },
+          ),
+          GoRoute(
+            path: 'book-service',
+            builder: (context, state) {
+              final farmer = state.extra as UserModel;
+              return BookServiceScreen(farmerOverride: farmer);
+            },
+          ),
+          GoRoute(
+            path: 'bookings',
+            builder: (context, state) =>
+                const MyBookingsScreen(retailerMode: true),
+          ),
+          GoRoute(
+            path: 'payment-status',
+            builder: (context, state) => const _RetailerSimplePage(
+              title: 'Payment Status',
+              message: 'Payment status will appear with booking records.',
+              icon: Icons.payments_outlined,
+            ),
+          ),
+          GoRoute(
+            path: 'notifications',
+            builder: (context, state) => const _RetailerSimplePage(
+              title: 'Notifications',
+              message: 'Retailer notifications are delivered by the app.',
+              icon: Icons.notifications_none,
+            ),
+          ),
+        ],
       ),
 
       // Pilot Dashboard
@@ -227,6 +309,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const DronesPlaceholder(),
           ),
           GoRoute(
+            path: 'retailers',
+            builder: (context, state) => const RetailerManagementScreen(),
+          ),
+          GoRoute(
             path: 'analytics',
             builder: (context, state) => const AdminAnalyticsScreen(),
           ),
@@ -253,9 +339,44 @@ String _getRoleDashboard(UserRole role) {
     case UserRole.pilot:
       return '/pilot';
     case UserRole.externalPilot:
-      return '/pilot    case UserRole.operations:
+      return '/pilot';
+    case UserRole.retailer:
+      return '/retailer';
+    case UserRole.operations:
       return '/operations';
     case UserRole.admin:
       return '/admin';
+  }
+}
+
+class _RetailerSimplePage extends StatelessWidget {
+  final String title;
+  final String message;
+  final IconData icon;
+
+  const _RetailerSimplePage({
+    required this.title,
+    required this.message,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 64),
+              const SizedBox(height: 16),
+              Text(message, textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

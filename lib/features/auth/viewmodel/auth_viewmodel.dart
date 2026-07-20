@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -61,6 +61,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
 
   AuthViewModel(this._repository, this._ref) : super(AuthState(status: AuthStatus.initial));
 
+  // Legacy Phone/OTP methods (Optional cleanup)
   Future<void> sendOtp(String phoneNumber) async {
     state = state.copyWith(status: AuthStatus.loading);
     try {
@@ -129,12 +130,76 @@ class AuthViewModel extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> registerRetailer({
+    required String shopName,
+    required String ownerName,
+    required String email,
+    required String password,
+    String? gstNumber,
+    String? aadhaarPan,
+    required String shopAddress,
+    required String stateName,
+    required String district,
+    required String mandal,
+    required String village,
+    required double latitude,
+    required double longitude,
+  }) async {
+    state = state.copyWith(status: AuthStatus.loading);
+    try {
+      final credential = await _repository.registerWithEmailAndPassword(
+        email: email.trim().toLowerCase(),
+        password: password,
+      );
+      
+      final user = credential.user;
+      if (user == null) throw Exception('User creation failed');
+
+      final retailer = UserModel(
+        uid: user.uid,
+        docId: user.uid,
+        email: email.trim().toLowerCase(),
+        role: UserRole.retailer,
+        shopName: shopName,
+        ownerName: ownerName,
+        gstNumber: gstNumber,
+        aadhaarPan: aadhaarPan,
+        shopAddress: shopAddress,
+        state: stateName,
+        district: district,
+        mandal: mandal,
+        village: village,
+        latitude: latitude,
+        longitude: longitude,
+        approvalStatus: ApprovalStatus.pending,
+        isActive: false,
+        profileCompleted: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await _repository.createRetailerProfile(retailer);
+      await _repository.logout();
+      state = state.copyWith(status: AuthStatus.unauthenticated);
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: _getAuthErrorMessage(e),
+      );
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
   Future<void> registerExternalPilot(UserModel user, String password) async {
     state = state.copyWith(status: AuthStatus.loading);
     try {
       await _repository.registerExternalPilot(user, password);
-      await _repository.logout(); // Logout after registration to prevent immediate access
-      state = state.copyWith(status: AuthStatus.unauthenticated); // Reset state
+      await _repository.logout();
+      state = state.copyWith(status: AuthStatus.unauthenticated);
     } on FirebaseAuthException catch (e) {
       state = state.copyWith(
         status: AuthStatus.error,
@@ -157,19 +222,14 @@ class AuthViewModel extends StateNotifier<AuthState> {
   }) async {
     state = state.copyWith(status: AuthStatus.loading);
     try {
-      // 1. First register to get UID
       await _repository.registerExternalPilot(user, password);
-      
-      // Since we just registered, we are signed in. Let's get the user.
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) throw Exception('User creation failed');
       final uid = currentUser.uid;
 
       final fileService = _ref.read(fileServiceProvider);
       
-      // 2. Upload files
       final profileUrl = await fileService.uploadProfileImage(uid: uid, file: profileImage);
-      
       String? pilotCertUrl;
       if (pilotCert != null) {
         pilotCertUrl = await fileService.uploadUserDocument(
@@ -188,15 +248,13 @@ class AuthViewModel extends StateNotifier<AuthState> {
         );
       }
 
-      // 3. Update Firestore doc with URLs
       await _repository.updateProfile(uid, {
         'profilePhotographUrl': profileUrl,
-        'profileImageUrl': profileUrl, // redundant but good for consistency
+        'profileImageUrl': profileUrl,
         'dronePilotCertificateUrl': pilotCertUrl,
         'dgcaCertificateUrl': dgcaCertUrl,
       });
 
-      // 4. Logout (Phase 4 requirement: User must NOT gain application access)
       await _repository.logout();
       state = state.copyWith(status: AuthStatus.unauthenticated);
     } on FirebaseAuthException catch (e) {
@@ -218,23 +276,17 @@ class AuthViewModel extends StateNotifier<AuthState> {
       return;
     }
 
-    // Attempt to find user by UID first
     var userData = await _repository.getUserData(user.uid);
     
-    // First Login Workflow for Employees (Email Login)
-    // If not found by UID, try finding by email
     if (userData == null && user.email != null) {
       final employeeRecord = await _repository.findUserByEmail(user.email!);
       if (employeeRecord != null) {
-        // Link the Firebase UID to the existing Firestore record using its unique document ID
         await _repository.linkAuthWithEmployee(employeeRecord.docId!, user.uid);
-        // Fetch the linked data
         userData = await _repository.getUserData(user.uid);
       }
     }
 
     if (userData == null) {
-      // If it's still null, it's unauthorized or a legacy phone user trying to login with email (which shouldn't happen)
       await _repository.logout();
       state = state.copyWith(
         status: AuthStatus.error,
@@ -242,8 +294,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
       );
       return;
     } else {
-      // Login Rules (Phase 5)
-      if (userData.role == UserRole.externalPilot) {
+      if (userData.role == UserRole.externalPilot || userData.role == UserRole.retailer) {
         if (userData.approvalStatus == ApprovalStatus.pending) {
           await _repository.logout();
           state = state.copyWith(
@@ -272,10 +323,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
         return;
       }
       
-      // Update last login for existing user using document ID
       await _repository.updateLastLogin(userData.docId!);
-      
-      // Refresh user data to get updated lastLogin
       final refreshedUser = await _repository.getUserData(user.uid);
       _ref.read(userModelProvider.notifier).state = refreshedUser;
     }
@@ -309,7 +357,6 @@ class AuthViewModel extends StateNotifier<AuthState> {
         'profileCompleted': true,
       });
       
-      // Refresh data using UID
       final updatedUser = await _repository.getUserData(user.uid!);
       _ref.read(userModelProvider.notifier).state = updatedUser;
       state = state.copyWith(status: AuthStatus.authenticated);
@@ -359,7 +406,6 @@ class AuthViewModel extends StateNotifier<AuthState> {
 
       await _repository.updateProfile(user.docId!, updates);
 
-      // Refresh data using UID
       final updatedUser = await _repository.getUserData(user.uid!);
       _ref.read(userModelProvider.notifier).state = updatedUser;
       state = state.copyWith(status: AuthStatus.authenticated);
@@ -372,12 +418,6 @@ class AuthViewModel extends StateNotifier<AuthState> {
   }
 
   String _getAuthErrorMessage(FirebaseAuthException e) {
-    debugPrint("Firebase Code: ${e.code}");
-    debugPrint("Firebase Message: ${e.message}");
-    
-    debugPrint("Firebase Code: ${e.code}");
-    debugPrint("Firebase Message: ${e.message}");
-
     switch (e.code) {
       case 'invalid-email':
         return 'The email address is badly formatted.';

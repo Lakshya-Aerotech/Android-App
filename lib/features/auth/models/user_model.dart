@@ -1,9 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum UserRole { farmer, pilot, operations, admin }
- }
+enum UserRole { farmer, pilot, operations, admin, externalPilot, retailer }
 
-enum ApprovalStatus { pending, approved, rejected }
+enum ApprovalStatus { pending, approved, rejected, suspended }
 
 enum AccountStatus { active, inactive, suspended }
 
@@ -25,6 +24,8 @@ class UserModel {
 
   // Admin Module Specific Fields
   final String? createdBy;
+  final String? createdByRetailerId;
+  final String? createdByRole;
   final DateTime? lastLogin;
   final String? profileImageUrl;
   final bool mustChangePassword;
@@ -50,6 +51,16 @@ class UserModel {
   final AccountStatus? accountStatus;
   final String? rejectionReason;
 
+  // Retailer Specific Fields
+  final String? shopName;
+  final String? ownerName;
+  final String? gstNumber;
+  final String? aadhaarPan;
+  final String? shopAddress;
+  final String? mandal;
+  final double? latitude;
+  final double? longitude;
+
   UserModel({
     this.docId,
     this.uid,
@@ -66,6 +77,8 @@ class UserModel {
     this.state,
     this.preferredLanguage,
     this.createdBy,
+    this.createdByRetailerId,
+    this.createdByRole,
     this.lastLogin,
     this.profileImageUrl,
     this.mustChangePassword = true,
@@ -86,6 +99,14 @@ class UserModel {
     this.approvalStatus,
     this.accountStatus,
     this.rejectionReason,
+    this.shopName,
+    this.ownerName,
+    this.gstNumber,
+    this.aadhaarPan,
+    this.shopAddress,
+    this.mandal,
+    this.latitude,
+    this.longitude,
   });
 
   Map<String, dynamic> toMap() {
@@ -104,6 +125,8 @@ class UserModel {
       'state': state,
       'preferredLanguage': preferredLanguage,
       'createdBy': createdBy,
+      'createdByRetailerId': createdByRetailerId,
+      'createdByRole': createdByRole,
       'lastLogin': lastLogin != null ? Timestamp.fromDate(lastLogin!) : null,
       'profileImageUrl': profileImageUrl,
       'mustChangePassword': mustChangePassword,
@@ -124,6 +147,14 @@ class UserModel {
       'approvalStatus': approvalStatus?.name,
       'accountStatus': accountStatus?.name,
       'rejectionReason': rejectionReason,
+      'shopName': shopName,
+      'ownerName': ownerName,
+      'gstNumber': gstNumber,
+      'aadhaarPan': aadhaarPan,
+      'shopAddress': shopAddress,
+      'mandal': mandal,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 
@@ -144,6 +175,8 @@ class UserModel {
       state: map['state'],
       preferredLanguage: map['preferredLanguage'],
       createdBy: map['createdBy'],
+      createdByRetailerId: map['createdByRetailerId'] ?? map['createdBy'],
+      createdByRole: map['createdByRole'],
       lastLogin:
           map['lastLogin'] != null
               ? (map['lastLogin'] as Timestamp).toDate()
@@ -173,6 +206,14 @@ class UserModel {
               ? AccountStatus.values.byName(map['accountStatus'])
               : null,
       rejectionReason: map['rejectionReason'],
+      shopName: map['shopName'],
+      ownerName: map['ownerName'],
+      gstNumber: map['gstNumber'],
+      aadhaarPan: map['aadhaarPan'],
+      shopAddress: map['shopAddress'],
+      mandal: map['mandal'],
+      latitude: (map['latitude'] as num?)?.toDouble(),
+      longitude: (map['longitude'] as num?)?.toDouble(),
     );
   }
 
@@ -192,6 +233,8 @@ class UserModel {
     String? state,
     String? preferredLanguage,
     String? createdBy,
+    String? createdByRetailerId,
+    String? createdByRole,
     DateTime? lastLogin,
     String? profileImageUrl,
     bool? mustChangePassword,
@@ -212,6 +255,14 @@ class UserModel {
     ApprovalStatus? approvalStatus,
     AccountStatus? accountStatus,
     String? rejectionReason,
+    String? shopName,
+    String? ownerName,
+    String? gstNumber,
+    String? aadhaarPan,
+    String? shopAddress,
+    String? mandal,
+    double? latitude,
+    double? longitude,
   }) {
     return UserModel(
       docId: docId ?? this.docId,
@@ -229,6 +280,8 @@ class UserModel {
       state: state ?? this.state,
       preferredLanguage: preferredLanguage ?? this.preferredLanguage,
       createdBy: createdBy ?? this.createdBy,
+      createdByRetailerId: createdByRetailerId ?? this.createdByRetailerId,
+      createdByRole: createdByRole ?? this.createdByRole,
       lastLogin: lastLogin ?? this.lastLogin,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       mustChangePassword: mustChangePassword ?? this.mustChangePassword,
@@ -250,7 +303,14 @@ class UserModel {
       approvalStatus: approvalStatus ?? this.approvalStatus,
       accountStatus: accountStatus ?? this.accountStatus,
       rejectionReason: rejectionReason ?? this.rejectionReason,
+      shopName: shopName ?? this.shopName,
+      ownerName: ownerName ?? this.ownerName,
+      gstNumber: gstNumber ?? this.gstNumber,
+      aadhaarPan: aadhaarPan ?? this.aadhaarPan,
+      shopAddress: shopAddress ?? this.shopAddress,
+      mandal: mandal ?? this.mandal,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 }
-

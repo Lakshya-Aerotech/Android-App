@@ -6,6 +6,7 @@ import '../../auth/models/user_model.dart';
 
 abstract class AdminRepository {
   Stream<List<UserModel>> getEmployeesStream();
+  Stream<List<UserModel>> getRetailersStream();
   Future<void> createEmployee(UserModel employee);
   Future<bool> checkIfEmailExists(String email, {String? excludingDocId});
   Future<void> updateEmployee({
@@ -18,6 +19,11 @@ abstract class AdminRepository {
     required bool isActive,
   });
   Future<void> updateEmployeeStatus(String docId, bool isActive);
+  Future<void> updateRetailerStatus({
+    required String docId,
+    required ApprovalStatus approvalStatus,
+    required bool isActive,
+  });
   Future<void> deleteEmployee(String docId);
   Stream<Map<String, dynamic>> getDashboardStats();
 
@@ -43,6 +49,20 @@ class AdminRepositoryImpl implements AdminRepository {
     return _firestore
         .collection('users')
         .where('role', whereIn: ['pilot', 'operations', 'admin'])
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => UserModel.fromMap(doc.data(), docId: doc.id))
+              .toList(),
+        );
+  }
+
+  @override
+  Stream<List<UserModel>> getRetailersStream() {
+    return _firestore
+        .collection('users')
+        .where('role', isEqualTo: UserRole.retailer.name)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
@@ -152,6 +172,40 @@ class AdminRepositoryImpl implements AdminRepository {
   }
 
   @override
+  Future<void> updateRetailerStatus({
+    required String docId,
+    required ApprovalStatus approvalStatus,
+    required bool isActive,
+  }) async {
+    final docRef = _firestore.collection('users').doc(docId);
+    final doc = await docRef.get();
+    if (!doc.exists) {
+      throw Exception('Retailer record was not found.');
+    }
+
+    await docRef.update({
+      'approvalStatus': approvalStatus.name,
+      'isActive': isActive,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    final retailer = UserModel.fromMap(doc.data()!, docId: doc.id);
+    final title = switch (approvalStatus) {
+      ApprovalStatus.approved => 'Account approved',
+      ApprovalStatus.rejected => 'Account rejected',
+      ApprovalStatus.suspended => 'Account suspended',
+      ApprovalStatus.pending => 'Account pending',
+    };
+    await _notifications.createForUser(
+      recipientUid: retailer.uid ?? docId,
+      eventKey: 'retailer-${approvalStatus.name}-$docId',
+      title: title,
+      message: 'Your retailer account status is now ${approvalStatus.name}.',
+      data: {'retailerUid': retailer.uid ?? docId},
+    );
+  }
+
+  @override
   Future<void> deleteEmployee(String docId) async {
     await _firestore.collection('users').doc(docId).delete();
   }
@@ -170,6 +224,10 @@ class AdminRepositoryImpl implements AdminRepository {
         .collection('users')
         .where('role', isEqualTo: 'farmer')
         .snapshots();
+    final retailersStream = _firestore
+        .collection('users')
+        .where('role', isEqualTo: 'retailer')
+        .snapshots();
     final bookingsStream = _firestore.collection('bookings').snapshots();
     final dronesStream = _firestore.collection('drones').snapshots();
 
@@ -177,6 +235,7 @@ class AdminRepositoryImpl implements AdminRepository {
       int totalEmployees = 0;
       int totalFarmers = 0;
       int totalBookings = 0;
+      int totalRetailers = 0;
       int completedMissions = 0;
       int pendingBookings = 0;
       int activePilots = 0;
@@ -188,6 +247,7 @@ class AdminRepositoryImpl implements AdminRepository {
             'totalEmployees': totalEmployees,
             'totalFarmers': totalFarmers,
             'totalBookings': totalBookings,
+            'totalRetailers': totalRetailers,
             'completedMissions': completedMissions,
             'pendingBookings': pendingBookings,
             'activePilots': activePilots,
@@ -227,6 +287,11 @@ class AdminRepositoryImpl implements AdminRepository {
         emit();
       });
 
+      final retailersSub = retailersStream.listen((snapshot) {
+        totalRetailers = snapshot.docs.length;
+        emit();
+      });
+
       final dronesSub = dronesStream.listen((snapshot) {
         activeDrones = snapshot.docs
             .where((doc) => doc.data()['isActive'] == true)
@@ -238,6 +303,7 @@ class AdminRepositoryImpl implements AdminRepository {
         employeesSub.cancel();
         farmersSub.cancel();
         bookingsSub.cancel();
+        retailersSub.cancel();
         dronesSub.cancel();
       };
     });

@@ -20,9 +20,14 @@ abstract class AuthRepository {
     required String email,
     required String password,
   });
+  Future<UserCredential> registerWithEmailAndPassword({
+    required String email,
+    required String password,
+  });
   Future<void> logout();
   Future<UserModel?> getUserData(String uid);
   Future<void> createFarmerProfile(UserModel user);
+  Future<void> createRetailerProfile(UserModel user);
   Future<void> updateProfile(String docId, Map<String, dynamic> data);
   Future<UserModel?> findUserByEmail(String email);
   Future<void> linkAuthWithEmployee(String docId, String uid);
@@ -81,6 +86,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<UserCredential> registerWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    return await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+  }
+
+  @override
   Future<void> logout() async {
     await _auth.signOut();
   }
@@ -124,6 +140,38 @@ class AuthRepositoryImpl implements AuthRepository {
       title: 'New farmer registered',
       message: '${user.name ?? 'A farmer'} registered with Lakshya Aerotech.',
       data: {'farmerUid': user.uid},
+    );
+  }
+
+  @override
+  Future<void> createRetailerProfile(UserModel user) async {
+    await _firestore.collection('users').doc(user.uid).set(user.toMap());
+
+    await ActivityRepository.logActivity(
+      ActivityModel(
+        type: ActivityType.employeeCreated,
+        description: 'New retailer registration submitted: ${user.shopName}',
+        userId: user.uid,
+        userName: user.ownerName ?? user.name,
+        timestamp: DateTime.now(),
+      ),
+    );
+
+    await _notifications.createForUser(
+      recipientUid: user.uid!,
+      eventKey: 'retailer-registration-submitted-${user.uid}',
+      title: 'Registration submitted',
+      message:
+          'Your retailer registration has been submitted for admin approval.',
+      data: {'retailerUid': user.uid},
+    );
+    await _notifications.createForRole(
+      role: UserRole.admin,
+      eventKey: 'retailer-registration-${user.uid}',
+      title: 'Retailer approval pending',
+      message:
+          '${user.shopName ?? 'A retailer'} submitted a registration request.',
+      data: {'retailerUid': user.uid},
     );
   }
 

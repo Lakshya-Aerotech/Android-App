@@ -8,6 +8,7 @@ import '../models/booking_model.dart';
 
 abstract class BookingRepository {
   Stream<List<BookingModel>> getFarmerBookingsStream(String farmerUid);
+  Stream<List<BookingModel>> getRetailerBookingsStream(String retailerUid);
   Future<String> createBooking(BookingModel booking);
   Future<void> cancelBooking(String docId, StatusHistoryEntry historyEntry);
   Future<BookingModel?> getBookingById(String docId);
@@ -41,11 +42,28 @@ class BookingRepositoryImpl implements BookingRepository {
   }
 
   @override
+  Stream<List<BookingModel>> getRetailerBookingsStream(String retailerUid) {
+    return _firestore
+        .collection('bookings')
+        .where('createdByRetailerId', isEqualTo: retailerUid)
+        .snapshots()
+        .map((snapshot) {
+          final bookings = snapshot.docs
+              .map((doc) => BookingModel.fromMap(doc.data(), doc.id))
+              .toList();
+          bookings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return bookings;
+        });
+  }
+
+  @override
   Future<String> createBooking(BookingModel booking) async {
     final historyEntry = StatusHistoryEntry(
       status: BookingStatus.pending,
-      updatedBy: booking.farmerName ?? 'Farmer',
-      updatedByRole: 'farmer',
+      updatedBy: booking.createdByRole == 'retailer'
+          ? 'Retailer'
+          : booking.farmerName ?? 'Farmer',
+      updatedByRole: booking.createdByRole ?? 'farmer',
       timestamp: DateTime.now(),
       remarks: 'Booking submitted successfully.',
     );
@@ -75,6 +93,16 @@ class BookingRepositoryImpl implements BookingRepository {
           'Your booking ${booking.bookingId} for ${booking.farmName} has been submitted.',
       bookingId: docRef.id,
     );
+    if (booking.createdByRetailerId != null) {
+      await _notifications.createForUser(
+        recipientUid: booking.createdByRetailerId!,
+        eventKey: 'retailer-booking-submitted-${docRef.id}',
+        title: 'Booking submitted',
+        message:
+            'Booking ${booking.bookingId} for ${booking.farmerName ?? 'farmer'} has been submitted.',
+        bookingId: docRef.id,
+      );
+    }
     await _notifications.createForRole(
       role: UserRole.operations,
       eventKey: 'new-booking-request-${docRef.id}',

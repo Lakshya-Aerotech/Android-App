@@ -17,27 +17,18 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isEmployeeMode = false;
 
   @override
   void dispose() {
-    _phoneController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  void _onFarmerSubmit() {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-    if (email.isEmpty || password.isEmpty) return;
-    ref.read(authViewModelProvider.notifier).loginWithEmail(email, password);
-  }
-
-  void _onEmployeeSubmit() {
+  void _onSubmit() {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) return;
@@ -142,7 +133,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               PrimaryButton(
                 text: 'Login',
                 isLoading: state.status == AuthStatus.loading,
-                onPressed: _isEmployeeMode ? _onEmployeeSubmit : _onFarmerSubmit,
+                onPressed: _onSubmit,
               ),
 
               if (!_isEmployeeMode) ...[
@@ -196,6 +187,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
 
               if (!_isEmployeeMode) ...[
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: () => context.push('/retailer-registration'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                    side: const BorderSide(color: AppColors.success),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Register as Retailer', style: TextStyle(color: AppColors.success)),
+                ),
                 const SizedBox(height: 12),
                 OutlinedButton(
                   onPressed: () => context.push('/external-pilot-registration'),

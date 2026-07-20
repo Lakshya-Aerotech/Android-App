@@ -119,6 +119,14 @@ class AdminDashboardScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     QuickActionCard(
+                      icon: Icons.storefront_outlined,
+                      title: 'Retailer Management',
+                      subtitle: 'Approve and manage retailer accounts',
+                      iconColor: AppColors.warning,
+                      onTap: () => context.push('/admin/retailers'),
+                    ),
+                    const SizedBox(height: 12),
+                    QuickActionCard(
                       icon: Icons.grid_view_outlined,
                       title: context.tr('Manage Drones'),
                       subtitle: 'Register and track drone fleet',
