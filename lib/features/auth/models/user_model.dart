@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum UserRole { farmer, pilot, operations, admin, externalPilot }
+enum UserRole { farmer, pilot, operations, admin }
+ }
 
 enum ApprovalStatus { pending, approved, rejected }
 

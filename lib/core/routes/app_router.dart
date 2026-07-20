@@ -253,8 +253,7 @@ String _getRoleDashboard(UserRole role) {
     case UserRole.pilot:
       return '/pilot';
     case UserRole.externalPilot:
-      return '/pilot';
-    case UserRole.operations:
+      return '/pilot    case UserRole.operations:
       return '/operations';
     case UserRole.admin:
       return '/admin';

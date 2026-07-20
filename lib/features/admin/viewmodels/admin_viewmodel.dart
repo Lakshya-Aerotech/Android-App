@@ -13,13 +13,7 @@ final adminRepositoryProvider = Provider<AdminRepository>((ref) {
 
 final employeesStreamProvider = StreamProvider<List<UserModel>>((ref) {
   return ref.watch(adminRepositoryProvider).getEmployeesStream();
-});
-
-final externalPilotsStreamProvider = StreamProvider<List<UserModel>>((ref) {
-  return ref.watch(adminRepositoryProvider).getExternalPilotsStream();
-});
-
-final adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((
+adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((
   ref,
 ) {
   final repository = ref.watch(adminRepositoryProvider);
@@ -221,12 +215,7 @@ class AdminViewModel extends StateNotifier<AsyncValue<void>> {
     try {
       await _repository.updateExternalPilotAccountStatus(
         docId: docId,
-        status: status,
-      );
-      state = const AsyncValue.data(null);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+        status: status    }
   }
 
   String _friendlyError(Object error) {

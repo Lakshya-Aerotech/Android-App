@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -375,6 +375,9 @@ class AuthViewModel extends StateNotifier<AuthState> {
     debugPrint("Firebase Code: ${e.code}");
     debugPrint("Firebase Message: ${e.message}");
     
+    debugPrint("Firebase Code: ${e.code}");
+    debugPrint("Firebase Message: ${e.message}");
+
     switch (e.code) {
       case 'invalid-email':
         return 'The email address is badly formatted.';

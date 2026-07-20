@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../auth/viewmodel/auth_viewmodel.dart';
 import '../../auth/models/user_model.dart';
 import '../../farm/viewmodels/farm_viewmodel.dart';
@@ -199,82 +198,11 @@ class ProfileScreen extends ConsumerWidget {
         return _FarmerStatsSection();
       case UserRole.pilot:
         return _PilotStatsSection(user: user);
-      case UserRole.externalPilot:
-        return Column(
-          children: [
-            _PilotStatsSection(user: user),
-            AppSpacing.verticalXl,
-            _ExternalPilotProfileSection(user: user),
-          ],
-        );
-      case UserRole.operations:
+operations:
         return _OperationsStatsSection();
       case UserRole.admin:
         return _AdminStatsSection(user: user);
     }
-  }
-}
-
-class _ExternalPilotProfileSection extends StatelessWidget {
-  final UserModel user;
-  const _ExternalPilotProfileSection({required this.user});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'External Pilot Information',
-          style: AppTextStyles.titleMedium.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-        _InfoTile(label: 'Address', value: user.address ?? 'N/A'),
-        _InfoTile(label: 'Aadhaar', value: user.aadhaarNumber ?? 'N/A'),
-        _InfoTile(label: 'Drone Details', value: user.droneDetails ?? 'N/A'),
-        _InfoTile(label: 'Operating Districts', value: user.operatingDistricts.join(', ')),
-        _InfoTile(label: 'Operating Radius', value: '${user.operatingRadius ?? 0} km'),
-        
-        const SizedBox(height: 8),
-        Text('Certificates', style: AppTextStyles.labelLarge),
-        const SizedBox(height: 12),
-        _DocumentLinkTile(
-          label: 'Drone Pilot Certificate',
-          url: user.dronePilotCertificateUrl,
-        ),
-        _DocumentLinkTile(
-          label: 'DGCA Certificate',
-          url: user.dgcaCertificateUrl,
-        ),
-        
-        AppSpacing.verticalMd,
-        _InfoTile(
-          label: 'Approval Status', 
-          value: user.approvalStatus?.name.toUpperCase() ?? 'PENDING',
-        ),
-      ],
-    );
-  }
-}
-
-class _DocumentLinkTile extends StatelessWidget {
-  final String label;
-  final String? url;
-
-  const _DocumentLinkTile({required this.label, this.url});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: const Icon(Icons.description_outlined, color: AppColors.primary),
-      title: Text(label, style: AppTextStyles.bodyMedium),
-      trailing: url != null ? const Icon(Icons.open_in_new, size: 20) : null,
-      onTap: url != null ? () => launchUrl(Uri.parse(url!)) : null,
-      subtitle: Text(url != null ? 'View Document' : 'Not Uploaded', style: AppTextStyles.bodySmall),
-    );
   }
 }
 
