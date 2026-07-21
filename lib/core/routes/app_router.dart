@@ -43,6 +43,9 @@ import 'package:lakshya_aerotech/features/retailer/presentation/retailer_farmer_
 import 'package:lakshya_aerotech/features/retailer/presentation/retailer_farmer_list_screen.dart';
 import 'package:lakshya_aerotech/features/retailer/presentation/retailer_registration_screen.dart';
 import 'package:lakshya_aerotech/features/retailer/presentation/retailer_status_screen.dart';
+import 'package:lakshya_aerotech/features/retailer/presentation/retailer_coupons_screen.dart';
+import 'package:lakshya_aerotech/features/admin/presentation/coupons/coupon_management_screen.dart';
+import 'package:lakshya_aerotech/features/admin/presentation/coupons/coupon_history_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final user = ref.watch(userModelProvider);
@@ -214,6 +217,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                 const MyBookingsScreen(retailerMode: true),
           ),
           GoRoute(
+            path: 'coupons',
+            builder: (context, state) => const RetailerCouponsScreen(),
+          ),
+          GoRoute(
             path: 'payment-status',
             builder: (context, state) => const _RetailerSimplePage(
               title: 'Payment Status',
@@ -314,6 +321,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'retailers',
             builder: (context, state) => const RetailerManagementScreen(),
+          ),
+          GoRoute(
+            path: 'coupons',
+            builder: (context, state) => const CouponManagementScreen(),
+            routes: [
+              GoRoute(
+                path: 'history',
+                builder: (context, state) => const CouponHistoryScreen(),
+              ),
+            ],
           ),
           GoRoute(
             path: 'analytics',

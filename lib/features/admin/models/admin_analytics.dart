@@ -216,6 +216,7 @@ class AdminAnalyticsData {
   final List<AnalyticsMetric> droneMetrics;
   final List<AnalyticsMetric> geographicMetrics;
   final List<AnalyticsMetric> operationsMetrics;
+  final List<AnalyticsMetric> couponMetrics;
   final List<ChartPoint> bookingTrend;
   final List<ChartPoint> statusDistribution;
   final List<ChartPoint> stateDistribution;
@@ -238,6 +239,7 @@ class AdminAnalyticsData {
     required this.droneMetrics,
     required this.geographicMetrics,
     required this.operationsMetrics,
+    required this.couponMetrics,
     required this.bookingTrend,
     required this.statusDistribution,
     required this.stateDistribution,
@@ -261,6 +263,7 @@ class AdminAnalyticsData {
     droneMetrics: [],
     geographicMetrics: [],
     operationsMetrics: [],
+    couponMetrics: [],
     bookingTrend: [],
     statusDistribution: [],
     stateDistribution: [],

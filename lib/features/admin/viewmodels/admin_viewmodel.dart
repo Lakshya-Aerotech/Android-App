@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/models/activity_model.dart';
 import '../../../shared/repositories/activity_repository.dart';
 import '../models/admin_statistic.dart';
+import '../models/coupon_model.dart';
 import '../repositories/admin_repository.dart';
 import '../../auth/models/user_model.dart';
 
@@ -21,6 +22,10 @@ final retailersStreamProvider = StreamProvider<List<UserModel>>((ref) {
 
 final externalPilotsStreamProvider = StreamProvider<List<UserModel>>((ref) {
   return ref.watch(adminRepositoryProvider).getExternalPilotsStream();
+});
+
+final couponsStreamProvider = StreamProvider<List<CouponModel>>((ref) {
+  return ref.watch(adminRepositoryProvider).getCouponsStream();
 });
 
 final adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((
@@ -213,6 +218,71 @@ class AdminViewModel extends StateNotifier<AsyncValue<void>> {
       await _repository.deleteEmployee(docId);
     } catch (e) {
       // Handle error
+    }
+  }
+
+  Future<String?> createCoupon(CouponModel coupon) async {
+    state = const AsyncValue.loading();
+    try {
+      final exists = await _repository.checkIfCouponCodeExists(
+        coupon.couponCode,
+      );
+      if (exists) {
+        state = const AsyncValue.data(null);
+        return 'Coupon code already exists.';
+      }
+
+      await _repository.createCoupon(coupon);
+      state = const AsyncValue.data(null);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return _friendlyError(e);
+    }
+  }
+
+  Future<String?> updateCoupon(CouponModel coupon) async {
+    state = const AsyncValue.loading();
+    try {
+      final exists = await _repository.checkIfCouponCodeExists(
+        coupon.couponCode,
+        excludingDocId: coupon.docId,
+      );
+      if (exists) {
+        state = const AsyncValue.data(null);
+        return 'Coupon code already exists.';
+      }
+
+      await _repository.updateCoupon(coupon);
+      state = const AsyncValue.data(null);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return _friendlyError(e);
+    }
+  }
+
+  Future<String?> deleteCoupon(String docId) async {
+    state = const AsyncValue.loading();
+    try {
+      await _repository.deleteCoupon(docId);
+      state = const AsyncValue.data(null);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return _friendlyError(e);
+    }
+  }
+
+  Future<String?> updateCouponStatus(String docId, bool isActive) async {
+    state = const AsyncValue.loading();
+    try {
+      await _repository.updateCouponStatus(docId, isActive);
+      state = const AsyncValue.data(null);
+      return null;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return _friendlyError(e);
     }
   }
 

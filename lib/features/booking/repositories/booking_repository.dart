@@ -71,7 +71,89 @@ class BookingRepositoryImpl implements BookingRepository {
     final bookingData = booking.toMap();
     bookingData['statusHistory'] = [historyEntry.toMap()];
 
-    final docRef = await _firestore.collection('bookings').add(bookingData);
+    String bookingDocId;
+
+    if (booking.couponId != null) {
+      bookingDocId = await _firestore.runTransaction<String>((transaction) async {
+        final couponRef = _firestore.collection('coupons').doc(booking.couponId);
+        final couponSnapshot = await transaction.get(couponRef);
+
+        if (!couponSnapshot.exists) {
+          throw Exception('Coupon does not exist.');
+        }
+
+        final couponData = couponSnapshot.data()!;
+        final isActive = couponData['isActive'] ?? false;
+        if (!isActive) {
+          throw Exception('Coupon is inactive.');
+        }
+
+        final Timestamp validFromTimestamp = couponData['validFrom'] as Timestamp;
+        final Timestamp validUntilTimestamp = couponData['validUntil'] as Timestamp;
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final start = DateTime(
+          validFromTimestamp.toDate().year,
+          validFromTimestamp.toDate().month,
+          validFromTimestamp.toDate().day,
+        );
+        final end = DateTime(
+          validUntilTimestamp.toDate().year,
+          validUntilTimestamp.toDate().month,
+          validUntilTimestamp.toDate().day,
+        );
+
+        if (today.isBefore(start) || today.isAfter(end)) {
+          throw Exception('Coupon is outside its validity period.');
+        }
+
+        final remainingUsage = (couponData['remainingUsage'] as num?)?.toInt() ?? 0;
+        if (remainingUsage <= 0) {
+          throw Exception('Coupon usage limit reached.');
+        }
+
+        // Retailer assignment check
+        final assignedRetailerIds = List<String>.from(couponData['assignedRetailerIds'] ?? []);
+        if (booking.createdByRole == 'retailer' && assignedRetailerIds.isNotEmpty) {
+          if (!assignedRetailerIds.contains(booking.createdByRetailerId)) {
+            throw Exception('Not eligible for this coupon.');
+          }
+        }
+
+        // Region (state) check
+        final applicableRegion = ((couponData['applicableRegion'] as String?) ?? '').trim().toLowerCase();
+        final bookingState = (booking.state ?? '').trim().toLowerCase();
+        final regionMatch = applicableRegion.isEmpty ||
+            applicableRegion == 'all' ||
+            applicableRegion == 'global' ||
+            applicableRegion == 'any' ||
+            applicableRegion == bookingState;
+
+        if (!regionMatch) {
+          throw Exception('Coupon is not applicable in this region.');
+        }
+
+        // Service Type check
+        final eligibleService = (couponData['eligibleService'] as String?) ?? '';
+        if (eligibleService.trim().toLowerCase() != booking.serviceType.trim().toLowerCase()) {
+          throw Exception('Coupon is not applicable to the selected service.');
+        }
+
+        // Perform updates
+        transaction.update(couponRef, {
+          'remainingUsage': remainingUsage - 1,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        final newBookingRef = _firestore.collection('bookings').doc();
+        transaction.set(newBookingRef, bookingData);
+
+        return newBookingRef.id;
+      });
+    } else {
+      final docRef = await _firestore.collection('bookings').add(bookingData);
+      bookingDocId = docRef.id;
+    }
 
     // Log Activity
     await ActivityRepository.logActivity(
@@ -81,38 +163,38 @@ class BookingRepositoryImpl implements BookingRepository {
         userId: booking.farmerUid,
         userName: booking.farmerName,
         timestamp: DateTime.now(),
-        metadata: {'bookingId': docRef.id},
+        metadata: {'bookingId': bookingDocId},
       ),
     );
 
     await _notifications.createForUser(
       recipientUid: booking.farmerUid,
-      eventKey: 'booking-submitted-${docRef.id}',
+      eventKey: 'booking-submitted-$bookingDocId',
       title: 'Booking submitted',
       message:
           'Your booking ${booking.bookingId} for ${booking.farmName} has been submitted.',
-      bookingId: docRef.id,
+      bookingId: bookingDocId,
     );
     if (booking.createdByRetailerId != null) {
       await _notifications.createForUser(
         recipientUid: booking.createdByRetailerId!,
-        eventKey: 'retailer-booking-submitted-${docRef.id}',
+        eventKey: 'retailer-booking-submitted-$bookingDocId',
         title: 'Booking submitted',
         message:
             'Booking ${booking.bookingId} for ${booking.farmerName ?? 'farmer'} has been submitted.',
-        bookingId: docRef.id,
+        bookingId: bookingDocId,
       );
     }
     await _notifications.createForRole(
       role: UserRole.operations,
-      eventKey: 'new-booking-request-${docRef.id}',
+      eventKey: 'new-booking-request-$bookingDocId',
       title: 'New booking request',
       message:
           '${booking.farmerName ?? 'A farmer'} requested ${booking.serviceType} for ${booking.farmName}.',
-      bookingId: docRef.id,
+      bookingId: bookingDocId,
     );
 
-    return docRef.id;
+    return bookingDocId;
   }
 
   @override

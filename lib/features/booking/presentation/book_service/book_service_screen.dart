@@ -14,6 +14,8 @@ import '../../viewmodels/booking_viewmodel.dart';
 import '../../../auth/viewmodel/auth_viewmodel.dart';
 import '../../widgets/farm_selection_card.dart';
 import '../../widgets/booking_summary_card.dart';
+import '../../../admin/models/coupon_model.dart';
+import '../../../admin/viewmodels/admin_viewmodel.dart';
 
 class BookServiceScreen extends ConsumerStatefulWidget {
   final UserModel? farmerOverride;
@@ -36,6 +38,10 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
   final TextEditingController _areaController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
 
+  CouponModel? _appliedCoupon;
+  String? _couponError;
+  final TextEditingController _couponController = TextEditingController();
+
   final List<String> _stepTitles = ['Farm', 'Service', 'Schedule', 'Review'];
 
   @override
@@ -52,6 +58,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
     _pageController.dispose();
     _areaController.dispose();
     _remarksController.dispose();
+    _couponController.dispose();
     super.dispose();
   }
 
@@ -96,6 +103,25 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
     final formattedTime =
         '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}';
 
+    final double area = double.tryParse(_areaController.text) ?? 0.0;
+    final double ratePerAcre = 800.0;
+    final double originalAmount = area * ratePerAcre;
+
+    double discountAmount = 0.0;
+    if (_appliedCoupon != null) {
+      if (_appliedCoupon!.discountType == CouponDiscountType.percentage) {
+        discountAmount = originalAmount * (_appliedCoupon!.discountValue / 100.0);
+      } else {
+        discountAmount = _appliedCoupon!.discountValue;
+      }
+    }
+
+    if (discountAmount > originalAmount) {
+      discountAmount = originalAmount;
+    }
+
+    final double finalAmount = originalAmount - discountAmount;
+
     await ref
         .read(bookingViewModelProvider.notifier)
         .createBooking(
@@ -116,6 +142,13 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
               ? null
               : _remarksController.text.trim(),
           farmerOverride: widget.farmerOverride,
+          couponId: _appliedCoupon?.docId,
+          couponCode: _appliedCoupon?.couponCode,
+          couponDiscountType: _appliedCoupon?.discountType.name,
+          couponDiscountValue: _appliedCoupon?.discountValue,
+          originalAmount: originalAmount,
+          discountAmount: discountAmount,
+          payableAmount: finalAmount,
         );
   }
 
@@ -434,6 +467,27 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
 
   Widget _buildReviewStep() {
     final user = ref.watch(userModelProvider);
+    final couponsAsync = ref.watch(couponsStreamProvider);
+
+    final double area = double.tryParse(_areaController.text) ?? 0.0;
+    final double ratePerAcre = 800.0;
+    final double originalAmount = area * ratePerAcre;
+
+    double discountAmount = 0.0;
+    if (_appliedCoupon != null) {
+      if (_appliedCoupon!.discountType == CouponDiscountType.percentage) {
+        discountAmount = originalAmount * (_appliedCoupon!.discountValue / 100.0);
+      } else {
+        discountAmount = _appliedCoupon!.discountValue;
+      }
+    }
+
+    if (discountAmount > originalAmount) {
+      discountAmount = originalAmount;
+    }
+
+    final double finalAmount = originalAmount - discountAmount;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -477,6 +531,186 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
               value: _remarksController.text,
               icon: Icons.notes,
             ),
+          const SizedBox(height: 24),
+          const SectionHeader(title: 'Payment Details'),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.lightBackground,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              children: [
+                _buildPriceRow(
+                  'Original Amount',
+                  'Rs. ${originalAmount.toStringAsFixed(2)}',
+                  isBold: false,
+                ),
+                if (_appliedCoupon != null) ...[
+                  const SizedBox(height: 8),
+                  _buildPriceRow(
+                    'Discount Amount',
+                    '- Rs. ${discountAmount.toStringAsFixed(2)}',
+                    isBold: false,
+                    color: AppColors.success,
+                  ),
+                ],
+                const Divider(height: 24),
+                _buildPriceRow(
+                  'Final Payable Amount',
+                  'Rs. ${finalAmount.toStringAsFixed(2)}',
+                  isBold: true,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          const SectionHeader(title: 'Apply Coupon'),
+          const SizedBox(height: 12),
+          if (_appliedCoupon == null) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _couponController,
+                    decoration: InputDecoration(
+                      hintText: 'Enter Coupon Code',
+                      errorText: _couponError,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: () {
+                    final coupons = couponsAsync.maybeWhen(
+                      data: (list) => list,
+                      orElse: () => <CouponModel>[],
+                    );
+                    _applyCoupon(coupons, user);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    minimumSize: const Size(80, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Apply',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                icon: const Icon(Icons.list_alt, size: 18),
+                label: const Text('Select from Available Coupons'),
+                onPressed: () {
+                  final coupons = couponsAsync.maybeWhen(
+                    data: (list) => list,
+                    orElse: () => <CouponModel>[],
+                  );
+                  final eligibleCoupons = coupons.where((c) {
+                    final isExpired = DateTime.now().isAfter(c.validUntil);
+                    final isNotYetValid = DateTime.now().isBefore(c.validFrom);
+                    final hasUsageLeft = c.remainingUsage > 0;
+                    final couponRegion = c.applicableRegion.trim().toLowerCase();
+                    final farmState = (_selectedFarm?.state ?? '').trim().toLowerCase();
+                    final regionMatch = couponRegion.isEmpty ||
+                        couponRegion == 'all' ||
+                        couponRegion == 'global' ||
+                        couponRegion == 'any' ||
+                        couponRegion == farmState;
+                    final serviceMatch =
+                        c.eligibleService.trim().toLowerCase() ==
+                            _selectedService.trim().toLowerCase();
+                    final retailerMatch =
+                        c.assignedRetailerIds.isEmpty ||
+                            (user != null &&
+                                (c.assignedRetailerIds.contains(user.uid) ||
+                                    c.assignedRetailerIds.contains(
+                                      user.docId,
+                                    )));
+
+                    return c.isActive &&
+                        !isExpired &&
+                        !isNotYetValid &&
+                        hasUsageLeft &&
+                        regionMatch &&
+                        serviceMatch &&
+                        retailerMatch;
+                  }).toList();
+
+                  _showCouponsBottomSheet(context, eligibleCoupons, user);
+                },
+              ),
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.success.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: AppColors.success),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _appliedCoupon!.couponCode,
+                          style: AppTextStyles.labelLarge.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          _appliedCoupon!.discountType ==
+                                  CouponDiscountType.percentage
+                              ? 'Saved ${_appliedCoupon!.discountValue.toStringAsFixed(0)}%'
+                              : 'Saved Rs. ${_appliedCoupon!.discountValue.toStringAsFixed(0)}',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.success,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.cancel_outlined,
+                      color: AppColors.error,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _appliedCoupon = null;
+                        _couponController.clear();
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -572,6 +806,243 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _applyCoupon(List<CouponModel> coupons, UserModel? user) {
+    setState(() {
+      _couponError = null;
+    });
+
+    final code = _couponController.text.trim().toUpperCase();
+    if (code.isEmpty) {
+      setState(() {
+        _couponError = 'Please enter a coupon code';
+      });
+      return;
+    }
+
+    CouponModel? foundCoupon;
+    for (final c in coupons) {
+      if (c.couponCode.trim().toUpperCase() == code) {
+        foundCoupon = c;
+        break;
+      }
+    }
+
+    if (foundCoupon == null) {
+      setState(() {
+        _couponError = 'Invalid coupon code';
+      });
+      return;
+    }
+
+    if (!foundCoupon.isActive) {
+      setState(() {
+        _couponError = 'This coupon is inactive';
+      });
+      return;
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final start = DateTime(
+      foundCoupon.validFrom.year,
+      foundCoupon.validFrom.month,
+      foundCoupon.validFrom.day,
+    );
+    final end = DateTime(
+      foundCoupon.validUntil.year,
+      foundCoupon.validUntil.month,
+      foundCoupon.validUntil.day,
+    );
+
+    if (today.isBefore(start)) {
+      setState(() {
+        _couponError = 'This coupon is not active yet';
+      });
+      return;
+    }
+    if (today.isAfter(end)) {
+      setState(() {
+        _couponError = 'This coupon has expired';
+      });
+      return;
+    }
+
+    if (foundCoupon.remainingUsage <= 0) {
+      setState(() {
+        _couponError = 'This coupon has reached its maximum usage limit';
+      });
+      return;
+    }
+
+    if (foundCoupon.eligibleService.trim().toLowerCase() !=
+        _selectedService.trim().toLowerCase()) {
+      setState(() {
+        _couponError = 'Not applicable to the selected service';
+      });
+      return;
+    }
+
+    final couponRegion = foundCoupon.applicableRegion.trim().toLowerCase();
+    final farmState = (_selectedFarm?.state ?? '').trim().toLowerCase();
+    final regionMatch = couponRegion.isEmpty ||
+        couponRegion == 'all' ||
+        couponRegion == 'global' ||
+        couponRegion == 'any' ||
+        couponRegion == farmState;
+
+    if (_selectedFarm == null || !regionMatch) {
+      setState(() {
+        _couponError = 'Not applicable to this region';
+      });
+      return;
+    }
+
+    if (user != null && user.role == UserRole.retailer) {
+      if (foundCoupon.assignedRetailerIds.isNotEmpty &&
+          !foundCoupon.assignedRetailerIds.contains(user.uid) &&
+          !foundCoupon.assignedRetailerIds.contains(user.docId)) {
+        setState(() {
+          _couponError = 'Not assigned to this retailer';
+        });
+        return;
+      }
+    } else {
+      if (foundCoupon.assignedRetailerIds.isNotEmpty) {
+        setState(() {
+          _couponError = 'This coupon is restricted to specific retailers';
+        });
+        return;
+      }
+    }
+
+    setState(() {
+      _appliedCoupon = foundCoupon;
+      _couponError = null;
+    });
+  }
+
+  void _showCouponsBottomSheet(
+    BuildContext context,
+    List<CouponModel> eligibleCoupons,
+    UserModel? user,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Available Coupons',
+                style: AppTextStyles.titleMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (eligibleCoupons.isEmpty) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text('No eligible coupons found for this booking.'),
+                  ),
+                ),
+              ] else ...[
+                Expanded(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: eligibleCoupons.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final coupon = eligibleCoupons[index];
+                      final discountDesc =
+                          coupon.discountType == CouponDiscountType.percentage
+                              ? '${coupon.discountValue.toStringAsFixed(0)}% Off'
+                              : 'Rs. ${coupon.discountValue.toStringAsFixed(0)} Off';
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            _appliedCoupon = coupon;
+                            _couponController.text = coupon.couponCode;
+                            _couponError = null;
+                          });
+                          Navigator.pop(context);
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: AppColors.border),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    coupon.couponCode,
+                                    style: AppTextStyles.labelLarge.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Service: ${coupon.eligibleService}',
+                                    style: AppTextStyles.bodySmall,
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                discountDesc,
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPriceRow(
+    String label,
+    String value, {
+    required bool isBold,
+    Color? color,
+  }) {
+    final style = isBold
+        ? AppTextStyles.bodyLarge.copyWith(
+            fontWeight: FontWeight.bold,
+            color: color,
+          )
+        : AppTextStyles.bodyMedium.copyWith(
+            color: color ?? AppColors.textSecondary,
+          );
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: style),
+        Text(value, style: style.copyWith(fontWeight: FontWeight.bold)),
+      ],
     );
   }
 }

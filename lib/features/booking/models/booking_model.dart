@@ -97,6 +97,15 @@ class BookingModel {
   final BookingStatus status;
   final String? remarks;
 
+  // Coupon Details
+  final String? couponId;
+  final String? couponCode;
+  final String? couponDiscountType;
+  final double? couponDiscountValue;
+  final double? originalAmount;
+  final double? discountAmount;
+  final double? payableAmount;
+
   // Operations & Execution
   final List<OperationsRemark> operationsRemarks;
   final String? assignedPilotId;
@@ -158,6 +167,13 @@ class BookingModel {
     required this.estimatedArea,
     this.status = BookingStatus.pending,
     this.remarks,
+    this.couponId,
+    this.couponCode,
+    this.couponDiscountType,
+    this.couponDiscountValue,
+    this.originalAmount,
+    this.discountAmount,
+    this.payableAmount,
     this.operationsRemarks = const [],
     this.assignedPilotId,
     this.assignedPilotName,
@@ -211,6 +227,13 @@ class BookingModel {
       'estimatedArea': estimatedArea,
       'status': status.toFirestore(),
       'remarks': remarks,
+      'couponId': couponId,
+      'couponCode': couponCode,
+      'couponDiscountType': couponDiscountType,
+      'couponDiscountValue': couponDiscountValue,
+      'originalAmount': originalAmount,
+      'discountAmount': discountAmount,
+      'payableAmount': payableAmount,
       'operationsRemarks': operationsRemarks.map((e) => e.toMap()).toList(),
       'assignedPilotId': assignedPilotId,
       'assignedPilotName': assignedPilotName,
@@ -283,6 +306,13 @@ class BookingModel {
       estimatedArea: (map['estimatedArea'] as num).toDouble(),
       status: BookingStatus.fromString(map['status']),
       remarks: map['remarks'],
+      couponId: map['couponId'],
+      couponCode: map['couponCode'],
+      couponDiscountType: map['couponDiscountType'],
+      couponDiscountValue: (map['couponDiscountValue'] as num?)?.toDouble(),
+      originalAmount: (map['originalAmount'] as num?)?.toDouble(),
+      discountAmount: (map['discountAmount'] as num?)?.toDouble(),
+      payableAmount: (map['payableAmount'] as num?)?.toDouble(),
       operationsRemarks: (map['operationsRemarks'] as List? ?? [])
           .map((e) => OperationsRemark.fromMap(e as Map<String, dynamic>))
           .toList(),
@@ -341,6 +371,13 @@ class BookingModel {
     double? estimatedArea,
     BookingStatus? status,
     String? remarks,
+    String? couponId,
+    String? couponCode,
+    String? couponDiscountType,
+    double? couponDiscountValue,
+    double? originalAmount,
+    double? discountAmount,
+    double? payableAmount,
     List<OperationsRemark>? operationsRemarks,
     String? assignedPilotId,
     String? assignedPilotName,
@@ -393,6 +430,13 @@ class BookingModel {
       estimatedArea: estimatedArea ?? this.estimatedArea,
       status: status ?? this.status,
       remarks: remarks ?? this.remarks,
+      couponId: couponId ?? this.couponId,
+      couponCode: couponCode ?? this.couponCode,
+      couponDiscountType: couponDiscountType ?? this.couponDiscountType,
+      couponDiscountValue: couponDiscountValue ?? this.couponDiscountValue,
+      originalAmount: originalAmount ?? this.originalAmount,
+      discountAmount: discountAmount ?? this.discountAmount,
+      payableAmount: payableAmount ?? this.payableAmount,
       operationsRemarks: operationsRemarks ?? this.operationsRemarks,
       assignedPilotId: assignedPilotId ?? this.assignedPilotId,
       assignedPilotName: assignedPilotName ?? this.assignedPilotName,

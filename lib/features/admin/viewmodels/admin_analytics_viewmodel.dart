@@ -477,6 +477,67 @@ class AdminAnalyticsViewModel
     final geo = _geographic(filteredBookings);
     final operationsMetrics = _operationsMetrics(filteredBookings);
 
+    // Coupon metrics calculation
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    final totalCoupons = source.coupons.length;
+    
+    int activeCouponsCount = 0;
+    int inactiveCouponsCount = 0;
+    int expiredCouponsCount = 0;
+    
+    for (final c in source.coupons) {
+      final isActive = c['isActive'] as bool? ?? false;
+      final Timestamp? validUntilTs = c['validUntil'] as Timestamp?;
+      
+      if (!isActive) {
+        inactiveCouponsCount++;
+      } else if (validUntilTs != null && validUntilTs.toDate().isBefore(today)) {
+        expiredCouponsCount++;
+      } else {
+        activeCouponsCount++;
+      }
+    }
+    
+    final couponBookings = filteredBookings.where((b) => b['couponId'] != null).toList();
+    final totalRedemptions = couponBookings.length;
+    
+    final double totalDiscount = couponBookings.fold<double>(
+      0.0,
+      (acc, b) => acc + ((b['discountAmount'] as num?)?.toDouble() ?? 0.0),
+    );
+    
+    final Map<String, int> couponCounts = {};
+    for (final b in couponBookings) {
+      final code = (b['couponCode'] as String?) ?? '';
+      if (code.isNotEmpty) {
+        couponCounts[code] = (couponCounts[code] ?? 0) + 1;
+      }
+    }
+    
+    String mostUsedCoupon = 'None';
+    int maxUses = 0;
+    couponCounts.forEach((code, occurrences) {
+      if (occurrences > maxUses) {
+        maxUses = occurrences;
+        mostUsedCoupon = code;
+      }
+    });
+    if (mostUsedCoupon != 'None') {
+      mostUsedCoupon = '$mostUsedCoupon ($maxUses)';
+    }
+
+    final couponMetrics = [
+      _metric('Total Coupons', totalCoupons, Icons.local_offer, Colors.blue),
+      _metric('Active Coupons', activeCouponsCount, Icons.check_circle, Colors.green),
+      _metric('Inactive Coupons', inactiveCouponsCount, Icons.cancel, Colors.grey),
+      _metric('Expired Coupons', expiredCouponsCount, Icons.timer_off, Colors.red),
+      _metric('Total Redemptions', totalRedemptions, Icons.shopping_bag, Colors.orange),
+      _metricValue('Most Used Coupon', mostUsedCoupon, Icons.star, Colors.purple),
+      _metricValue('Total Discount', _currency(totalDiscount), Icons.card_giftcard, Colors.teal),
+    ];
+
     return AdminAnalyticsData(
       overview: overview,
       bookingMetrics: bookingMetrics,
@@ -486,6 +547,7 @@ class AdminAnalyticsViewModel
       droneMetrics: droneMetrics,
       geographicMetrics: geo.metrics,
       operationsMetrics: operationsMetrics,
+      couponMetrics: couponMetrics,
       bookingTrend: bookingTrend,
       statusDistribution: statusCounts.entries
           .map((e) => ChartPoint(e.key.displayName, e.value.toDouble()))

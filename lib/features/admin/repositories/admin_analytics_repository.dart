@@ -5,12 +5,14 @@ class AdminAnalyticsSource {
   final List<Map<String, dynamic>> bookings;
   final List<Map<String, dynamic>> farms;
   final List<Map<String, dynamic>> drones;
+  final List<Map<String, dynamic>> coupons;
 
   const AdminAnalyticsSource({
     required this.users,
     required this.bookings,
     required this.farms,
     required this.drones,
+    required this.coupons,
   });
 }
 
@@ -28,6 +30,7 @@ class AdminAnalyticsRepositoryImpl implements AdminAnalyticsRepository {
       _firestore.collection('bookings').get(),
       _firestore.collection('farms').get(),
       _firestore.collection('drones').get(),
+      _firestore.collection('coupons').get(),
     ]);
 
     return AdminAnalyticsSource(
@@ -35,6 +38,7 @@ class AdminAnalyticsRepositoryImpl implements AdminAnalyticsRepository {
       bookings: _docs(results[1]),
       farms: _docs(results[2]),
       drones: _docs(results[3]),
+      coupons: _docs(results[4]),
     );
   }
 
