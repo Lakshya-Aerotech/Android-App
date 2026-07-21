@@ -15,6 +15,8 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final locale = ref.watch(localeViewModelProvider);
+    NotificationService.setRouter(router);
+
     ref.listen(userModelProvider, (_, next) {
       NotificationService.syncUser(next);
     });
