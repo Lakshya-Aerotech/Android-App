@@ -4,6 +4,7 @@ import '../../../core/constants/app_radius.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/status_chip.dart';
+import '../../../shared/enums/booking_status.dart';
 import '../../booking/models/booking_model.dart';
 
 class PilotJobCard extends StatelessWidget {
@@ -97,6 +98,23 @@ class PilotJobCard extends StatelessWidget {
                 const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
               ],
             ),
+            if (job.status == BookingStatus.completed && job.paymentStatus != null) ...[
+              const Divider(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Payment: ${job.paymentStatus}',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  if (job.paymentVerifiedByAdmin)
+                    const Icon(Icons.verified, color: AppColors.success, size: 16),
+                ],
+              ),
+            ],
           ],
         ),
       ),

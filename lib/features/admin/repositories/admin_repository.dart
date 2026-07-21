@@ -3,6 +3,7 @@ import '../../../core/notifications/notification_repository.dart';
 import '../../../shared/models/activity_model.dart';
 import '../../../shared/repositories/activity_repository.dart';
 import '../../auth/models/user_model.dart';
+import '../../booking/models/booking_model.dart';
 
 abstract class AdminRepository {
   Stream<List<UserModel>> getEmployeesStream();
@@ -38,6 +39,9 @@ abstract class AdminRepository {
     required String docId,
     required AccountStatus status,
   });
+  Future<void> confirmPaymentDeposit(String docId, String adminId);
+  Future<void> rejectPaymentDeposit(String docId, String adminId, String remarks);
+  Stream<List<BookingModel>> getBookingsByPaymentStatus(List<String> statuses);
 }
 
 class AdminRepositoryImpl implements AdminRepository {
@@ -384,5 +388,40 @@ class AdminRepositoryImpl implements AdminRepository {
         message: 'Your account has been suspended. Please contact support.',
       );
     }
+  }
+
+  @override
+  Future<void> confirmPaymentDeposit(String docId, String adminId) async {
+    await _firestore.collection('bookings').doc(docId).update({
+      'paymentStatus': 'Paid',
+      'paymentVerifiedByAdmin': true,
+      'paymentVerifiedAt': FieldValue.serverTimestamp(),
+      'verifiedByAdminId': adminId,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  @override
+  Future<void> rejectPaymentDeposit(String docId, String adminId, String remarks) async {
+    await _firestore.collection('bookings').doc(docId).update({
+      'paymentStatus': 'Deposit Rejected',
+      'adminRemarks': remarks,
+      'verifiedByAdminId': adminId,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  @override
+  Stream<List<BookingModel>> getBookingsByPaymentStatus(List<String> statuses) {
+    return _firestore
+        .collection('bookings')
+        .where('paymentStatus', whereIn: statuses)
+        .orderBy('updatedAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => BookingModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
   }
 }

@@ -32,6 +32,19 @@ final inProgressJobsProvider = StreamProvider<List<BookingModel>>((ref) {
   ]);
 });
 
+final pilotCashCollectionProvider = StreamProvider<List<BookingModel>>((ref) {
+  final user = ref.watch(userModelProvider);
+  if (user == null || user.uid == null) return Stream.value([]);
+  return FirebaseFirestore.instance
+      .collection('bookings')
+      .where('assignedPilotId', isEqualTo: user.uid)
+      .where('paymentStatus', isEqualTo: 'Cash Collected by Pilot')
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+          .map((doc) => BookingModel.fromMap(doc.data(), doc.id))
+          .toList());
+});
+
 final pilotDashboardStatsProvider = StreamProvider<Map<String, dynamic>>((ref) {
   final user = ref.watch(userModelProvider);
   if (user == null || user.uid == null) return Stream.value({});
@@ -229,6 +242,39 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
       state = const AsyncData(null);
     } catch (e, st) {
       debugPrint('Error completing mission: $e');
+      state = AsyncError(e, st);
+    }
+  }
+
+  Future<void> verifyCoupon(String docId) async {
+    state = const AsyncLoading();
+    final user = _ref.read(userModelProvider);
+    try {
+      await _repository.verifyCoupon(docId, user?.uid ?? 'unknown');
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
+  Future<void> collectCash(String docId) async {
+    state = const AsyncLoading();
+    final user = _ref.read(userModelProvider);
+    try {
+      await _repository.collectCash(docId, user?.uid ?? 'unknown');
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
+  Future<void> markCashDeposited(String docId) async {
+    state = const AsyncLoading();
+    final user = _ref.read(userModelProvider);
+    try {
+      await _repository.markCashDeposited(docId, user?.uid ?? 'unknown');
+      state = const AsyncData(null);
+    } catch (e, st) {
       state = AsyncError(e, st);
     }
   }

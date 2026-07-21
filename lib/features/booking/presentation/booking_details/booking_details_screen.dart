@@ -70,6 +70,13 @@ class BookingDetailsScreen extends ConsumerWidget {
             const SizedBox(height: 24),
           ],
 
+          if (b.paymentMethod != null) ...[
+            Text('Payment Details', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            _buildPaymentSummaryCard(b),
+            const SizedBox(height: 24),
+          ],
+
           Text('Farm & Service', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           BookingSummaryCard(
@@ -234,6 +241,56 @@ class BookingDetailsScreen extends ConsumerWidget {
           overflow: TextOverflow.ellipsis,
         ),
       ],
+    );
+  }
+
+  Widget _buildPaymentSummaryCard(BookingModel b) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        children: [
+          _buildPaymentRow('Original Amount', '₹${b.originalAmount?.toStringAsFixed(2) ?? '0.00'}'),
+          if ((b.couponDiscountAmount ?? 0) > 0)
+            _buildPaymentRow(
+              'Coupon Discount', 
+              '- ₹${b.couponDiscountAmount?.toStringAsFixed(2) ?? '0.00'}', 
+              valueColor: AppColors.success,
+            ),
+          _buildPaymentRow(
+            'Final Amount', 
+            '₹${b.finalAmount?.toStringAsFixed(2) ?? '0.00'}', 
+            isBold: true,
+            valueColor: AppColors.primary,
+          ),
+          const Divider(height: 24),
+          _buildPaymentRow('Payment Method', b.paymentMethod ?? 'N/A'),
+          _buildPaymentRow('Payment Status', b.paymentStatus ?? 'Pending'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentRow(String label, String value, {Color? valueColor, bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: AppTextStyles.bodySmall),
+          Text(
+            value,
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+              color: valueColor,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

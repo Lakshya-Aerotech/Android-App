@@ -4,6 +4,7 @@ import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import 'dashboard/admin_dashboard_screen.dart';
 import 'employees/employee_list_screen.dart';
+import 'payments/admin_payments_screen.dart';
 import 'placeholders/admin_placeholders.dart';
 import '../../profile/presentation/profile_screen.dart';
 
@@ -20,6 +21,7 @@ class _AdminMainScreenState extends ConsumerState<AdminMainScreen> {
   final List<Widget> _screens = [
     const AdminDashboardScreen(),
     const EmployeeListScreen(),
+    const AdminPaymentsScreen(),
     const BookingsPlaceholder(),
     const ProfileScreen(),
   ];
@@ -54,6 +56,11 @@ class _AdminMainScreenState extends ConsumerState<AdminMainScreen> {
               icon: const Icon(Icons.people_outline),
               activeIcon: const Icon(Icons.people),
               label: context.tr('Employees'),
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.payments_outlined),
+              activeIcon: const Icon(Icons.payments),
+              label: 'Payments',
             ),
             BottomNavigationBarItem(
               icon: const Icon(Icons.calendar_month_outlined),

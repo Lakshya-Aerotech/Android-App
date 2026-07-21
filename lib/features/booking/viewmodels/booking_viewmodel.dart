@@ -185,6 +185,28 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
     }
   }
 
+  Future<void> requestPayment({
+    required String docId,
+    required String method,
+    required double originalAmount,
+    required double finalAmount,
+    double? discountAmount,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.requestPayment(
+        docId: docId,
+        method: method,
+        originalAmount: originalAmount,
+        finalAmount: finalAmount,
+        discountAmount: discountAmount,
+      );
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
   String _generateBookingId() {
     final now = DateTime.now();
     final random = Random().nextInt(9000) + 1000;

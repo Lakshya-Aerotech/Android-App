@@ -19,6 +19,7 @@ import 'package:lakshya_aerotech/features/booking/presentation/book_service/book
 import 'package:lakshya_aerotech/features/booking/presentation/booking_history/my_bookings_screen.dart';
 import 'package:lakshya_aerotech/features/booking/presentation/booking_details/booking_details_screen.dart';
 import 'package:lakshya_aerotech/features/booking/presentation/success/booking_success_screen.dart';
+import 'package:lakshya_aerotech/features/booking/presentation/payment/payment_screen.dart';
 import 'package:lakshya_aerotech/features/booking/models/booking_model.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/admin_main_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/activity/admin_recent_activity_screen.dart';
@@ -29,6 +30,7 @@ import 'package:lakshya_aerotech/features/admin/presentation/external_pilots/ext
 import 'package:lakshya_aerotech/features/admin/presentation/external_pilots/external_pilot_details_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/placeholders/admin_placeholders.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/retailers/retailer_management_screen.dart';
+import 'package:lakshya_aerotech/features/admin/presentation/payments/admin_payments_screen.dart';
 import 'package:lakshya_aerotech/features/pilot/presentation/pilot_dashboard.dart';
 import 'package:lakshya_aerotech/features/pilot_jobs/presentation/job_details/pilot_job_details_screen.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/operations_main_screen.dart';
@@ -163,6 +165,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final booking = state.extra as BookingModel;
           return BookingDetailsScreen(booking: booking);
+        },
+      ),
+      GoRoute(
+        path: '/payment',
+        builder: (context, state) {
+          final booking = state.extra as BookingModel;
+          return PaymentScreen(booking: booking);
         },
       ),
       GoRoute(
@@ -314,6 +323,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'retailers',
             builder: (context, state) => const RetailerManagementScreen(),
+          ),
+          GoRoute(
+            path: 'payments',
+            builder: (context, state) => const AdminPaymentsScreen(),
           ),
           GoRoute(
             path: 'analytics',

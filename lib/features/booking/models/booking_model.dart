@@ -126,6 +126,30 @@ class BookingModel {
   final DateTime? issueReportedAt;
   final DateTime? confirmedAt;
 
+  // Coupon & Payment Details
+  final String? couponCode;
+  final double? couponDiscountAmount;
+  final String? couponDiscountType;
+  final String? retailerName;
+  final double? originalAmount;
+  final double? finalAmount;
+  final String? paymentMethod; // 'Cash' or 'UPI'
+  final String? paymentStatus;
+  final DateTime? paymentRequestedAt;
+  final bool cashCollected;
+  final String? cashCollectedBy;
+  final DateTime? cashCollectedAt;
+  final bool cashDeposited;
+  final String? cashDepositedBy;
+  final DateTime? cashDepositedAt;
+  final bool paymentVerifiedByAdmin;
+  final DateTime? paymentVerifiedAt;
+  final String? verifiedByAdminId;
+  final String? adminRemarks;
+  final bool couponVerified;
+  final String? couponVerifiedBy;
+  final DateTime? couponVerifiedAt;
+
   // Status History Audit Trail
   final List<StatusHistoryEntry> statusHistory;
 
@@ -181,6 +205,28 @@ class BookingModel {
     this.issueDescription,
     this.issueReportedAt,
     this.confirmedAt,
+    this.couponCode,
+    this.couponDiscountAmount,
+    this.couponDiscountType,
+    this.retailerName,
+    this.originalAmount,
+    this.finalAmount,
+    this.paymentMethod,
+    this.paymentStatus,
+    this.paymentRequestedAt,
+    this.cashCollected = false,
+    this.cashCollectedBy,
+    this.cashCollectedAt,
+    this.cashDeposited = false,
+    this.cashDepositedBy,
+    this.cashDepositedAt,
+    this.paymentVerifiedByAdmin = false,
+    this.paymentVerifiedAt,
+    this.verifiedByAdminId,
+    this.adminRemarks,
+    this.couponVerified = false,
+    this.couponVerifiedBy,
+    this.couponVerifiedAt,
     this.statusHistory = const [],
     required this.createdAt,
     required this.updatedAt,
@@ -245,6 +291,38 @@ class BookingModel {
       'confirmedAt': confirmedAt != null
           ? Timestamp.fromDate(confirmedAt!)
           : null,
+      'couponCode': couponCode,
+      'couponDiscountAmount': couponDiscountAmount,
+      'couponDiscountType': couponDiscountType,
+      'retailerName': retailerName,
+      'originalAmount': originalAmount,
+      'finalAmount': finalAmount,
+      'paymentMethod': paymentMethod,
+      'paymentStatus': paymentStatus,
+      'paymentRequestedAt': paymentRequestedAt != null
+          ? Timestamp.fromDate(paymentRequestedAt!)
+          : null,
+      'cashCollected': cashCollected,
+      'cashCollectedBy': cashCollectedBy,
+      'cashCollectedAt': cashCollectedAt != null
+          ? Timestamp.fromDate(cashCollectedAt!)
+          : null,
+      'cashDeposited': cashDeposited,
+      'cashDepositedBy': cashDepositedBy,
+      'cashDepositedAt': cashDepositedAt != null
+          ? Timestamp.fromDate(cashDepositedAt!)
+          : null,
+      'paymentVerifiedByAdmin': paymentVerifiedByAdmin,
+      'paymentVerifiedAt': paymentVerifiedAt != null
+          ? Timestamp.fromDate(paymentVerifiedAt!)
+          : null,
+      'verifiedByAdminId': verifiedByAdminId,
+      'adminRemarks': adminRemarks,
+      'couponVerified': couponVerified,
+      'couponVerifiedBy': couponVerifiedBy,
+      'couponVerifiedAt': couponVerifiedAt != null
+          ? Timestamp.fromDate(couponVerifiedAt!)
+          : null,
       'statusHistory': statusHistory.map((e) => e.toMap()).toList(),
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
@@ -308,6 +386,28 @@ class BookingModel {
       issueDescription: map['issueDescription'],
       issueReportedAt: (map['issueReportedAt'] as Timestamp?)?.toDate(),
       confirmedAt: (map['confirmedAt'] as Timestamp?)?.toDate(),
+      couponCode: map['couponCode'],
+      couponDiscountAmount: (map['couponDiscountAmount'] as num?)?.toDouble(),
+      couponDiscountType: map['couponDiscountType'],
+      retailerName: map['retailerName'],
+      originalAmount: (map['originalAmount'] as num?)?.toDouble(),
+      finalAmount: (map['finalAmount'] as num?)?.toDouble(),
+      paymentMethod: map['paymentMethod'],
+      paymentStatus: map['paymentStatus'],
+      paymentRequestedAt: (map['paymentRequestedAt'] as Timestamp?)?.toDate(),
+      cashCollected: map['cashCollected'] ?? false,
+      cashCollectedBy: map['cashCollectedBy'],
+      cashCollectedAt: (map['cashCollectedAt'] as Timestamp?)?.toDate(),
+      cashDeposited: map['cashDeposited'] ?? false,
+      cashDepositedBy: map['cashDepositedBy'],
+      cashDepositedAt: (map['cashDepositedAt'] as Timestamp?)?.toDate(),
+      paymentVerifiedByAdmin: map['paymentVerifiedByAdmin'] ?? false,
+      paymentVerifiedAt: (map['paymentVerifiedAt'] as Timestamp?)?.toDate(),
+      verifiedByAdminId: map['verifiedByAdminId'],
+      adminRemarks: map['adminRemarks'],
+      couponVerified: map['couponVerified'] ?? false,
+      couponVerifiedBy: map['couponVerifiedBy'],
+      couponVerifiedAt: (map['couponVerifiedAt'] as Timestamp?)?.toDate(),
       statusHistory: (map['statusHistory'] as List? ?? [])
           .map((e) => StatusHistoryEntry.fromMap(e as Map<String, dynamic>))
           .toList(),
@@ -364,6 +464,28 @@ class BookingModel {
     String? issueDescription,
     DateTime? issueReportedAt,
     DateTime? confirmedAt,
+    String? couponCode,
+    double? couponDiscountAmount,
+    String? couponDiscountType,
+    String? retailerName,
+    double? originalAmount,
+    double? finalAmount,
+    String? paymentMethod,
+    String? paymentStatus,
+    DateTime? paymentRequestedAt,
+    bool? cashCollected,
+    String? cashCollectedBy,
+    DateTime? cashCollectedAt,
+    bool? cashDeposited,
+    String? cashDepositedBy,
+    DateTime? cashDepositedAt,
+    bool? paymentVerifiedByAdmin,
+    DateTime? paymentVerifiedAt,
+    String? verifiedByAdminId,
+    String? adminRemarks,
+    bool? couponVerified,
+    String? couponVerifiedBy,
+    DateTime? couponVerifiedAt,
     List<StatusHistoryEntry>? statusHistory,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -417,6 +539,29 @@ class BookingModel {
       issueDescription: issueDescription ?? this.issueDescription,
       issueReportedAt: issueReportedAt ?? this.issueReportedAt,
       confirmedAt: confirmedAt ?? this.confirmedAt,
+      couponCode: couponCode ?? this.couponCode,
+      couponDiscountAmount: couponDiscountAmount ?? this.couponDiscountAmount,
+      couponDiscountType: couponDiscountType ?? this.couponDiscountType,
+      retailerName: retailerName ?? this.retailerName,
+      originalAmount: originalAmount ?? this.originalAmount,
+      finalAmount: finalAmount ?? this.finalAmount,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      paymentRequestedAt: paymentRequestedAt ?? this.paymentRequestedAt,
+      cashCollected: cashCollected ?? this.cashCollected,
+      cashCollectedBy: cashCollectedBy ?? this.cashCollectedBy,
+      cashCollectedAt: cashCollectedAt ?? this.cashCollectedAt,
+      cashDeposited: cashDeposited ?? this.cashDeposited,
+      cashDepositedBy: cashDepositedBy ?? this.cashDepositedBy,
+      cashDepositedAt: cashDepositedAt ?? this.cashDepositedAt,
+      paymentVerifiedByAdmin:
+          paymentVerifiedByAdmin ?? this.paymentVerifiedByAdmin,
+      paymentVerifiedAt: paymentVerifiedAt ?? this.paymentVerifiedAt,
+      verifiedByAdminId: verifiedByAdminId ?? this.verifiedByAdminId,
+      adminRemarks: adminRemarks ?? this.adminRemarks,
+      couponVerified: couponVerified ?? this.couponVerified,
+      couponVerifiedBy: couponVerifiedBy ?? this.couponVerifiedBy,
+      couponVerifiedAt: couponVerifiedAt ?? this.couponVerifiedAt,
       statusHistory: statusHistory ?? this.statusHistory,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

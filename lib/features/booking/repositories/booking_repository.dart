@@ -21,6 +21,13 @@ abstract class BookingRepository {
     String description,
     StatusHistoryEntry historyEntry,
   );
+  Future<void> requestPayment({
+    required String docId,
+    required String method,
+    required double originalAmount,
+    required double finalAmount,
+    double? discountAmount,
+  });
 }
 
 class BookingRepositoryImpl implements BookingRepository {
@@ -229,6 +236,26 @@ class BookingRepositoryImpl implements BookingRepository {
       'issueReportedAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
       'statusHistory': FieldValue.arrayUnion([historyEntry.toMap()]),
+    });
+  }
+
+  @override
+  Future<void> requestPayment({
+    required String docId,
+    required String method,
+    required double originalAmount,
+    required double finalAmount,
+    double? discountAmount,
+  }) async {
+    final status = method == 'Cash' ? 'Pending Cash Collection' : 'Pending Online Payment';
+    await _firestore.collection('bookings').doc(docId).update({
+      'paymentMethod': method,
+      'paymentStatus': status,
+      'originalAmount': originalAmount,
+      'finalAmount': finalAmount,
+      if (discountAmount != null) 'couponDiscountAmount': discountAmount,
+      'paymentRequestedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 }

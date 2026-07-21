@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
@@ -189,6 +190,12 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
                   child: FullBookingTimeline(currentStatus: job.status),
                 ),
 
+                if (job.couponCode != null) ...[
+                  const SizedBox(height: 24),
+                  _buildSectionTitle('Coupon Information'),
+                  _buildCouponCard(job),
+                ],
+
                 const SizedBox(height: 40),
                 _buildActionButtons(job),
                 const SizedBox(height: 40),
@@ -196,6 +203,139 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCouponCard(BookingModel job) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                job.couponCode ?? '',
+                style: AppTextStyles.titleMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+              if (job.couponVerified)
+                const Row(
+                  children: [
+                    Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                    SizedBox(width: 4),
+                    Text(
+                      'Verified',
+                      style: TextStyle(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                const Row(
+                  children: [
+                    Icon(Icons.pending, color: Colors.orange, size: 20),
+                    SizedBox(width: 4),
+                    Text(
+                      'Pending Verification',
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildCouponRow('Retailer', job.retailerName ?? 'N/A'),
+          _buildCouponRow(
+            'Discount',
+            '${job.couponDiscountAmount ?? 0} ${job.couponDiscountType == 'Percentage' ? '%' : 'INR'}',
+          ),
+          const Divider(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Final Amount to Collect'),
+              Text(
+                '₹${job.finalAmount?.toStringAsFixed(2) ?? 'N/A'}',
+                style: AppTextStyles.titleMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          if (!job.couponVerified && job.status == BookingStatus.arrived) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _confirmCouponVerification(job),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Verify Coupon'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCouponRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          Text(
+            value,
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmCouponVerification(BookingModel job) {
+    showDialog(
+      context: context,
+      builder: (context) => ConfirmationDialog(
+        title: 'Verify Coupon',
+        content:
+            'Confirm that the coupon shown in this booking matches the retailer-issued coupon.',
+        confirmLabel: 'Confirm Verification',
+        onConfirm: () {
+          ref
+              .read(pilotJobsViewModelProvider.notifier)
+              .verifyCoupon(job.docId!);
+        },
       ),
     );
   }
@@ -229,11 +369,44 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
           isLoading: isLoading,
         );
       case BookingStatus.arrived:
-        return PrimaryButton(
-          text: 'Start Mission',
-          icon: const Icon(Icons.play_arrow_outlined, color: Colors.white),
-          onPressed: () => notifier.startMission(job.docId!),
-          isLoading: isLoading,
+        final needsVerification = job.couponCode != null && !job.couponVerified;
+        return Column(
+          children: [
+            if (needsVerification)
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Please verify the coupon before starting the mission.',
+                        style: TextStyle(
+                          color: Colors.orange,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            PrimaryButton(
+              text: 'Start Mission',
+              icon: const Icon(Icons.play_arrow_outlined, color: Colors.white),
+              onPressed:
+                  needsVerification
+                      ? null
+                      : () => notifier.startMission(job.docId!),
+              isLoading: isLoading,
+            ),
+          ],
         );
       case BookingStatus.inProgress:
         return PrimaryButton(
@@ -243,16 +416,114 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
           isLoading: isLoading,
         );
       case BookingStatus.completed:
-        return const Center(
-          child: StatusChip(
-            label: 'Mission Completed',
-            backgroundColor: AppColors.success,
-            textColor: Colors.white,
-          ),
-        );
+        return _buildPaymentActions(job, notifier, isLoading);
       default:
         return const SizedBox.shrink();
     }
+  }
+
+  Widget _buildPaymentActions(
+    BookingModel job,
+    PilotJobsViewModel notifier,
+    bool isLoading,
+  ) {
+    if (job.paymentMethod == null) {
+      return PrimaryButton(
+        text: 'Process Payment',
+        icon: const Icon(Icons.payment, color: Colors.white),
+        onPressed: () => context.push('/payment', extra: job),
+        isLoading: isLoading,
+      );
+    }
+
+    if (job.paymentMethod == 'Cash') {
+      if (!job.cashCollected) {
+        return PrimaryButton(
+          text: 'Collect Cash',
+          icon: const Icon(Icons.money, color: Colors.white),
+          onPressed: () => _confirmCashCollection(job),
+          isLoading: isLoading,
+        );
+      }
+
+      if (!job.cashDeposited) {
+        return PrimaryButton(
+          text: 'Mark as Deposited',
+          icon: const Icon(Icons.account_balance, color: Colors.white),
+          onPressed: () => _confirmCashDeposit(job),
+          isLoading: isLoading,
+        );
+      }
+
+      return Center(
+        child: Column(
+          children: [
+            StatusChip(
+              label: job.paymentVerifiedByAdmin ? 'Paid' : 'Awaiting Confirmation',
+              backgroundColor:
+                  job.paymentVerifiedByAdmin
+                      ? AppColors.success
+                      : Colors.orange,
+              textColor: Colors.white,
+            ),
+            if (job.paymentStatus == 'Deposit Rejected') ...[
+              const SizedBox(height: 8),
+              Text(
+                'Rejected: ${job.adminRemarks ?? 'No remarks'}',
+                style: const TextStyle(color: Colors.red, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => _confirmCashDeposit(job),
+                child: const Text('Retry Deposit'),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    if (job.paymentMethod == 'UPI') {
+      return Center(
+        child: StatusChip(
+          label: job.paymentStatus ?? 'Pending Payment',
+          backgroundColor: Colors.blue,
+          textColor: Colors.white,
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  void _confirmCashCollection(BookingModel job) {
+    showDialog(
+      context: context,
+      builder: (context) => ConfirmationDialog(
+        title: 'Collect Cash',
+        content: 'Confirm that you have received the cash payment of ₹${job.finalAmount?.toStringAsFixed(2) ?? ''} from the farmer.',
+        confirmLabel: 'Confirm Collection',
+        onConfirm: () {
+          ref.read(pilotJobsViewModelProvider.notifier).collectCash(job.docId!);
+        },
+      ),
+    );
+  }
+
+  void _confirmCashDeposit(BookingModel job) {
+    showDialog(
+      context: context,
+      builder: (context) => ConfirmationDialog(
+        title: 'Deposit Cash',
+        content: 'Confirm that you have deposited the collected cash of ₹${job.finalAmount?.toStringAsFixed(2) ?? ''} to the office.',
+        confirmLabel: 'Confirm Deposit',
+        onConfirm: () {
+          ref
+              .read(pilotJobsViewModelProvider.notifier)
+              .markCashDeposited(job.docId!);
+        },
+      ),
+    );
   }
 
   Widget _buildHeaderCard(BookingModel job) {

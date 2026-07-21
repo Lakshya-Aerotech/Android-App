@@ -6,6 +6,8 @@ import '../../../shared/repositories/activity_repository.dart';
 import '../models/admin_statistic.dart';
 import '../repositories/admin_repository.dart';
 import '../../auth/models/user_model.dart';
+import '../../auth/viewmodel/auth_viewmodel.dart';
+import '../../booking/models/booking_model.dart';
 
 final adminRepositoryProvider = Provider<AdminRepository>((ref) {
   return AdminRepositoryImpl();
@@ -23,9 +25,21 @@ final externalPilotsStreamProvider = StreamProvider<List<UserModel>>((ref) {
   return ref.watch(adminRepositoryProvider).getExternalPilotsStream();
 });
 
-final adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((
-  ref,
-) {
+final bookingsAwaitingConfirmationProvider = StreamProvider<List<BookingModel>>((ref) {
+  return ref.watch(adminRepositoryProvider).getBookingsByPaymentStatus(['Awaiting Admin Confirmation']);
+});
+
+final allPaymentsStreamProvider = StreamProvider<List<BookingModel>>((ref) {
+  return FirebaseFirestore.instance
+      .collection('bookings')
+      .where('paymentStatus', isNull: false)
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+          .map((doc) => BookingModel.fromMap(doc.data(), doc.id))
+          .toList());
+});
+
+final adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((ref, ) {
   final repository = ref.watch(adminRepositoryProvider);
   return repository.getDashboardStats().map((stats) {
     return [
@@ -93,8 +107,9 @@ final allActivitiesStreamProvider = StreamProvider<List<ActivityModel>>((ref) {
 
 class AdminViewModel extends StateNotifier<AsyncValue<void>> {
   final AdminRepository _repository;
+  final Ref _ref;
 
-  AdminViewModel(this._repository) : super(const AsyncValue.data(null));
+  AdminViewModel(this._repository, this._ref) : super(const AsyncValue.data(null));
 
   Future<String?> createEmployee({
     required String name,
@@ -259,6 +274,28 @@ class AdminViewModel extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  Future<void> confirmPayment(String docId) async {
+    state = const AsyncValue.loading();
+    final user = _ref.read(userModelProvider);
+    try {
+      await _repository.confirmPaymentDeposit(docId, user?.uid ?? 'admin');
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<void> rejectPayment(String docId, String remarks) async {
+    state = const AsyncValue.loading();
+    final user = _ref.read(userModelProvider);
+    try {
+      await _repository.rejectPaymentDeposit(docId, user?.uid ?? 'admin', remarks);
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
   String _friendlyError(Object error) {
     if (error is FirebaseException) {
       switch (error.code) {
@@ -283,5 +320,5 @@ class AdminViewModel extends StateNotifier<AsyncValue<void>> {
 
 final adminViewModelProvider =
     StateNotifierProvider<AdminViewModel, AsyncValue<void>>((ref) {
-      return AdminViewModel(ref.watch(adminRepositoryProvider));
+      return AdminViewModel(ref.watch(adminRepositoryProvider), ref);
     });

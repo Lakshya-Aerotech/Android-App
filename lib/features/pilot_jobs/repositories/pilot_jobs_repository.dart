@@ -29,6 +29,9 @@ abstract class PilotJobsRepository {
   });
   Stream<BookingModel> getJobStream(String bookingDocId);
   Future<double> getAverageRating(String pilotId);
+  Future<void> verifyCoupon(String docId, String pilotId);
+  Future<void> collectCash(String docId, String pilotId);
+  Future<void> markCashDeposited(String docId, String pilotId);
 }
 
 class PilotJobsRepositoryImpl implements PilotJobsRepository {
@@ -250,6 +253,38 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
     }
 
     return count > 0 ? total / count : 0.0;
+  }
+
+  @override
+  Future<void> verifyCoupon(String docId, String pilotId) async {
+    await _firestore.collection('bookings').doc(docId).update({
+      'couponVerified': true,
+      'couponVerifiedBy': pilotId,
+      'couponVerifiedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  @override
+  Future<void> collectCash(String docId, String pilotId) async {
+    await _firestore.collection('bookings').doc(docId).update({
+      'cashCollected': true,
+      'cashCollectedBy': pilotId,
+      'cashCollectedAt': FieldValue.serverTimestamp(),
+      'paymentStatus': 'Cash Collected by Pilot',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  @override
+  Future<void> markCashDeposited(String docId, String pilotId) async {
+    await _firestore.collection('bookings').doc(docId).update({
+      'cashDeposited': true,
+      'cashDepositedBy': pilotId,
+      'cashDepositedAt': FieldValue.serverTimestamp(),
+      'paymentStatus': 'Awaiting Admin Confirmation',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   Future<BookingModel?> _bookingSnapshot(String bookingDocId) async {

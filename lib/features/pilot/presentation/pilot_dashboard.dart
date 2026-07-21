@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/app_spacing.dart';
@@ -8,7 +9,9 @@ import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/section_header.dart';
+import '../../../core/widgets/confirmation_dialog.dart';
 import '../../auth/viewmodel/auth_viewmodel.dart';
+import '../../booking/models/booking_model.dart';
 import '../widgets/pilot_home_header.dart';
 import '../../profile/presentation/profile_screen.dart';
 import '../../pilot_jobs/viewmodels/pilot_jobs_viewmodel.dart';
@@ -188,6 +191,11 @@ class _PilotHomeContent extends ConsumerWidget {
                 },
 
                 AppSpacing.verticalXl,
+                _SectionTitle(title: 'Cash Collection'),
+                AppSpacing.verticalMd,
+                _buildCashCollectionSection(ref),
+
+                AppSpacing.verticalXl,
                 _SectionTitle(title: context.tr('Overall Pilot Stats')),
                 AppSpacing.verticalMd,
                 Container(
@@ -222,6 +230,95 @@ class _PilotHomeContent extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCashCollectionSection(WidgetRef ref) {
+    final cashJobsAsync = ref.watch(pilotCashCollectionProvider);
+
+    return switch (cashJobsAsync) {
+      AsyncData(:final value) =>
+        value.isEmpty
+            ? Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+              ),
+              child: const Text('No cash pending deposit.'),
+            )
+            : Column(
+              children: value
+                  .map(
+                    (job) => _CashCollectionCard(job: job),
+                  )
+                  .toList(),
+            ),
+      AsyncError(:final error) => Text('Error: $error'),
+      _ => const LinearProgressIndicator(),
+    };
+  }
+}
+
+class _CashCollectionCard extends ConsumerWidget {
+  final BookingModel job;
+  const _CashCollectionCard({required this.job});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(job.bookingId, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                '₹${job.finalAmount?.toStringAsFixed(2) ?? '0.00'}',
+                style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text('Farmer: ${job.farmerName ?? 'N/A'}', style: AppTextStyles.bodySmall),
+          if (job.cashCollectedAt != null)
+            Text('Collected: ${DateFormat('dd MMM, hh:mm a').format(job.cashCollectedAt!)}', style: AppTextStyles.bodySmall),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => _confirmDeposit(context, ref),
+              style: OutlinedButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Mark as Deposited'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeposit(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => ConfirmationDialog(
+        title: 'Mark as Deposited',
+        content: 'Confirm that you have deposited ₹${job.finalAmount?.toStringAsFixed(2)} to the office.',
+        confirmLabel: 'Confirm',
+        onConfirm: () {
+          ref.read(pilotJobsViewModelProvider.notifier).markCashDeposited(job.docId!);
+        },
       ),
     );
   }
