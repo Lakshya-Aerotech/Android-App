@@ -190,7 +190,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
                   child: FullBookingTimeline(currentStatus: job.status),
                 ),
 
-                if (job.couponCode != null) ...[
+                if (job.hasCoupon) ...[
                   const SizedBox(height: 24),
                   _buildSectionTitle('Coupon Information'),
                   _buildCouponCard(job),
@@ -208,6 +208,10 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
   }
 
   Widget _buildCouponCard(BookingModel job) {
+    final bool isVerified = job.couponVerified;
+    final String status = job.couponVerificationStatus ?? 'Pending Verification';
+    final Color statusColor = isVerified ? AppColors.success : Colors.orange;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -228,57 +232,60 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
                   color: AppColors.primary,
                 ),
               ),
-              if (job.couponVerified)
-                const Row(
-                  children: [
-                    Icon(Icons.check_circle, color: AppColors.success, size: 20),
-                    SizedBox(width: 4),
-                    Text(
-                      'Verified',
-                      style: TextStyle(
-                        color: AppColors.success,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                )
-              else
-                const Row(
-                  children: [
-                    Icon(Icons.pending, color: Colors.orange, size: 20),
-                    SizedBox(width: 4),
-                    Text(
-                      'Pending Verification',
-                      style: TextStyle(
-                        color: Colors.orange,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
                 ),
+                child: Text(
+                  status,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
           _buildCouponRow('Retailer', job.retailerName ?? 'N/A'),
           _buildCouponRow(
-            'Discount',
-            '${job.couponDiscountValue ?? 0} ${job.couponDiscountType == 'percentage' ? '%' : 'INR'}',
+            'Discount Type',
+            job.couponDiscountType?.toUpperCase() ?? 'N/A',
           ),
-          const Divider(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Final Amount to Collect'),
-              Text(
-                '₹${job.payableAmount?.toStringAsFixed(2) ?? 'N/A'}',
-                style: AppTextStyles.titleMedium.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
+          _buildCouponRow(
+            'Discount Value',
+            job.couponDiscountValue?.toString() ?? '0',
+          ),
+          const Divider(height: 20),
+          _buildCouponRow(
+            'Original Amount',
+            '₹${job.originalAmount?.toStringAsFixed(2) ?? '0.00'}',
+          ),
+          _buildCouponRow(
+            'Discount Amount',
+            '- ₹${job.discountAmount?.toStringAsFixed(2) ?? '0.00'}',
+            valueColor: AppColors.success,
+          ),
+          _buildCouponRow(
+            'Final Amount',
+            '₹${job.payableAmount?.toStringAsFixed(2) ?? '0.00'}',
+            isBold: true,
+          ),
+          
+          if (isVerified) ...[
+            const Divider(height: 20),
+            _buildCouponRow('Verified By', job.couponVerifiedBy ?? 'N/A'),
+            if (job.couponVerifiedAt != null)
+              _buildCouponRow(
+                'Verified At',
+                DateFormat('dd MMM yyyy, hh:mm a').format(job.couponVerifiedAt!),
               ),
-            ],
-          ),
-          if (!job.couponVerified && job.status == BookingStatus.arrived) ...[
+          ],
+
+          if (!isVerified && job.status == BookingStatus.arrived) ...[
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -300,7 +307,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
     );
   }
 
-  Widget _buildCouponRow(String label, String value) {
+  Widget _buildCouponRow(String label, String value, {Color? valueColor, bool isBold = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
@@ -315,7 +322,8 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
           Text(
             value,
             style: AppTextStyles.bodyMedium.copyWith(
-              fontWeight: FontWeight.w600,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+              color: valueColor,
             ),
           ),
         ],
@@ -329,8 +337,8 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
       builder: (context) => ConfirmationDialog(
         title: 'Verify Coupon',
         content:
-            'Confirm that the coupon shown in this booking matches the retailer-issued coupon.',
-        confirmLabel: 'Confirm Verification',
+            'Please confirm that the coupon shown in this booking matches the retailer-issued coupon presented at the farm.',
+        confirmLabel: 'Verify',
         onConfirm: () {
           ref
               .read(pilotJobsViewModelProvider.notifier)
@@ -369,7 +377,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
           isLoading: isLoading,
         );
       case BookingStatus.arrived:
-        final needsVerification = job.couponCode != null && !job.couponVerified;
+        final needsVerification = job.hasCoupon && !job.couponVerified;
         return Column(
           children: [
             if (needsVerification)

@@ -637,13 +637,11 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
                     final serviceMatch =
                         c.eligibleService.trim().toLowerCase() ==
                             _selectedService.trim().toLowerCase();
-                    final retailerMatch =
-                        c.assignedRetailerIds.isEmpty ||
-                            (user != null &&
-                                (c.assignedRetailerIds.contains(user.uid) ||
-                                    c.assignedRetailerIds.contains(
-                                      user.docId,
-                                    )));
+                    
+                    final retailerMatch = c.assignedRetailerIds.isEmpty ||
+                        (user != null &&
+                            (c.assignedRetailerIds.any((id) => id.trim() == user.uid?.trim()) ||
+                             c.assignedRetailerIds.any((id) => id.trim() == user.docId?.trim())));
 
                     return c.isActive &&
                         !isExpired &&
@@ -901,9 +899,11 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
     }
 
     if (user != null && user.role == UserRole.retailer) {
-      if (foundCoupon.assignedRetailerIds.isNotEmpty &&
-          !foundCoupon.assignedRetailerIds.contains(user.uid) &&
-          !foundCoupon.assignedRetailerIds.contains(user.docId)) {
+      final isAssigned = foundCoupon.assignedRetailerIds.isEmpty ||
+          foundCoupon.assignedRetailerIds.any((id) => id.trim() == user.uid?.trim()) ||
+          foundCoupon.assignedRetailerIds.any((id) => id.trim() == user.docId?.trim());
+      
+      if (!isAssigned) {
         setState(() {
           _couponError = 'Not assigned to this retailer';
         });

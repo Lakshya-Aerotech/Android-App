@@ -257,11 +257,32 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
 
   @override
   Future<void> verifyCoupon(String docId, String pilotId) async {
-    await _firestore.collection('bookings').doc(docId).update({
-      'couponVerified': true,
-      'couponVerifiedBy': pilotId,
-      'couponVerifiedAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
+    final docRef = _firestore.collection('bookings').doc(docId);
+
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(docRef);
+      if (!snapshot.exists) throw Exception('Booking not found');
+
+      final data = snapshot.data()!;
+      final status = data['status'];
+      final isVerified = data['couponVerified'] ?? false;
+      final assignedPilotId = data['assignedPilotId'];
+
+      if (status == 'cancelled') {
+        throw Exception('Cannot verify coupon for a cancelled booking');
+      }
+      if (isVerified) throw Exception('Coupon is already verified');
+      if (assignedPilotId != pilotId) {
+        throw Exception('Only the assigned pilot can verify the coupon');
+      }
+
+      transaction.update(docRef, {
+        'couponVerified': true,
+        'couponVerificationStatus': 'Verified',
+        'couponVerifiedBy': data['assignedPilotName'] ?? pilotId,
+        'couponVerifiedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     });
   }
 

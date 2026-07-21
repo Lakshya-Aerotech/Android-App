@@ -38,9 +38,10 @@ class RetailerCouponsScreen extends ConsumerWidget {
                       couponRegion == 'any' ||
                       couponRegion == userState;
 
+                  // Trim all IDs in the list for robust comparison
                   final retailerMatch = coupon.assignedRetailerIds.isEmpty ||
-                      coupon.assignedRetailerIds.contains(user.uid) ||
-                      coupon.assignedRetailerIds.contains(user.docId);
+                      coupon.assignedRetailerIds.any((id) => id.trim() == user.uid?.trim()) ||
+                      coupon.assignedRetailerIds.any((id) => id.trim() == user.docId?.trim());
 
                   return regionMatch && retailerMatch;
                 }).toList();

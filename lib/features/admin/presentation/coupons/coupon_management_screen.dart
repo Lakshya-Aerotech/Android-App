@@ -242,6 +242,14 @@ class _CouponFormScreenState extends ConsumerState<_CouponFormScreen> {
   final Set<String> _selectedRetailerIds = {};
   final Map<String, String> _selectedRetailerNames = {};
 
+  String _selectedService = 'Pesticide Spraying';
+  static const List<String> _serviceTypes = [
+    'Pesticide Spraying',
+    'Crop Monitoring',
+    'Seed Sowing',
+    'Other',
+  ];
+
   CouponDiscountType _discountType = CouponDiscountType.percentage;
   DateTime? _validFrom;
   DateTime? _validUntil;
@@ -253,14 +261,24 @@ class _CouponFormScreenState extends ConsumerState<_CouponFormScreen> {
   void initState() {
     super.initState();
     final coupon = widget.existingCoupon;
-    if (coupon == null) return;
+    if (coupon == null) {
+      _eligibleServiceController.text = _selectedService;
+      return;
+    }
 
     _codeController.text = coupon.couponCode;
     _discountType = coupon.discountType;
     _discountValueController.text = _formatNumber(coupon.discountValue);
     _maximumUsageController.text = coupon.maximumUsage.toString();
     _remainingUsageController.text = coupon.remainingUsage.toString();
+    
+    if (_serviceTypes.contains(coupon.eligibleService)) {
+      _selectedService = coupon.eligibleService;
+    } else {
+      _selectedService = 'Other';
+    }
     _eligibleServiceController.text = coupon.eligibleService;
+    
     _applicableRegionController.text = coupon.applicableRegion;
     _selectedRetailerIds.addAll(coupon.assignedRetailerIds);
     for (var i = 0; i < coupon.assignedRetailerIds.length; i++) {
@@ -297,6 +315,9 @@ class _CouponFormScreenState extends ConsumerState<_CouponFormScreen> {
       return;
     }
 
+    final service = _selectedService == 'Other' 
+        ? _eligibleServiceController.text.trim() 
+        : _selectedService;
 
     final coupon = CouponModel(
       docId: widget.existingCoupon?.docId,
@@ -307,7 +328,7 @@ class _CouponFormScreenState extends ConsumerState<_CouponFormScreen> {
       validUntil: _validUntil!,
       maximumUsage: int.parse(_maximumUsageController.text.trim()),
       remainingUsage: int.parse(_remainingUsageController.text.trim()),
-      eligibleService: _eligibleServiceController.text.trim(),
+      eligibleService: service,
       applicableRegion: _applicableRegionController.text.trim(),
       assignedRetailerIds: _selectedRetailerIds.toList(),
       assignedRetailerNames: _selectedRetailerIds
@@ -436,20 +457,40 @@ class _CouponFormScreenState extends ConsumerState<_CouponFormScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              CustomTextField(
-                label: 'Eligible Service',
-                hintText: 'e.g. Drone Spraying',
-                controller: _eligibleServiceController,
-                validator: (value) =>
-                    value == null || value.trim().isEmpty ? 'Required' : null,
+              Text(
+                context.tr('Eligible Service'),
+                style: AppTextStyles.labelLarge,
               ),
+              const SizedBox(height: 8),
+              _buildDropdown<String>(
+                value: _selectedService,
+                items: _serviceTypes,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedService = value!;
+                    if (value != 'Other') {
+                      _eligibleServiceController.text = value;
+                    }
+                  });
+                },
+                labelBuilder: (value) => value,
+              ),
+              if (_selectedService == 'Other') ...[
+                const SizedBox(height: 8),
+                CustomTextField(
+                  label: 'Custom Service Name',
+                  hintText: 'Enter service name',
+                  controller: _eligibleServiceController,
+                  validator: (value) =>
+                      value == null || value.trim().isEmpty ? 'Required' : null,
+                ),
+              ],
               const SizedBox(height: 16),
               CustomTextField(
                 label: 'Applicable Region',
-                hintText: 'e.g. Telangana',
+                hintText: 'e.g. Telangana (leave empty for All)',
                 controller: _applicableRegionController,
-                validator: (value) =>
-                    value == null || value.trim().isEmpty ? 'Required' : null,
+                // Removed validator to allow empty for global
               ),
               const SizedBox(height: 16),
               Text(

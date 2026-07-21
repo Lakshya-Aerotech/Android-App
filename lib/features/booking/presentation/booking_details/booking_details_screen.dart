@@ -77,6 +77,13 @@ class BookingDetailsScreen extends ConsumerWidget {
             const SizedBox(height: 24),
           ],
 
+          if (b.hasCoupon) ...[
+            Text('Coupon & Verification', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            _buildCouponVerificationCard(b),
+            const SizedBox(height: 24),
+          ],
+
           Text('Farm & Service', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           BookingSummaryCard(
@@ -289,6 +296,34 @@ class BookingDetailsScreen extends ConsumerWidget {
               color: valueColor,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCouponVerificationCard(BookingModel b) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        children: [
+          _buildPaymentRow('Coupon Code', b.couponCode!),
+          _buildPaymentRow('Retailer', b.retailerName ?? 'N/A'),
+          _buildPaymentRow(
+            'Verification Status', 
+            b.couponVerificationStatus ?? 'Pending Verification',
+            valueColor: b.couponVerified ? AppColors.success : Colors.orange,
+          ),
+          if (b.couponVerified) ...[
+            _buildPaymentRow(
+              'Verified At', 
+              b.couponVerifiedAt != null ? DateFormat('dd MMM yyyy, hh:mm a').format(b.couponVerifiedAt!) : 'N/A',
+            ),
+          ],
         ],
       ),
     );

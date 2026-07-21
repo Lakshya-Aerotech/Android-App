@@ -220,6 +220,22 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
                   ),
                 ],
 
+                if (booking.hasCoupon) ...[
+                  const SizedBox(height: 24),
+                  _buildSectionTitle('Coupon & Verification'),
+                  _buildInfoCard(
+                    items: [
+                      {'label': 'Coupon Code', 'value': booking.couponCode!, 'icon': Icons.local_offer_outlined},
+                      {'label': 'Retailer', 'value': booking.retailerName ?? 'N/A', 'icon': Icons.storefront_outlined},
+                      {'label': 'Verification Status', 'value': booking.couponVerificationStatus ?? 'Pending Verification', 'icon': Icons.verified_user_outlined},
+                      if (booking.couponVerified) ...[
+                        {'label': 'Verified By', 'value': booking.couponVerifiedBy ?? 'N/A', 'icon': Icons.person_outline},
+                        {'label': 'Verified At', 'value': booking.couponVerifiedAt != null ? DateFormat('dd MMM yyyy, hh:mm a').format(booking.couponVerifiedAt!) : 'N/A', 'icon': Icons.access_time},
+                      ],
+                    ],
+                  ),
+                ],
+
                 const SizedBox(height: 24),
                 _buildSectionTitle('Booking Timeline'),
                 Container(

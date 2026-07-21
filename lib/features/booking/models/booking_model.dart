@@ -120,6 +120,7 @@ class BookingModel {
   final String? verifiedByAdminId;
   final String? adminRemarks;
   final bool couponVerified;
+  final String? couponVerificationStatus;
   final String? couponVerifiedBy;
   final DateTime? couponVerifiedAt;
 
@@ -158,6 +159,8 @@ class BookingModel {
   // Timestamps
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  bool get hasCoupon => couponCode != null && couponCode!.isNotEmpty;
 
   BookingModel({
     this.docId,
@@ -206,6 +209,7 @@ class BookingModel {
     this.verifiedByAdminId,
     this.adminRemarks,
     this.couponVerified = false,
+    this.couponVerificationStatus,
     this.couponVerifiedBy,
     this.couponVerifiedAt,
     this.operationsRemarks = const [],
@@ -283,6 +287,7 @@ class BookingModel {
       'verifiedByAdminId': verifiedByAdminId,
       'adminRemarks': adminRemarks,
       'couponVerified': couponVerified,
+      'couponVerificationStatus': couponVerificationStatus,
       'couponVerifiedBy': couponVerifiedBy,
       'couponVerifiedAt': couponVerifiedAt != null ? Timestamp.fromDate(couponVerifiedAt!) : null,
       'operationsRemarks': operationsRemarks.map((e) => e.toMap()).toList(),
@@ -363,6 +368,7 @@ class BookingModel {
       verifiedByAdminId: map['verifiedByAdminId'],
       adminRemarks: map['adminRemarks'],
       couponVerified: map['couponVerified'] ?? false,
+      couponVerificationStatus: map['couponVerificationStatus'],
       couponVerifiedBy: map['couponVerifiedBy'],
       couponVerifiedAt: (map['couponVerifiedAt'] as Timestamp?)?.toDate(),
       operationsRemarks: (map['operationsRemarks'] as List? ?? [])
@@ -445,6 +451,7 @@ class BookingModel {
     String? verifiedByAdminId,
     String? adminRemarks,
     bool? couponVerified,
+    String? couponVerificationStatus,
     String? couponVerifiedBy,
     DateTime? couponVerifiedAt,
     List<OperationsRemark>? operationsRemarks,
@@ -521,6 +528,7 @@ class BookingModel {
       verifiedByAdminId: verifiedByAdminId ?? this.verifiedByAdminId,
       adminRemarks: adminRemarks ?? this.adminRemarks,
       couponVerified: couponVerified ?? this.couponVerified,
+      couponVerificationStatus: couponVerificationStatus ?? this.couponVerificationStatus,
       couponVerifiedBy: couponVerifiedBy ?? this.couponVerifiedBy,
       couponVerifiedAt: couponVerifiedAt ?? this.couponVerifiedAt,
       operationsRemarks: operationsRemarks ?? this.operationsRemarks,
