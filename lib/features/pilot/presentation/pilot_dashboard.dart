@@ -284,7 +284,7 @@ class _CashCollectionCard extends ConsumerWidget {
             children: [
               Text(job.bookingId, style: const TextStyle(fontWeight: FontWeight.bold)),
               Text(
-                '₹${job.finalAmount?.toStringAsFixed(2) ?? '0.00'}',
+                '₹${job.payableAmount?.toStringAsFixed(2) ?? '0.00'}',
                 style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
               ),
             ],
@@ -314,7 +314,7 @@ class _CashCollectionCard extends ConsumerWidget {
       context: context,
       builder: (context) => ConfirmationDialog(
         title: 'Mark as Deposited',
-        content: 'Confirm that you have deposited ₹${job.finalAmount?.toStringAsFixed(2)} to the office.',
+        content: 'Confirm that you have deposited ₹${job.payableAmount?.toStringAsFixed(2)} to the office.',
         confirmLabel: 'Confirm',
         onConfirm: () {
           ref.read(pilotJobsViewModelProvider.notifier).markCashDeposited(job.docId!);

@@ -63,6 +63,13 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
     required double? longitude,
     String? remarks,
     UserModel? farmerOverride,
+    String? couponId,
+    String? couponCode,
+    String? couponDiscountType,
+    double? couponDiscountValue,
+    double? originalAmount,
+    double? discountAmount,
+    double? payableAmount,
   }) async {
     state = const AsyncLoading();
     final user = _ref.read(userModelProvider);
@@ -101,6 +108,13 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
       estimatedArea: estimatedArea,
       status: BookingStatus.pending,
       remarks: remarks,
+      couponId: couponId,
+      couponCode: couponCode,
+      couponDiscountType: couponDiscountType,
+      couponDiscountValue: couponDiscountValue,
+      originalAmount: originalAmount,
+      discountAmount: discountAmount,
+      payableAmount: payableAmount,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );

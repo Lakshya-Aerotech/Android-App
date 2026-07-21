@@ -24,16 +24,16 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     final b = widget.booking;
     final originalAmount = b.originalAmount ?? (b.actualAreaCovered ?? b.estimatedArea) * _pricePerAcre;
     
-    double discount = 0;
-    if (b.couponCode != null) {
-      if (b.couponDiscountType == 'Percentage') {
-        discount = originalAmount * (b.couponDiscountAmount ?? 0) / 100;
+    double discount = b.discountAmount ?? 0;
+    if (discount == 0 && b.couponCode != null) {
+      if (b.couponDiscountType == 'percentage') {
+        discount = originalAmount * (b.couponDiscountValue ?? 0) / 100;
       } else {
-        discount = b.couponDiscountAmount ?? 0;
+        discount = b.couponDiscountValue ?? 0;
       }
     }
     
-    final finalAmount = originalAmount - discount;
+    final payableAmount = b.payableAmount ?? (originalAmount - discount);
 
     return Scaffold(
       appBar: AppBar(
@@ -49,7 +49,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           children: [
             Text('Booking Summary', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            _buildSummaryCard(originalAmount, discount, finalAmount),
+            _buildSummaryCard(originalAmount, discount, payableAmount),
             const SizedBox(height: 32),
             Text('Select Payment Method', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
@@ -69,7 +69,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             const SizedBox(height: 48),
             PrimaryButton(
               text: 'Continue',
-              onPressed: _selectedMethod == null ? null : () => _handlePayment(originalAmount, finalAmount, discount),
+              onPressed: _selectedMethod == null ? null : () => _handlePayment(originalAmount, payableAmount, discount),
             ),
           ],
         ),

@@ -18,7 +18,8 @@ class AppLocalizations {
 
   String t(String key) {
     final languageCode = locale.languageCode;
-    return _additionalLocalizedValues[languageCode]?[key] ??
+    return _couponLocalizedValues[languageCode]?[key] ??
+        _additionalLocalizedValues[languageCode]?[key] ??
         _localizedValues[languageCode]?[key] ??
         _localizedValues['en']?[key] ??
         key;
@@ -58,6 +59,55 @@ class _AppLocalizationsDelegate
 }
 
 const Map<String, Map<String, String>> _additionalLocalizedValues = {
+  'en': {
+    'Coupon Management': 'Coupon Management',
+    'Create and manage retailer coupons': 'Create and manage retailer coupons',
+    'Create Coupon': 'Create Coupon',
+    'Edit Coupon': 'Edit Coupon',
+    'Update Coupon': 'Update Coupon',
+    'No coupons found': 'No coupons found',
+    'Coupon Code': 'Coupon Code',
+    'e.g. SPRAY10': 'e.g. SPRAY10',
+    'Discount Type': 'Discount Type',
+    'Percentage': 'Percentage',
+    'Fixed': 'Fixed',
+    'Discount Value': 'Discount Value',
+    'Valid From': 'Valid From',
+    'Valid Until': 'Valid Until',
+    'Maximum Usage': 'Maximum Usage',
+    'Remaining Usage': 'Remaining Usage',
+    'Eligible Service': 'Eligible Service',
+    'e.g. Drone Spraying': 'e.g. Drone Spraying',
+    'Applicable Region': 'Applicable Region',
+    'e.g. Telangana': 'e.g. Telangana',
+    'Assigned Retailers': 'Assigned Retailers',
+    'Active Status': 'Active Status',
+    'Select Date': 'Select Date',
+    'Discount': 'Discount',
+    'Usage': 'Usage',
+    'Active': 'Active',
+    'Inactive': 'Inactive',
+    'Activate': 'Activate',
+    'Deactivate': 'Deactivate',
+    'Edit': 'Edit',
+    'Delete': 'Delete',
+    'Delete Coupon': 'Delete Coupon',
+    'Are you sure you want to delete this coupon?':
+        'Are you sure you want to delete this coupon?',
+    'Coupon code already exists.': 'Coupon code already exists.',
+    'Please select valid dates.': 'Please select valid dates.',
+    'Valid until must be after valid from.':
+        'Valid until must be after valid from.',
+    'Please assign at least one retailer.':
+        'Please assign at least one retailer.',
+    'Must be greater than 0': 'Must be greater than 0',
+    'Remaining usage cannot exceed maximum usage':
+        'Remaining usage cannot exceed maximum usage',
+    'Coupon created successfully': 'Coupon created successfully',
+    'Coupon updated successfully': 'Coupon updated successfully',
+    'Percentage discount cannot exceed 100%':
+        'Percentage discount cannot exceed 100%',
+  },
   'te': {
     'Hello': 'హలో',
     'Good Morning!': 'శుభోదయం!',
@@ -135,6 +185,59 @@ const Map<String, Map<String, String>> _additionalLocalizedValues = {
         'బుకింగ్ రికార్డులతో చెల్లింపు స్థితి కనిపిస్తుంది.',
     'Retailer notifications are delivered by the app.':
         'రిటైలర్ నోటిఫికేషన్లు యాప్ ద్వారా అందించబడతాయి.',
+  },
+};
+
+const Map<String, Map<String, String>> _couponLocalizedValues = {
+  'te': {
+    'Coupon Management': 'కూపన్ నిర్వహణ',
+    'Create and manage retailer coupons':
+        'రిటైలర్ కూపన్లను సృష్టించి నిర్వహించండి',
+    'Create Coupon': 'కూపన్ సృష్టించండి',
+    'Edit Coupon': 'కూపన్ సవరించండి',
+    'Update Coupon': 'కూపన్ నవీకరించండి',
+    'No coupons found': 'కూపన్లు కనబడలేదు',
+    'Coupon Code': 'కూపన్ కోడ్',
+    'e.g. SPRAY10': 'ఉదా. SPRAY10',
+    'Discount Type': 'డిస్కౌంట్ రకం',
+    'Percentage': 'శాతం',
+    'Fixed': 'నిర్దిష్టం',
+    'Discount Value': 'డిస్కౌంట్ విలువ',
+    'Valid From': 'చెల్లుబాటు ప్రారంభం',
+    'Valid Until': 'చెల్లుబాటు ముగింపు',
+    'Maximum Usage': 'గరిష్ఠ వినియోగం',
+    'Remaining Usage': 'మిగిలిన వినియోగం',
+    'Eligible Service': 'అర్హమైన సేవ',
+    'e.g. Drone Spraying': 'ఉదా. డ్రోన్ స్ప్రేయింగ్',
+    'Applicable Region': 'వర్తించే ప్రాంతం',
+    'e.g. Telangana': 'ఉదా. తెలంగాణ',
+    'Assigned Retailers': 'కేటాయించిన రిటైలర్లు',
+    'Active Status': 'సక్రియ స్థితి',
+    'Select Date': 'తేదీ ఎంచుకోండి',
+    'Discount': 'డిస్కౌంట్',
+    'Usage': 'వినియోగం',
+    'Active': 'సక్రియం',
+    'Inactive': 'నిష్క్రియం',
+    'Activate': 'సక్రియం చేయి',
+    'Deactivate': 'నిష్క్రియం చేయి',
+    'Edit': 'సవరించు',
+    'Delete': 'తొలగించు',
+    'Delete Coupon': 'కూపన్ తొలగించు',
+    'Are you sure you want to delete this coupon?':
+        'మీరు ఈ కూపన్‌ను ఖచ్చితంగా తొలగించాలనుకుంటున్నారా?',
+    'Coupon code already exists.': 'కూపన్ కోడ్ ఇప్పటికే ఉంది.',
+    'Please select valid dates.': 'దయచేసి చెల్లుబాటు అయ్యే తేదీలను ఎంచుకోండి.',
+    'Valid until must be after valid from.':
+        'ముగింపు తేదీ ప్రారంభ తేదీ తర్వాత ఉండాలి.',
+    'Please assign at least one retailer.':
+        'దయచేసి కనీసం ఒక రిటైలర్‌ను కేటాయించండి.',
+    'Must be greater than 0': '0 కంటే ఎక్కువ ఉండాలి',
+    'Remaining usage cannot exceed maximum usage':
+        'మిగిలిన వినియోగం గరిష్ఠ వినియోగాన్ని మించకూడదు',
+    'Coupon created successfully': 'కూపన్ విజయవంతంగా సృష్టించబడింది',
+    'Coupon updated successfully': 'కూపన్ విజయవంతంగా నవీకరించబడింది',
+    'Percentage discount cannot exceed 100%':
+        'శాతం డిస్కౌంట్ 100% మించకూడదు',
   },
 };
 

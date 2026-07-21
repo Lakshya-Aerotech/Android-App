@@ -262,7 +262,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
           _buildCouponRow('Retailer', job.retailerName ?? 'N/A'),
           _buildCouponRow(
             'Discount',
-            '${job.couponDiscountAmount ?? 0} ${job.couponDiscountType == 'Percentage' ? '%' : 'INR'}',
+            '${job.couponDiscountValue ?? 0} ${job.couponDiscountType == 'percentage' ? '%' : 'INR'}',
           ),
           const Divider(height: 24),
           Row(
@@ -270,7 +270,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
             children: [
               const Text('Final Amount to Collect'),
               Text(
-                '₹${job.finalAmount?.toStringAsFixed(2) ?? 'N/A'}',
+                '₹${job.payableAmount?.toStringAsFixed(2) ?? 'N/A'}',
                 style: AppTextStyles.titleMedium.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.primary,
@@ -501,7 +501,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
       context: context,
       builder: (context) => ConfirmationDialog(
         title: 'Collect Cash',
-        content: 'Confirm that you have received the cash payment of ₹${job.finalAmount?.toStringAsFixed(2) ?? ''} from the farmer.',
+        content: 'Confirm that you have received the cash payment of ₹${job.payableAmount?.toStringAsFixed(2) ?? ''} from the farmer.',
         confirmLabel: 'Confirm Collection',
         onConfirm: () {
           ref.read(pilotJobsViewModelProvider.notifier).collectCash(job.docId!);
@@ -515,7 +515,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
       context: context,
       builder: (context) => ConfirmationDialog(
         title: 'Deposit Cash',
-        content: 'Confirm that you have deposited the collected cash of ₹${job.finalAmount?.toStringAsFixed(2) ?? ''} to the office.',
+        content: 'Confirm that you have deposited the collected cash of ₹${job.payableAmount?.toStringAsFixed(2) ?? ''} to the office.',
         confirmLabel: 'Confirm Deposit',
         onConfirm: () {
           ref

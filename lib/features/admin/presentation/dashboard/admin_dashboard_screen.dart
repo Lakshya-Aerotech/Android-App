@@ -113,7 +113,8 @@ class AdminDashboardScreen extends ConsumerWidget {
                     QuickActionCard(
                       icon: Icons.verified_user_outlined,
                       title: 'External Pilot Approvals',
-                      subtitle: 'Approve or reject external pilot registrations',
+                      subtitle:
+                          'Approve or reject external pilot registrations',
                       iconColor: Colors.orange,
                       onTap: () => context.push('/admin/external-pilots'),
                     ),
@@ -124,6 +125,14 @@ class AdminDashboardScreen extends ConsumerWidget {
                       subtitle: 'Approve and manage retailer accounts',
                       iconColor: AppColors.warning,
                       onTap: () => context.push('/admin/retailers'),
+                    ),
+                    const SizedBox(height: 12),
+                    QuickActionCard(
+                      icon: Icons.local_offer_outlined,
+                      title: context.tr('Coupon Management'),
+                      subtitle: 'Create and manage retailer coupons',
+                      iconColor: AppColors.success,
+                      onTap: () => context.push('/admin/coupons'),
                     ),
                     const SizedBox(height: 12),
                     QuickActionCard(

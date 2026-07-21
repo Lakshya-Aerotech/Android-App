@@ -158,6 +158,11 @@ class _AnalyticsTab extends ConsumerWidget {
               title: 'Operational Performance',
               metrics: data.operationsMetrics,
             ),
+            AppSpacing.verticalXl,
+            AnalyticsSection(
+              title: 'Coupon Analytics',
+              metrics: data.couponMetrics,
+            ),
             if (data.missingFields.isNotEmpty) ...[
               AppSpacing.verticalXl,
               Text('Unavailable Metrics', style: AppTextStyles.titleMedium),

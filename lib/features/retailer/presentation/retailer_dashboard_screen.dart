@@ -171,6 +171,11 @@ class _RetailerHomeContent extends ConsumerWidget {
                       onTap: () => context.push('/retailer/payment-status'),
                     ),
                     _ActionTile(
+                      title: 'My Coupons',
+                      icon: Icons.local_offer_outlined,
+                      onTap: () => context.push('/retailer/coupons'),
+                    ),
+                    _ActionTile(
                       title: 'Notifications',
                       icon: Icons.notifications_none,
                       onTap: () => context.push('/retailer/notifications'),

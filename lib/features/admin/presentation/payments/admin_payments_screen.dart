@@ -138,7 +138,7 @@ class _PaymentCard extends ConsumerWidget {
           const SizedBox(height: 12),
           _detailRow('Farmer', booking.farmerName ?? 'N/A'),
           _detailRow('Pilot', booking.assignedPilotName ?? 'N/A'),
-          _detailRow('Amount', '₹${booking.finalAmount?.toStringAsFixed(2) ?? '0.00'}'),
+          _detailRow('Amount', '₹${booking.payableAmount?.toStringAsFixed(2) ?? '0.00'}'),
           _detailRow('Method', booking.paymentMethod ?? 'N/A'),
           if (booking.cashCollectedAt != null)
             _detailRow('Collected', DateFormat('dd MMM, hh:mm a').format(booking.cashCollectedAt!)),

@@ -4,6 +4,7 @@ import '../../../shared/models/activity_model.dart';
 import '../../../shared/repositories/activity_repository.dart';
 import '../../auth/models/user_model.dart';
 import '../../booking/models/booking_model.dart';
+import '../models/coupon_model.dart';
 
 abstract class AdminRepository {
   Stream<List<UserModel>> getEmployeesStream();
@@ -27,6 +28,12 @@ abstract class AdminRepository {
   });
   Future<void> deleteEmployee(String docId);
   Stream<Map<String, dynamic>> getDashboardStats();
+  Stream<List<CouponModel>> getCouponsStream();
+  Future<bool> checkIfCouponCodeExists(String code, {String? excludingDocId});
+  Future<void> createCoupon(CouponModel coupon);
+  Future<void> updateCoupon(CouponModel coupon);
+  Future<void> deleteCoupon(String docId);
+  Future<void> updateCouponStatus(String docId, bool isActive);
 
   // External Pilot Management
   Stream<List<UserModel>> getExternalPilotsStream();
@@ -224,6 +231,64 @@ class AdminRepositoryImpl implements AdminRepository {
   }
 
   @override
+  Stream<List<CouponModel>> getCouponsStream() {
+    return _firestore
+        .collection('coupons')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => CouponModel.fromMap(doc.data(), docId: doc.id))
+              .toList(),
+        );
+  }
+
+  @override
+  Future<bool> checkIfCouponCodeExists(
+    String code, {
+    String? excludingDocId,
+  }) async {
+    final normalizedCode = code.trim().toUpperCase();
+    final query = await _firestore
+        .collection('coupons')
+        .where('couponCodeNormalized', isEqualTo: normalizedCode)
+        .limit(2)
+        .get();
+    return query.docs.any((doc) => doc.id != excludingDocId);
+  }
+
+  @override
+  Future<void> createCoupon(CouponModel coupon) async {
+    await _firestore.collection('coupons').add(coupon.toMap());
+  }
+
+  @override
+  Future<void> updateCoupon(CouponModel coupon) async {
+    final docId = coupon.docId;
+    if (docId == null || docId.isEmpty) {
+      throw Exception('Coupon record was not found.');
+    }
+
+    await _firestore
+        .collection('coupons')
+        .doc(docId)
+        .update(coupon.toMap(includeCreatedAt: false));
+  }
+
+  @override
+  Future<void> deleteCoupon(String docId) async {
+    await _firestore.collection('coupons').doc(docId).delete();
+  }
+
+  @override
+  Future<void> updateCouponStatus(String docId, bool isActive) async {
+    await _firestore.collection('coupons').doc(docId).update({
+      'isActive': isActive,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  @override
   Stream<Map<String, dynamic>> getDashboardStats() {
     // Note: In a large production app, these would be aggregated using Cloud Functions
     // or by listening to a dedicated metadata document.
@@ -274,7 +339,8 @@ class AdminRepositoryImpl implements AdminRepository {
         activePilots = snapshot.docs
             .where(
               (doc) =>
-                  (doc.data()['role'] == 'pilot' || doc.data()['role'] == 'externalPilot') &&
+                  (doc.data()['role'] == 'pilot' ||
+                      doc.data()['role'] == 'externalPilot') &&
                   doc.data()['isActive'] == true,
             )
             .length;

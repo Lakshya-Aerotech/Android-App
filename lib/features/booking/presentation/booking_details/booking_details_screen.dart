@@ -255,15 +255,15 @@ class BookingDetailsScreen extends ConsumerWidget {
       child: Column(
         children: [
           _buildPaymentRow('Original Amount', '₹${b.originalAmount?.toStringAsFixed(2) ?? '0.00'}'),
-          if ((b.couponDiscountAmount ?? 0) > 0)
+          if ((b.discountAmount ?? 0) > 0)
             _buildPaymentRow(
               'Coupon Discount', 
-              '- ₹${b.couponDiscountAmount?.toStringAsFixed(2) ?? '0.00'}', 
+              '- ₹${b.discountAmount?.toStringAsFixed(2) ?? '0.00'}', 
               valueColor: AppColors.success,
             ),
           _buildPaymentRow(
             'Final Amount', 
-            '₹${b.finalAmount?.toStringAsFixed(2) ?? '0.00'}', 
+            '₹${b.payableAmount?.toStringAsFixed(2) ?? '0.00'}',
             isBold: true,
             valueColor: AppColors.primary,
           ),
