@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../repository/auth_repository.dart';
@@ -307,7 +306,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
           await _repository.logout();
           state = state.copyWith(
             status: AuthStatus.rejected,
-            errorMessage: 'Your registration has been rejected. Please contact Lakshya Aerotech.',
+            errorMessage: 'Your registration has been rejected. Please contact Lakshya Smartguard systems.',
           );
           return;
         }

@@ -22,7 +22,6 @@ abstract class PilotJobsRepository {
   });
   Future<void> completeMission({
     required String bookingDocId,
-    required String droneDocId,
     required String pilotId,
     required Map<String, dynamic> completionData,
     required StatusHistoryEntry historyEntry,
@@ -73,6 +72,9 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
       );
     }
 
+    // Fetch booking BEFORE update to ensure we have the data for notifications
+    final booking = await _bookingSnapshot(bookingDocId);
+
     final Map<String, dynamic> updates = {
       'status': status.toFirestore(),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -81,8 +83,6 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
     };
 
     await _firestore.collection('bookings').doc(bookingDocId).update(updates);
-
-    final booking = await _bookingSnapshot(bookingDocId);
 
     // Log Activity if mission started
     if (status == BookingStatus.inProgress) {
@@ -97,47 +97,85 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
       );
     }
 
-    if (booking != null && status == BookingStatus.arrived) {
-      await _notifications.createForUser(
-        recipientUid: booking.farmerUid,
-        eventKey: 'pilot-arrived-$bookingDocId',
-        title: 'Pilot arrived',
-        message:
-            '${booking.assignedPilotName ?? 'Your pilot'} arrived for booking ${booking.bookingId}.',
-        bookingId: bookingDocId,
-      );
-    }
+    if (booking != null) {
+      final farmerUid = booking.farmerUid;
+      final bookingId = booking.bookingId;
+      final farmName = booking.farmName;
+      final pilotName = booking.assignedPilotName ?? 'Your pilot';
 
-    if (booking != null && status == BookingStatus.inProgress) {
-      await _notifications.createForUser(
-        recipientUid: booking.farmerUid,
-        eventKey: 'spraying-started-$bookingDocId',
-        title: 'Spraying started',
-        message:
-            'Spraying has started for booking ${booking.bookingId} at ${booking.farmName}.',
-        bookingId: bookingDocId,
-      );
+      if (status == BookingStatus.enRoute) {
+        await _notifications.createForUser(
+          recipientUid: farmerUid,
+          eventKey: 'pilot-en-route-$bookingDocId',
+          title: 'Pilot en route',
+          message: '$pilotName is on the way to your farm for booking $bookingId.',
+          bookingId: bookingDocId,
+          type: 'PILOT_EN_ROUTE',
+        );
+        await _notifications.createForRole(
+          role: UserRole.operations,
+          eventKey: 'pilot-en-route-ops-$bookingDocId',
+          title: 'Pilot en route',
+          message: 'Pilot $pilotName is en route to $farmName for booking $bookingId.',
+          bookingId: bookingDocId,
+          type: 'PILOT_EN_ROUTE',
+        );
+      } else if (status == BookingStatus.arrived) {
+        await _notifications.createForUser(
+          recipientUid: farmerUid,
+          eventKey: 'pilot-arrived-$bookingDocId',
+          title: 'Pilot arrived',
+          message: '$pilotName arrived at $farmName for booking $bookingId.',
+          bookingId: bookingDocId,
+          type: 'PILOT_ARRIVED',
+        );
+        if (booking.hasCoupon && !booking.couponVerified) {
+          await _notifications.createForUser(
+            recipientUid: booking.assignedPilotId!,
+            eventKey: 'coupon-verification-required-$bookingDocId',
+            title: 'Coupon verification required',
+            message: 'Please verify the retailer coupon for booking $bookingId before starting the mission.',
+            bookingId: bookingDocId,
+            type: 'COUPON_VERIFICATION_REQUIRED',
+          );
+        }
+      } else if (status == BookingStatus.inProgress) {
+        await _notifications.createForUser(
+          recipientUid: farmerUid,
+          eventKey: 'spraying-started-$bookingDocId',
+          title: 'Spraying started',
+          message: 'Spraying has started for booking $bookingId at $farmName.',
+          bookingId: bookingDocId,
+          type: 'MISSION_STARTED',
+        );
+        await _notifications.createForRole(
+          role: UserRole.operations,
+          eventKey: 'spraying-started-ops-$bookingDocId',
+          title: 'Mission started',
+          message: 'Pilot $pilotName started mission for booking $bookingId.',
+          bookingId: bookingDocId,
+          type: 'MISSION_STARTED',
+        );
+      }
     }
   }
 
   @override
   Future<void> completeMission({
     required String bookingDocId,
-    required String droneDocId,
     required String pilotId,
     required Map<String, dynamic> completionData,
     required StatusHistoryEntry historyEntry,
   }) async {
-    if (bookingDocId.isEmpty || droneDocId.isEmpty || pilotId.isEmpty) {
+    if (bookingDocId.isEmpty || pilotId.isEmpty) {
       throw FirebaseException(
         plugin: 'cloud_firestore',
         code: 'invalid-argument',
-        message: 'Booking, Drone, or Pilot ID cannot be empty.',
+        message: 'Booking or Pilot ID cannot be empty.',
       );
     }
 
     final bookingRef = _firestore.collection('bookings').doc(bookingDocId);
-    final droneRef = _firestore.collection('drones').doc(droneDocId);
     final pilotRef = _firestore.collection('users').doc(pilotId);
 
     await _firestore.runTransaction((transaction) async {
@@ -171,15 +209,7 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
         'statusHistory': FieldValue.arrayUnion([historyEntry.toMap()]),
       });
 
-      // 3. Release Drone
-      transaction.update(droneRef, {
-        'status': 'available',
-        'assignedBookingId': null,
-        'assignedPilotId': null,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      // 4. Update Pilot Stats
+      // 3. Update Pilot Stats
       transaction.update(pilotRef, {
         'completedMissions': FieldValue.increment(1),
         'totalAcresCovered': FieldValue.increment(
@@ -211,6 +241,16 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
         message:
             'Spraying is complete for booking ${booking.bookingId} at ${booking.farmName}.',
         bookingId: bookingDocId,
+        type: 'MISSION_COMPLETED',
+      );
+      await _notifications.createForRole(
+        role: UserRole.operations,
+        eventKey: 'job-completed-ops-$bookingDocId',
+        title: 'Mission completed',
+        message:
+            'Pilot ${booking.assignedPilotName ?? 'assigned'} completed mission for booking ${booking.bookingId}.',
+        bookingId: bookingDocId,
+        type: 'MISSION_COMPLETED',
       );
       await _notifications.createForRole(
         role: UserRole.admin,
@@ -219,6 +259,27 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
         message:
             'Booking ${booking.bookingId} for ${booking.farmName} has been completed.',
         bookingId: bookingDocId,
+        type: 'MISSION_COMPLETED',
+      );
+      if (booking.createdByRetailerId != null) {
+        await _notifications.createForUser(
+          recipientUid: booking.createdByRetailerId!,
+          eventKey: 'retailer-service-completed-$bookingDocId',
+          title: 'Service completed',
+          message:
+              'Service for booking ${booking.bookingId} (${booking.farmerName}) has been completed.',
+          bookingId: bookingDocId,
+          type: 'MISSION_COMPLETED',
+        );
+      }
+      await _notifications.createForUser(
+        recipientUid: booking.assignedPilotId!,
+        eventKey: 'cash-collection-required-$bookingDocId',
+        title: 'Cash collection required',
+        message:
+            'Please collect ₹${booking.payableAmount?.toStringAsFixed(2) ?? '0.00'} from the farmer for booking ${booking.bookingId}.',
+        bookingId: bookingDocId,
+        type: 'CASH_COLLECTION_REQUIRED',
       );
     }
   }
@@ -284,6 +345,30 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
         'updatedAt': FieldValue.serverTimestamp(),
       });
     });
+
+    final booking = await _bookingSnapshot(docId);
+    if (booking != null) {
+      await _notifications.createForRole(
+        role: UserRole.admin,
+        eventKey: 'coupon-verified-admin-$docId',
+        title: 'Coupon verified',
+        message:
+            'Pilot ${booking.assignedPilotName} verified coupon ${booking.couponCode} for booking ${booking.bookingId}.',
+        bookingId: docId,
+        type: 'COUPON_VERIFIED',
+      );
+      if (booking.createdByRetailerId != null) {
+        await _notifications.createForUser(
+          recipientUid: booking.createdByRetailerId!,
+          eventKey: 'retailer-coupon-verified-$docId',
+          title: 'Coupon verified',
+          message:
+              'Pilot ${booking.assignedPilotName} verified your coupon ${booking.couponCode} for booking ${booking.bookingId}.',
+          bookingId: docId,
+          type: 'COUPON_VERIFIED',
+        );
+      }
+    }
   }
 
   @override
@@ -295,6 +380,37 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
       'paymentStatus': 'Cash Collected by Pilot',
       'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    final booking = await _bookingSnapshot(docId);
+    if (booking != null) {
+      await _notifications.createForUser(
+        recipientUid: booking.farmerUid,
+        eventKey: 'payment-recorded-$docId',
+        title: 'Payment recorded',
+        message:
+            'Cash payment of ₹${booking.payableAmount?.toStringAsFixed(2) ?? '0.00'} has been recorded for booking ${booking.bookingId}.',
+        bookingId: docId,
+        type: 'PAYMENT_RECORDED',
+      );
+      await _notifications.createForRole(
+        role: UserRole.operations,
+        eventKey: 'cash-collected-ops-$docId',
+        title: 'Cash collected',
+        message:
+            'Pilot ${booking.assignedPilotName} collected cash for booking ${booking.bookingId}.',
+        bookingId: docId,
+        type: 'CASH_COLLECTED',
+      );
+      await _notifications.createForUser(
+        recipientUid: pilotId,
+        eventKey: 'cash-deposit-reminder-$docId',
+        title: 'Cash deposit reminder',
+        message:
+            'Please deposit the collected cash of ₹${booking.payableAmount?.toStringAsFixed(2) ?? '0.00'} at the office.',
+        bookingId: docId,
+        type: 'CASH_DEPOSIT_REMINDER',
+      );
+    }
   }
 
   @override
@@ -306,6 +422,28 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
       'paymentStatus': 'Awaiting Admin Confirmation',
       'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    final booking = await _bookingSnapshot(docId);
+    if (booking != null) {
+      await _notifications.createForRole(
+        role: UserRole.admin,
+        eventKey: 'deposit-awaiting-confirmation-$docId',
+        title: 'Deposit awaiting confirmation',
+        message:
+            'Pilot ${booking.assignedPilotName} has marked cash as deposited for booking ${booking.bookingId}.',
+        bookingId: docId,
+        type: 'CASH_DEPOSITED',
+      );
+      await _notifications.createForRole(
+        role: UserRole.operations,
+        eventKey: 'cash-deposited-ops-$docId',
+        title: 'Cash deposited',
+        message:
+            'Pilot ${booking.assignedPilotName} deposited cash for booking ${booking.bookingId}.',
+        bookingId: docId,
+        type: 'CASH_DEPOSITED',
+      );
+    }
   }
 
   Future<BookingModel?> _bookingSnapshot(String bookingDocId) async {

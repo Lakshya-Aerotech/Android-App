@@ -178,8 +178,15 @@ class _PaymentCard extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: AppTextStyles.bodySmall),
-          Text(value, style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+          Expanded(child: Text(label, style: AppTextStyles.bodySmall)),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              value,
+              style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+              textAlign: TextAlign.end,
+            ),
+          ),
         ],
       ),
     );

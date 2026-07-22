@@ -26,7 +26,6 @@ class OpsAssignBookingScreen extends ConsumerStatefulWidget {
 class _OpsAssignBookingScreenState
     extends ConsumerState<OpsAssignBookingScreen> {
   OpsPilotResource? _selectedPilot;
-  OpsDroneResource? _selectedDrone;
   OpsPilotResource? _selectedCopilot;
 
   bool get _hasSamePilotAndCopilot =>
@@ -37,7 +36,6 @@ class _OpsAssignBookingScreenState
   @override
   Widget build(BuildContext context) {
     final pilotsAsync = ref.watch(availablePilotsStreamProvider);
-    final dronesAsync = ref.watch(dronesStreamProvider);
     final actionState = ref.watch(operationsViewModelProvider);
     final isSubmitting = actionState.isLoading;
 
@@ -63,7 +61,6 @@ class _OpsAssignBookingScreenState
             icon: const Icon(Icons.check_circle_outline, size: 18),
             onPressed:
                 _selectedPilot != null &&
-                    _selectedDrone != null &&
                     !_hasSamePilotAndCopilot &&
                     !isSubmitting
                 ? _confirmAssignment
@@ -105,40 +102,6 @@ class _OpsAssignBookingScreenState
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, __) => const EmptyState(
               title: 'Unable to load pilots',
-              message: 'Check your connection and try again.',
-              icon: Icons.wifi_off_outlined,
-            ),
-          ),
-          AppSpacing.verticalLg,
-          _SectionTitle(title: 'Drone Selection (Required)'),
-          AppSpacing.verticalMd,
-          dronesAsync.when(
-            data: (drones) {
-              if (drones.isEmpty) {
-                return const EmptyState(
-                  title: 'No drones found',
-                  message: 'Available drones will appear here.',
-                  icon: Icons.precision_manufacturing_outlined,
-                );
-              }
-              return Column(
-                children: [
-                  for (final drone in drones) ...[
-                    _DroneCard(
-                      drone: drone,
-                      selected: _selectedDrone?.id == drone.id,
-                      onTap: drone.canSelect
-                          ? () => setState(() => _selectedDrone = drone)
-                          : null,
-                    ),
-                    AppSpacing.verticalMd,
-                  ],
-                ],
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => const EmptyState(
-              title: 'Unable to load drones',
               message: 'Check your connection and try again.',
               icon: Icons.wifi_off_outlined,
             ),
@@ -205,10 +168,9 @@ class _OpsAssignBookingScreenState
 
   Future<void> _confirmAssignment() async {
     final pilot = _selectedPilot;
-    final drone = _selectedDrone;
     final copilot = _selectedCopilot;
     final docId = widget.booking.docId;
-    if (pilot == null || drone == null || docId == null) return;
+    if (pilot == null || docId == null) return;
 
     if (copilot != null && copilot.uid == pilot.uid) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -230,7 +192,6 @@ class _OpsAssignBookingScreenState
           children: [
             _DialogLine(label: 'Booking', value: widget.booking.bookingId),
             _DialogLine(label: 'Pilot', value: pilot.name),
-            _DialogLine(label: 'Drone', value: drone.code),
             if (copilot != null)
               _DialogLine(label: 'Copilot', value: copilot.name),
           ],
@@ -252,13 +213,12 @@ class _OpsAssignBookingScreenState
 
     final error = await ref
         .read(operationsViewModelProvider.notifier)
-        .assignPilotAndDrone(
+        .assignPilots(
           OpsAssignmentRequest(
             bookingDocId: docId,
             bookingNumber: widget.booking.bookingId,
             farmerId: widget.booking.farmerUid,
             pilot: pilot,
-            drone: drone,
             copilot: copilot,
           ),
         );
@@ -267,7 +227,7 @@ class _OpsAssignBookingScreenState
     if (error == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Pilot and drone assigned successfully'),
+          content: Text('Pilot assigned successfully'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -423,90 +383,6 @@ class _PilotCard extends StatelessWidget {
   }
 }
 
-class _DroneCard extends StatelessWidget {
-  final OpsDroneResource drone;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  const _DroneCard({
-    required this.drone,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final reason = drone.unavailableReason;
-
-    return Semantics(
-      selected: selected,
-      enabled: drone.canSelect,
-      label: selected ? '${drone.code} selected' : drone.code,
-      button: true,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadius.radiusMd,
-        child: _SelectableContainer(
-          selected: selected,
-          enabled: drone.canSelect,
-          child: Row(
-            children: [
-              Container(
-                height: 44,
-                width: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.info.withValues(alpha: 0.1),
-                  borderRadius: AppRadius.radiusSm,
-                ),
-                child: const Icon(
-                  Icons.precision_manufacturing_outlined,
-                  color: AppColors.info,
-                ),
-              ),
-              AppSpacing.horizontalMd,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      drone.code,
-                      style: AppTextStyles.bodyLarge.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    AppSpacing.verticalXs,
-                    Text(drone.name, style: AppTextStyles.bodySmall),
-                    AppSpacing.verticalXs,
-                    Wrap(
-                      spacing: AppSpacing.sm,
-                      runSpacing: AppSpacing.xs,
-                      children: [
-                        _MiniPill(label: drone.operationalStatus),
-                        if (drone.batteryPercentage != null)
-                          _MiniPill(
-                            label: '${drone.batteryPercentage}% battery',
-                          ),
-                        _MiniPill(
-                          label: reason ?? 'Available',
-                          color: reason == null
-                              ? AppColors.success
-                              : AppColors.error,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              if (selected)
-                const Icon(Icons.check_circle, color: AppColors.success),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _CopilotPlaceholder extends StatelessWidget {
   final OpsPilotResource? selectedCopilot;
   final VoidCallback? onClear;
@@ -573,29 +449,6 @@ class _SelectableContainer extends StatelessWidget {
         ),
       ),
       child: Opacity(opacity: enabled ? 1 : 0.62, child: child),
-    );
-  }
-}
-
-class _MiniPill extends StatelessWidget {
-  final String label;
-  final Color? color;
-
-  const _MiniPill({required this.label, this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final pillColor = color ?? AppColors.info;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: pillColor.withValues(alpha: 0.1),
-        borderRadius: AppRadius.radiusSm,
-      ),
-      child: Text(
-        label,
-        style: AppTextStyles.labelSmall.copyWith(color: pillColor),
-      ),
     );
   }
 }

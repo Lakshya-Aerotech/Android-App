@@ -4,7 +4,6 @@ enum BookingStatus {
   pending,
   reviewed,
   pilotAssigned,
-  droneAssigned,
   accepted,
   enRoute,
   arrived,
@@ -24,8 +23,6 @@ enum BookingStatus {
         return 'Reviewed';
       case BookingStatus.pilotAssigned:
         return 'Pilot Assigned';
-      case BookingStatus.droneAssigned:
-        return 'Drone Assigned';
       case BookingStatus.accepted:
         return 'Accepted';
       case BookingStatus.enRoute:
@@ -56,8 +53,6 @@ enum BookingStatus {
         return Colors.blue;
       case BookingStatus.pilotAssigned:
         return Colors.purple;
-      case BookingStatus.droneAssigned:
-        return Colors.indigo;
       case BookingStatus.accepted:
         return Colors.teal;
       case BookingStatus.enRoute:
@@ -88,8 +83,6 @@ enum BookingStatus {
         return Icons.rate_review_outlined;
       case BookingStatus.pilotAssigned:
         return Icons.person_add_outlined;
-      case BookingStatus.droneAssigned:
-        return Icons.precision_manufacturing_outlined;
       case BookingStatus.accepted:
         return Icons.check_circle_outline;
       case BookingStatus.enRoute:
@@ -132,7 +125,6 @@ enum BookingStatus {
     // Explicit snake_case mappings
     if (status == 'approved') return BookingStatus.reviewed;
     if (status == 'pilot_assigned') return BookingStatus.pilotAssigned;
-    if (status == 'drone_assigned') return BookingStatus.droneAssigned;
     if (status == 'en_route') return BookingStatus.enRoute;
     if (status == 'in_progress') return BookingStatus.inProgress;
     if (status == 'farmer_confirmed') return BookingStatus.farmerConfirmed;

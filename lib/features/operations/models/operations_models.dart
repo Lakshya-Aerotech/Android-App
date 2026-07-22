@@ -34,7 +34,6 @@ class ActiveService {
   final String bookingId;
   final String farmerName;
   final String pilotName;
-  final String droneId;
   final String village;
   final String status;
   final Color statusColor;
@@ -43,7 +42,6 @@ class ActiveService {
     required this.bookingId,
     required this.farmerName,
     required this.pilotName,
-    required this.droneId,
     required this.village,
     required this.status,
     required this.statusColor,
@@ -108,52 +106,11 @@ class OpsPilotResource {
   bool get canSelect => isActive && isAvailable;
 }
 
-class OpsDroneResource {
-  final String id;
-  final String code;
-  final String name;
-  final int? batteryPercentage;
-  final String operationalStatus;
-  final bool isActive;
-  final bool isAvailable;
-  final bool isDeleted;
-  final String? activeBookingId;
-
-  const OpsDroneResource({
-    required this.id,
-    required this.code,
-    required this.name,
-    this.batteryPercentage,
-    required this.operationalStatus,
-    required this.isActive,
-    required this.isAvailable,
-    required this.isDeleted,
-    this.activeBookingId,
-  });
-
-  bool get canSelect =>
-      isActive &&
-      isAvailable &&
-      !isDeleted &&
-      (activeBookingId == null || activeBookingId!.isEmpty);
-
-  String? get unavailableReason {
-    if (isDeleted) return 'Removed from fleet';
-    if (!isActive) return 'Inactive';
-    if (!isAvailable) return 'Unavailable';
-    if (activeBookingId != null && activeBookingId!.isNotEmpty) {
-      return 'Assigned to active job';
-    }
-    return null;
-  }
-}
-
 class OpsAssignmentRequest {
   final String bookingDocId;
   final String bookingNumber;
   final String farmerId;
   final OpsPilotResource pilot;
-  final OpsDroneResource drone;
   final OpsPilotResource? copilot;
 
   const OpsAssignmentRequest({
@@ -161,7 +118,6 @@ class OpsAssignmentRequest {
     required this.bookingNumber,
     required this.farmerId,
     required this.pilot,
-    required this.drone,
     this.copilot,
   });
 }

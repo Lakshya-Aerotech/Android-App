@@ -27,7 +27,6 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
   final TextEditingController _remarksController = TextEditingController();
   
   OpsPilotResource? _selectedPilot;
-  OpsDroneResource? _selectedDrone;
 
   @override
   void dispose() {
@@ -81,30 +80,6 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
         widget.booking.docId!,
         _selectedPilot!.uid,
         _selectedPilot!.name,
-      );
-      if (mounted) context.pop();
-    }
-  }
-
-  Future<void> _assignDrone() async {
-    if (_selectedDrone == null) return;
-
-    final confirmed = await _showConfirmDialog(
-      title: 'Confirm Drone Assignment',
-      items: {
-        'Booking ID': widget.booking.bookingId,
-        'Pilot': widget.booking.assignedPilotName ?? 'N/A',
-        'Drone Model': _selectedDrone!.name,
-        'Drone Code': _selectedDrone!.code,
-        'Farm': widget.booking.farmName,
-      },
-    );
-
-    if (confirmed) {
-      await ref.read(operationsViewModelProvider.notifier).assignDrone(
-        widget.booking.docId!,
-        _selectedDrone!.id,
-        _selectedDrone!.name,
       );
       if (mounted) context.pop();
     }
@@ -207,15 +182,13 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
                   ],
                 ),
 
-                if (booking.assignedPilotId != null || booking.assignedDroneId != null) ...[
+                if (booking.assignedPilotId != null) ...[
                   const SizedBox(height: 24),
-                  _buildSectionTitle('Assigned Resources'),
+                  _buildSectionTitle('Assigned Pilot'),
                   _buildInfoCard(
                     items: [
                       if (booking.assignedPilotName != null)
                         {'label': 'Pilot', 'value': booking.assignedPilotName!, 'icon': Icons.person_add_alt_1_outlined},
-                      if (booking.assignedDroneName != null)
-                        {'label': 'Drone', 'value': booking.assignedDroneName!, 'icon': Icons.precision_manufacturing_outlined},
                     ],
                   ),
                 ],
@@ -276,8 +249,6 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
       case BookingStatus.reviewed:
         return _buildPilotAssignment(isLoading);
       case BookingStatus.pilotAssigned:
-        return _buildDroneAssignment(isLoading);
-      case BookingStatus.droneAssigned:
         return const Center(
           child: Column(
             children: [
@@ -360,29 +331,6 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
         ),
         const SizedBox(height: 16),
         PrimaryButton(text: 'Assign Pilot', onPressed: _selectedPilot != null ? _assignPilot : null, isLoading: isLoading),
-      ],
-    );
-  }
-
-  Widget _buildDroneAssignment(bool isLoading) {
-    final dronesAsync = ref.watch(dronesStreamProvider);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionTitle('Assign Drone'),
-        dronesAsync.when(
-          data: (drones) => _buildDropdown<OpsDroneResource>(
-            value: _selectedDrone,
-            items: drones.where((d) => d.canSelect).toList(),
-            hint: 'Select available drone',
-            onChanged: (v) => setState(() => _selectedDrone = v),
-            labelBuilder: (d) => '${d.name} (${d.code})',
-          ),
-          loading: () => const LinearProgressIndicator(),
-          error: (e, _) => Text('Error loading drones: $e'),
-        ),
-        const SizedBox(height: 16),
-        PrimaryButton(text: 'Assign Drone', onPressed: _selectedDrone != null ? _assignDrone : null, isLoading: isLoading),
       ],
     );
   }

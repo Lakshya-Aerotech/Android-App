@@ -128,8 +128,6 @@ class BookingModel {
   final List<OperationsRemark> operationsRemarks;
   final String? assignedPilotId;
   final String? assignedPilotName;
-  final String? assignedDroneId;
-  final String? assignedDroneName;
   final String? copilotId;
   final String? copilotName;
   final DateTime? assignedCopilotAt;
@@ -215,8 +213,6 @@ class BookingModel {
     this.operationsRemarks = const [],
     this.assignedPilotId,
     this.assignedPilotName,
-    this.assignedDroneId,
-    this.assignedDroneName,
     this.copilotId,
     this.copilotName,
     this.assignedCopilotAt,
@@ -293,8 +289,6 @@ class BookingModel {
       'operationsRemarks': operationsRemarks.map((e) => e.toMap()).toList(),
       'assignedPilotId': assignedPilotId,
       'assignedPilotName': assignedPilotName,
-      'assignedDroneId': assignedDroneId,
-      'assignedDroneName': assignedDroneName,
       if (copilotId != null) 'copilotId': copilotId,
       if (copilotName != null) 'copilotName': copilotName,
       if (assignedCopilotAt != null)
@@ -376,8 +370,6 @@ class BookingModel {
           .toList(),
       assignedPilotId: map['assignedPilotId'],
       assignedPilotName: map['assignedPilotName'],
-      assignedDroneId: map['assignedDroneId'],
-      assignedDroneName: map['assignedDroneName'],
       copilotId: map['copilotId'],
       copilotName: map['copilotName'],
       assignedCopilotAt: (map['assignedCopilotAt'] as Timestamp?)?.toDate(),
@@ -457,8 +449,6 @@ class BookingModel {
     List<OperationsRemark>? operationsRemarks,
     String? assignedPilotId,
     String? assignedPilotName,
-    String? assignedDroneId,
-    String? assignedDroneName,
     String? copilotId,
     String? copilotName,
     DateTime? assignedCopilotAt,
@@ -534,8 +524,6 @@ class BookingModel {
       operationsRemarks: operationsRemarks ?? this.operationsRemarks,
       assignedPilotId: assignedPilotId ?? this.assignedPilotId,
       assignedPilotName: assignedPilotName ?? this.assignedPilotName,
-      assignedDroneId: assignedDroneId ?? this.assignedDroneId,
-      assignedDroneName: assignedDroneName ?? this.assignedDroneName,
       copilotId: copilotId ?? this.copilotId,
       copilotName: copilotName ?? this.copilotName,
       assignedCopilotAt: assignedCopilotAt ?? this.assignedCopilotAt,

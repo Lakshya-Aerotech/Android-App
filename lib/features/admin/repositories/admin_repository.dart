@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/notifications/notification_repository.dart';
 import '../../../shared/models/activity_model.dart';
 import '../../../shared/repositories/activity_repository.dart';
+import '../../../shared/enums/booking_status.dart';
 import '../../auth/models/user_model.dart';
 import '../../booking/models/booking_model.dart';
 import '../models/coupon_model.dart';
@@ -115,6 +116,7 @@ class AdminRepositoryImpl implements AdminRepository {
       message:
           '${employee.name ?? 'An employee'} was added as ${employee.role.name}.',
       employeeId: docRef.id,
+      type: 'NEW_PILOT_REGISTERED',
     );
   }
 
@@ -222,6 +224,7 @@ class AdminRepositoryImpl implements AdminRepository {
       title: title,
       message: 'Your retailer account status is now ${approvalStatus.name}.',
       data: {'retailerUid': retailer.uid ?? docId},
+      type: approvalStatus == ApprovalStatus.approved ? 'REGISTRATION_APPROVED' : 'REGISTRATION_REJECTED',
     );
   }
 
@@ -290,10 +293,6 @@ class AdminRepositoryImpl implements AdminRepository {
 
   @override
   Stream<Map<String, dynamic>> getDashboardStats() {
-    // Note: In a large production app, these would be aggregated using Cloud Functions
-    // or by listening to a dedicated metadata document.
-    // For now, we use real-time listeners on filtered collections.
-
     final employeesStream = _firestore
         .collection('users')
         .where('role', whereIn: ['pilot', 'operations', 'admin'])
@@ -307,7 +306,6 @@ class AdminRepositoryImpl implements AdminRepository {
         .where('role', isEqualTo: 'retailer')
         .snapshots();
     final bookingsStream = _firestore.collection('bookings').snapshots();
-    final dronesStream = _firestore.collection('drones').snapshots();
 
     return Stream.multi((controller) {
       int totalEmployees = 0;
@@ -317,7 +315,6 @@ class AdminRepositoryImpl implements AdminRepository {
       int completedMissions = 0;
       int pendingBookings = 0;
       int activePilots = 0;
-      int activeDrones = 0;
 
       void emit() {
         if (!controller.isClosed) {
@@ -329,7 +326,6 @@ class AdminRepositoryImpl implements AdminRepository {
             'completedMissions': completedMissions,
             'pendingBookings': pendingBookings,
             'activePilots': activePilots,
-            'activeDrones': activeDrones,
           });
         }
       }
@@ -371,19 +367,11 @@ class AdminRepositoryImpl implements AdminRepository {
         emit();
       });
 
-      final dronesSub = dronesStream.listen((snapshot) {
-        activeDrones = snapshot.docs
-            .where((doc) => doc.data()['isActive'] == true)
-            .length;
-        emit();
-      });
-
       controller.onCancel = () {
         employeesSub.cancel();
         farmersSub.cancel();
         bookingsSub.cancel();
         retailersSub.cancel();
-        dronesSub.cancel();
       };
     });
   }
@@ -460,21 +448,67 @@ class AdminRepositoryImpl implements AdminRepository {
   Future<void> confirmPaymentDeposit(String docId, String adminId) async {
     await _firestore.collection('bookings').doc(docId).update({
       'paymentStatus': 'Paid',
+      'status': BookingStatus.closed.toFirestore(),
       'paymentVerifiedByAdmin': true,
       'paymentVerifiedAt': FieldValue.serverTimestamp(),
       'verifiedByAdminId': adminId,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    final booking = await _firestore.collection('bookings').doc(docId).get();
+    if (booking.exists) {
+      final b = BookingModel.fromMap(booking.data()!, booking.id);
+      await _notifications.createForUser(
+        recipientUid: b.farmerUid,
+        eventKey: 'payment-confirmed-farmer-$docId',
+        title: 'Payment confirmed',
+        message:
+            'Payment for booking ${b.bookingId} has been confirmed. Thank you!',
+        bookingId: docId,
+        type: 'PAYMENT_CONFIRMED',
+      );
+      if (b.assignedPilotId != null) {
+        await _notifications.createForUser(
+          recipientUid: b.assignedPilotId!,
+          eventKey: 'payment-confirmed-pilot-$docId',
+          title: 'Deposit confirmed',
+          message:
+              'Admin has confirmed your cash deposit for booking ${b.bookingId}.',
+          bookingId: docId,
+          type: 'PAYMENT_CONFIRMED',
+        );
+      }
+    }
   }
 
   @override
-  Future<void> rejectPaymentDeposit(String docId, String adminId, String remarks) async {
+  Future<void> rejectPaymentDeposit(
+    String docId,
+    String adminId,
+    String remarks,
+  ) async {
     await _firestore.collection('bookings').doc(docId).update({
       'paymentStatus': 'Deposit Rejected',
       'adminRemarks': remarks,
       'verifiedByAdminId': adminId,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    final booking = await _firestore.collection('bookings').doc(docId).get();
+    if (booking.exists) {
+      final b = BookingModel.fromMap(booking.data()!, booking.id);
+      if (b.assignedPilotId != null) {
+        await _notifications.createForUser(
+          recipientUid: b.assignedPilotId!,
+          eventKey: 'deposit-rejected-pilot-$docId',
+          title: 'Deposit rejected',
+          message:
+              'Your cash deposit for booking ${b.bookingId} was rejected. Reason: $remarks',
+          bookingId: docId,
+          type: 'PAYMENT_REJECTED',
+        );
+      }
+    }
   }
 
   @override

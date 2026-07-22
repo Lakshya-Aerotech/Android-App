@@ -16,17 +16,25 @@ class BookingTimeline extends StatelessWidget {
       {'label': 'Booking Submitted', 'status': BookingStatus.pending},
       {'label': 'Reviewed', 'status': BookingStatus.reviewed},
       {'label': 'Pilot Assigned', 'status': BookingStatus.pilotAssigned},
-      {'label': 'Drone Assigned', 'status': BookingStatus.droneAssigned},
       {'label': 'Pilot Accepted', 'status': BookingStatus.accepted},
       {'label': 'Pilot En Route', 'status': BookingStatus.enRoute},
       {'label': 'Arrived At Farm', 'status': BookingStatus.arrived},
       {'label': 'Mission Started', 'status': BookingStatus.inProgress},
       {'label': 'Mission Completed', 'status': BookingStatus.completed},
-      {'label': 'Farmer Confirmed', 'status': BookingStatus.farmerConfirmed},
+      {'label': 'Payment & Closed', 'status': BookingStatus.closed},
     ];
 
     // Find the latest completed stage from statusHistory
     final history = booking.statusHistory;
+
+    int activeIndex = stages.indexWhere((s) => s['status'] == booking.status);
+    if (activeIndex == -1) {
+      if (booking.status == BookingStatus.farmerConfirmed) {
+        activeIndex = 7; // Completed stage
+      } else if (booking.status == BookingStatus.closed) {
+        activeIndex = 8; // Closed stage
+      }
+    }
     
     return Column(
       children: List.generate(stages.length, (index) {
@@ -39,8 +47,8 @@ class BookingTimeline extends StatelessWidget {
           orElse: () => null,
         );
 
-        final isCompleted = historyEntry != null;
         final isActive = booking.status == stageStatus;
+        final isCompleted = historyEntry != null || (activeIndex != -1 && index < activeIndex);
         final isCancelled = booking.status == BookingStatus.cancelled;
         final isIssueReported = booking.status == BookingStatus.issueReported;
 
@@ -133,11 +141,9 @@ class BookingTimeline extends StatelessWidget {
       case BookingStatus.pending:
         return 'Waiting for operations to review your booking.';
       case BookingStatus.reviewed:
-        return 'Booking approved! Assigning pilot and drone.';
+        return 'Booking approved! Assigning pilot.';
       case BookingStatus.pilotAssigned:
         return 'Pilot has been assigned to your booking.';
-      case BookingStatus.droneAssigned:
-        return 'Drone has been allocated for the service.';
       case BookingStatus.accepted:
         return 'Pilot has accepted the job.';
       case BookingStatus.enRoute:
@@ -145,11 +151,11 @@ class BookingTimeline extends StatelessWidget {
       case BookingStatus.arrived:
         return 'Pilot has arrived at the farm.';
       case BookingStatus.inProgress:
-        return 'Drone mission is currently in progress.';
+        return 'Mission is currently in progress.';
       case BookingStatus.completed:
-        return 'Service completed! Please verify and confirm.';
-      case BookingStatus.farmerConfirmed:
-        return 'You have confirmed the service completion.';
+        return 'Service completed! Pilot is processing the payment.';
+      case BookingStatus.closed:
+        return 'Service fully completed and payment verified.';
       case BookingStatus.issueReported:
         return 'An issue has been reported. We will follow up soon.';
       case BookingStatus.cancelled:

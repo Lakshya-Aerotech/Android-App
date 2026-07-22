@@ -9,7 +9,6 @@ enum ActivityType {
   bookingApproved,
   bookingRejected,
   pilotAssigned,
-  droneAssigned,
   missionStarted,
   missionCompleted,
   farmerConfirmedService,
@@ -74,8 +73,6 @@ class ActivityModel {
         return Icons.cancel;
       case ActivityType.pilotAssigned:
         return Icons.assignment_ind;
-      case ActivityType.droneAssigned:
-        return Icons.precision_manufacturing;
       case ActivityType.missionStarted:
         return Icons.play_circle_outline;
       case ActivityType.missionCompleted:
@@ -103,8 +100,6 @@ class ActivityModel {
         return Colors.red;
       case ActivityType.pilotAssigned:
         return Colors.purple;
-      case ActivityType.droneAssigned:
-        return Colors.indigo;
       case ActivityType.missionStarted:
         return Colors.amber;
       case ActivityType.missionCompleted:

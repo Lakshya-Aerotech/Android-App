@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../viewmodel/auth_viewmodel.dart';
 import '../models/user_model.dart';
-import '../../drone/repositories/drone_repository.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 
@@ -21,13 +20,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _initializeData() async {
-    // 1. Populate sample drones if needed (Non-blocking)
-    try {
-      ref.read(droneRepositoryProvider).populateSampleDrones();
-    } catch (e) {
-      debugPrint('Drone population failed: $e');
-    }
-
     // Artificial delay to show logo
     await Future.delayed(const Duration(seconds: 2));
     
@@ -82,7 +74,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'LAKSHYA\nAEROTECH',
+              'LAKSHYA\nSMARTGUARD',
               textAlign: TextAlign.center,
               style: AppTextStyles.displayMedium.copyWith(
                 color: Colors.white,
@@ -93,7 +85,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Smart Drone Solutions\nfor Modern Agriculture',
+              'Smart Guard Systems\nfor Modern Agriculture',
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.success,

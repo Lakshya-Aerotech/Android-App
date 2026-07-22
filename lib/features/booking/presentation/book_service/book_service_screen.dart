@@ -1040,7 +1040,8 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: style),
+        Expanded(child: Text(label, style: style)),
+        const SizedBox(width: 8),
         Text(value, style: style.copyWith(fontWeight: FontWeight.bold)),
       ],
     );

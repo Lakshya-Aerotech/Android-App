@@ -18,7 +18,6 @@ enum AdminReportType {
   pesticideSpraying,
   farmers,
   pilots,
-  drones,
   operations,
   geographic,
   revenue,
@@ -213,7 +212,6 @@ class AdminAnalyticsData {
   final List<AnalyticsMetric> pesticideMetrics;
   final List<AnalyticsMetric> farmerMetrics;
   final List<AnalyticsMetric> pilotMetrics;
-  final List<AnalyticsMetric> droneMetrics;
   final List<AnalyticsMetric> geographicMetrics;
   final List<AnalyticsMetric> operationsMetrics;
   final List<AnalyticsMetric> couponMetrics;
@@ -224,7 +222,6 @@ class AdminAnalyticsData {
   final List<String> districts;
   final AnalyticsTable topFarmers;
   final AnalyticsTable pilotTable;
-  final AnalyticsTable droneTable;
   final AnalyticsTable geographicTable;
   final AnalyticsTable bookingTable;
   final bool hasRevenueData;
@@ -236,7 +233,6 @@ class AdminAnalyticsData {
     required this.pesticideMetrics,
     required this.farmerMetrics,
     required this.pilotMetrics,
-    required this.droneMetrics,
     required this.geographicMetrics,
     required this.operationsMetrics,
     required this.couponMetrics,
@@ -247,7 +243,6 @@ class AdminAnalyticsData {
     required this.districts,
     required this.topFarmers,
     required this.pilotTable,
-    required this.droneTable,
     required this.geographicTable,
     required this.bookingTable,
     required this.hasRevenueData,
@@ -260,7 +255,6 @@ class AdminAnalyticsData {
     pesticideMetrics: [],
     farmerMetrics: [],
     pilotMetrics: [],
-    droneMetrics: [],
     geographicMetrics: [],
     operationsMetrics: [],
     couponMetrics: [],
@@ -271,7 +265,6 @@ class AdminAnalyticsData {
     districts: [],
     topFarmers: AnalyticsTable(columns: [], rows: []),
     pilotTable: AnalyticsTable(columns: [], rows: []),
-    droneTable: AnalyticsTable(columns: [], rows: []),
     geographicTable: AnalyticsTable(columns: [], rows: []),
     bookingTable: AnalyticsTable(columns: [], rows: []),
     hasRevenueData: false,

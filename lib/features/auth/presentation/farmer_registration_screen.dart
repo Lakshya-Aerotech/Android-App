@@ -96,7 +96,7 @@ class _FarmerRegistrationScreenState extends ConsumerState<FarmerRegistrationScr
                 ),
                 AppSpacing.verticalMd,
                 Text(
-                  'Join Lakshya Aerotech to book drone services for your farm.',
+                  'Join Lakshya Smartguard systems to book drone services for your farm.',
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: AppColors.textSecondary,
                   ),

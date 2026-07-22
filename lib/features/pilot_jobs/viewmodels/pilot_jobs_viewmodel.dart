@@ -16,7 +16,7 @@ final assignedJobsProvider = StreamProvider<List<BookingModel>>((ref) {
   if (user == null || user.uid == null) return Stream.value([]);
   if (user.role != UserRole.pilot && user.role != UserRole.externalPilot) return Stream.value([]);
   return ref.watch(pilotJobsRepositoryProvider).getJobsByStatus(user.uid!, [
-    BookingStatus.droneAssigned,
+    BookingStatus.pilotAssigned,
   ]);
 });
 
@@ -192,9 +192,9 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<void> completeMission({required BookingModel job}) async {
-    if (job.docId == null || job.assignedDroneId == null) {
+    if (job.docId == null) {
       state = AsyncError(
-        'Invalid job or drone information.',
+        'Invalid job information.',
         StackTrace.current,
       );
       return;
@@ -234,7 +234,6 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
 
       await _repository.completeMission(
         bookingDocId: job.docId!,
-        droneDocId: job.assignedDroneId!,
         pilotId: user.docId!,
         completionData: completionData,
         historyEntry: historyEntry,

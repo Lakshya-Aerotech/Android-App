@@ -87,6 +87,7 @@ class RetailerRepositoryImpl implements RetailerRepository {
       title: 'Farmer registered',
       message: '$name has been added to your farmer list.',
       data: {'farmerUid': docRef.id},
+      type: 'REGISTRATION_SUBMITTED',
     );
     return farmer;
   }

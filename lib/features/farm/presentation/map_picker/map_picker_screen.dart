@@ -119,17 +119,13 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
           );
         }
 
-        if (position != null) {
-          final currentLatLng = LatLng(position.latitude, position.longitude);
-          _setMapPosition(currentLatLng);
-        } else if (_selectedLocation == null) {
-          _useDefaultLocation('Unable to determine location.');
-        } else {
-          setState(() => _isLoading = false);
-        }
+        final currentLatLng = LatLng(position.latitude, position.longitude);
+        _setMapPosition(currentLatLng);
       } catch (e) {
         debugPrint('Geolocator Error: $e');
         
+        if (!mounted) return;
+
         // If we managed to get a last known position earlier, we are good enough
         if (_selectedLocation != null) {
           setState(() => _isLoading = false);

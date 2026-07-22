@@ -125,17 +125,6 @@ class _AnalyticsTab extends ConsumerWidget {
             ),
             AppSpacing.verticalXl,
             AnalyticsSection(
-              title: 'Drone Fleet Analytics',
-              metrics: data.droneMetrics,
-              children: [
-                AnalyticsDataTableCard(
-                  title: 'Drone Fleet Table',
-                  table: data.droneTable,
-                ),
-              ],
-            ),
-            AppSpacing.verticalXl,
-            AnalyticsSection(
               title: 'Geographic Analytics',
               metrics: data.geographicMetrics,
               children: [

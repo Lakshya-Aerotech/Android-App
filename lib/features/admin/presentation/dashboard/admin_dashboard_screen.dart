@@ -136,13 +136,6 @@ class AdminDashboardScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     QuickActionCard(
-                      icon: Icons.grid_view_outlined,
-                      title: context.tr('Manage Drones'),
-                      subtitle: 'Register and track drone fleet',
-                      onTap: () => context.push('/admin/drones'),
-                    ),
-                    const SizedBox(height: 12),
-                    QuickActionCard(
                       icon: Icons.analytics_outlined,
                       title: context.tr('Analytics & Reports'),
                       subtitle: 'View business insights and download reports',

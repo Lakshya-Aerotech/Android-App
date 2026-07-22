@@ -181,7 +181,6 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
                 BookingStatus.pending,
                 BookingStatus.reviewed,
                 BookingStatus.pilotAssigned,
-                BookingStatus.droneAssigned,
                 BookingStatus.accepted,
               ].contains(b.status),
             )
@@ -256,7 +255,6 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
             BookingStatus.pending,
             BookingStatus.reviewed,
             BookingStatus.pilotAssigned,
-            BookingStatus.droneAssigned,
             BookingStatus.accepted,
           ].contains(b.status),
         )

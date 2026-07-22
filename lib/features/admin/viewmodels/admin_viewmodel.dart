@@ -90,12 +90,6 @@ final adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((ref,
         title: 'Active Pilots',
         value: stats['activePilots'].toString(),
       ),
-      AdminStatistic(
-        icon: Icons.precision_manufacturing,
-        iconColor: Colors.indigo,
-        title: 'Active Drones',
-        value: stats['activeDrones'].toString(),
-      ),
     ];
   });
 });

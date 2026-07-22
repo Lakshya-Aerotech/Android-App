@@ -70,9 +70,6 @@ class ActiveServiceCard extends StatelessWidget {
               Expanded(
                 child: _buildInfoColumn('Pilot', service.pilotName),
               ),
-              Expanded(
-                child: _buildInfoColumn('Drone', service.droneId),
-              ),
             ],
           ),
           const Divider(height: 24),

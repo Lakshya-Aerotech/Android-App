@@ -59,13 +59,6 @@ class BookingsPlaceholder extends StatelessWidget {
       const ModulePlaceholder(title: 'Booking Management');
 }
 
-class DronesPlaceholder extends StatelessWidget {
-  const DronesPlaceholder({super.key});
-  @override
-  Widget build(BuildContext context) =>
-      const ModulePlaceholder(title: 'Drone Management');
-}
-
 class ReportsPlaceholder extends StatelessWidget {
   const ReportsPlaceholder({super.key});
   @override

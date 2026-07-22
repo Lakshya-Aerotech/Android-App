@@ -38,12 +38,6 @@ final dashboardStatsStreamProvider = StreamProvider<List<OperationsStatistic>>((
         value: stats['pilotAssigned'].toString(),
       ),
       OperationsStatistic(
-        icon: Icons.precision_manufacturing_outlined,
-        iconColor: Colors.indigo,
-        title: 'Drone Assigned',
-        value: stats['droneAssigned'].toString(),
-      ),
-      OperationsStatistic(
         icon: Icons.run_circle_outlined,
         iconColor: AppColors.accent,
         title: 'Active Missions',
@@ -102,10 +96,6 @@ final availablePilotsStreamProvider = StreamProvider<List<OpsPilotResource>>((
   ref,
 ) {
   return ref.watch(operationsRepositoryProvider).getAvailablePilotsStream();
-});
-
-final dronesStreamProvider = StreamProvider<List<OpsDroneResource>>((ref) {
-  return ref.watch(operationsRepositoryProvider).getDronesStream();
 });
 
 class OperationsViewModel extends StateNotifier<AsyncValue<void>> {
@@ -205,47 +195,20 @@ class OperationsViewModel extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  Future<void> assignDrone(
-    String bookingId,
-    String droneId,
-    String droneName,
-  ) async {
+  Future<String?> assignPilots(OpsAssignmentRequest request) async {
     state = const AsyncLoading();
     try {
       final user = _ref.read(userModelProvider);
       final historyEntry = StatusHistoryEntry(
-        status: BookingStatus.droneAssigned,
-        updatedBy: user?.name ?? 'Operations',
-        updatedByRole: 'operations',
-        timestamp: DateTime.now(),
-        remarks: 'Drone $droneName assigned to job.',
-      );
-      await _repository.assignDrone(
-        bookingId,
-        droneId,
-        droneName,
-        historyEntry,
-      );
-      state = const AsyncData(null);
-    } catch (e, st) {
-      state = AsyncError(e, st);
-    }
-  }
-
-  Future<String?> assignPilotAndDrone(OpsAssignmentRequest request) async {
-    state = const AsyncLoading();
-    try {
-      final user = _ref.read(userModelProvider);
-      final historyEntry = StatusHistoryEntry(
-        status: BookingStatus.droneAssigned,
+        status: BookingStatus.pilotAssigned,
         updatedBy: user?.name ?? 'Operations',
         updatedByRole: 'operations',
         timestamp: DateTime.now(),
         remarks: request.copilot == null
-            ? 'Pilot ${request.pilot.name} and Drone ${request.drone.name} assigned.'
-            : 'Pilot ${request.pilot.name}, Copilot ${request.copilot!.name}, and Drone ${request.drone.name} assigned.',
+            ? 'Pilot ${request.pilot.name} assigned.'
+            : 'Pilot ${request.pilot.name} and Copilot ${request.copilot!.name} assigned.',
       );
-      await _repository.assignPilotAndDrone(request, historyEntry);
+      await _repository.assignPilots(request, historyEntry);
       state = const AsyncData(null);
       return null;
     } on FirebaseException catch (e, st) {

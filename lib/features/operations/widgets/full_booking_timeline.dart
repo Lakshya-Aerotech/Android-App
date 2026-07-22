@@ -14,13 +14,11 @@ class FullBookingTimeline extends StatelessWidget {
       {'label': 'Pending', 'status': BookingStatus.pending},
       {'label': 'Reviewed', 'status': BookingStatus.reviewed},
       {'label': 'Pilot Assigned', 'status': BookingStatus.pilotAssigned},
-      {'label': 'Drone Assigned', 'status': BookingStatus.droneAssigned},
       {'label': 'Accepted', 'status': BookingStatus.accepted},
       {'label': 'En Route', 'status': BookingStatus.enRoute},
       {'label': 'Arrived', 'status': BookingStatus.arrived},
       {'label': 'In Progress', 'status': BookingStatus.inProgress},
       {'label': 'Completed', 'status': BookingStatus.completed},
-      {'label': 'Farmer Confirmed', 'status': BookingStatus.farmerConfirmed},
       {'label': 'Closed', 'status': BookingStatus.closed},
     ];
 
@@ -31,9 +29,9 @@ class FullBookingTimeline extends StatelessWidget {
 
     if (activeIndex == -1) {
        if (isCancelled || isIssueReported) {
-         // Show progress up to where it was, but we don't have the previous status easily here without history
-         // For now, let's just highlight the error status if it's not in the main path
          activeIndex = 0; 
+       } else if (currentStatus == BookingStatus.farmerConfirmed) {
+         activeIndex = 7; // Completed stage
        }
     }
 

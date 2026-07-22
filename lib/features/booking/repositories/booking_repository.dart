@@ -27,6 +27,7 @@ abstract class BookingRepository {
     required double originalAmount,
     required double finalAmount,
     double? discountAmount,
+    String? pilotId,
   });
 }
 
@@ -181,6 +182,7 @@ class BookingRepositoryImpl implements BookingRepository {
       message:
           'Your booking ${booking.bookingId} for ${booking.farmName} has been submitted.',
       bookingId: bookingDocId,
+      type: 'BOOKING_SUBMITTED',
     );
     if (booking.createdByRetailerId != null) {
       await _notifications.createForUser(
@@ -190,6 +192,7 @@ class BookingRepositoryImpl implements BookingRepository {
         message:
             'Booking ${booking.bookingId} for ${booking.farmerName ?? 'farmer'} has been submitted.',
         bookingId: bookingDocId,
+        type: 'BOOKING_CREATED',
       );
     }
     await _notifications.createForRole(
@@ -199,6 +202,7 @@ class BookingRepositoryImpl implements BookingRepository {
       message:
           '${booking.farmerName ?? 'A farmer'} requested ${booking.serviceType} for ${booking.farmName}.',
       bookingId: bookingDocId,
+      type: 'BOOKING_CREATED',
     );
 
     return bookingDocId;
@@ -224,6 +228,7 @@ class BookingRepositoryImpl implements BookingRepository {
       message:
           'Your booking ${booking.bookingId} for ${booking.farmName} was cancelled.',
       bookingId: docId,
+      type: 'BOOKING_CANCELLED',
     );
     await _notifications.createForRole(
       role: UserRole.operations,
@@ -232,6 +237,7 @@ class BookingRepositoryImpl implements BookingRepository {
       message:
           '${booking.farmerName ?? 'A farmer'} cancelled booking ${booking.bookingId}.',
       bookingId: docId,
+      type: 'BOOKING_CANCELLED',
     );
     if (booking.assignedPilotId != null) {
       await _notifications.createForUser(
@@ -241,6 +247,7 @@ class BookingRepositoryImpl implements BookingRepository {
         message:
             '${booking.farmerName ?? 'The farmer'} cancelled booking ${booking.bookingId}.',
         bookingId: docId,
+        type: 'BOOKING_CANCELLED',
       );
     }
   }
@@ -328,9 +335,10 @@ class BookingRepositoryImpl implements BookingRepository {
     required double originalAmount,
     required double finalAmount,
     double? discountAmount,
+    String? pilotId,
   }) async {
-    final status = method == 'Cash' ? 'Pending Cash Collection' : 'Pending Online Payment';
-    await _firestore.collection('bookings').doc(docId).update({
+    final status = method == 'Cash' ? 'Cash Collected by Pilot' : 'Pending Online Verification';
+    final updates = <String, dynamic>{
       'paymentMethod': method,
       'paymentStatus': status,
       'originalAmount': originalAmount,
@@ -338,6 +346,14 @@ class BookingRepositoryImpl implements BookingRepository {
       if (discountAmount != null) 'discountAmount': discountAmount,
       'paymentRequestedAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
-    });
+    };
+
+    if (method == 'Cash' && pilotId != null) {
+      updates['cashCollected'] = true;
+      updates['cashCollectedBy'] = pilotId;
+      updates['cashCollectedAt'] = FieldValue.serverTimestamp();
+    }
+
+    await _firestore.collection('bookings').doc(docId).update(updates);
   }
 }

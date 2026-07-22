@@ -10,6 +10,8 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/models/user_model.dart';
 import '../../features/booking/models/booking_model.dart';
 
+import 'notification_model.dart';
+
 class NotificationService {
   NotificationService._();
 
@@ -38,7 +40,11 @@ class NotificationService {
   }
 
   static Future<void> initialize() async {
-    await _messaging.requestPermission(alert: true, badge: true, sound: true);
+    try {
+      await _messaging.requestPermission(alert: true, badge: true, sound: true);
+    } catch (e) {
+      debugPrint('NotificationService: FCM requestPermission failed: $e');
+    }
 
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
@@ -50,22 +56,30 @@ class NotificationService {
       macOS: darwinSettings,
     );
 
-    await _localNotifications.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: _handleLocalNotificationResponse,
-    );
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(_androidChannel);
+    try {
+      await _localNotifications.initialize(
+        initializationSettings,
+        onDidReceiveNotificationResponse: _handleLocalNotificationResponse,
+      );
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+          >()
+          ?.createNotificationChannel(_androidChannel);
+    } catch (e) {
+      debugPrint('NotificationService: LocalNotifications initialize failed: $e');
+    }
 
     FirebaseMessaging.onMessage.listen(_showRemoteMessage);
     FirebaseMessaging.onMessageOpenedApp.listen(_handleRemoteMessage);
 
-    final initialMessage = await _messaging.getInitialMessage();
-    if (initialMessage != null) {
-      _handleRemoteMessage(initialMessage);
+    try {
+      final initialMessage = await _messaging.getInitialMessage();
+      if (initialMessage != null) {
+        _handleRemoteMessage(initialMessage);
+      }
+    } catch (e) {
+      debugPrint('NotificationService: getInitialMessage failed: $e');
     }
   }
 
@@ -81,58 +95,146 @@ class NotificationService {
     }
   }
 
+  static void handleNotificationClick(NotificationModel notification, [String? roleOverride]) {
+    final data = {
+      'type': notification.type,
+      'bookingId': notification.bookingId,
+      if (roleOverride != null) 'roleOverride': roleOverride,
+    };
+    _processNotificationRoute(data);
+  }
+
   static void _processNotificationRoute(Map<String, dynamic> data) {
-    if (_router == null || _currentUser == null) {
-      debugPrint('Router or current user not initialized. Cannot navigate.');
+    if (_router == null) {
+      debugPrint('NotificationService: Router not initialized. Cannot navigate.');
       return;
     }
 
     final type = data['type']?.toString();
     final bookingId = data['bookingId']?.toString();
-    final userRole = _currentUser?.role.name ?? '';
+    final roleOverride = data['roleOverride']?.toString();
+    
+    // Use override, then stored _currentUser, then fallback to empty string
+    final userRole = roleOverride ?? _currentUser?.role.name ?? '';
 
-    debugPrint('Processing route for notification: type=$type, bookingId=$bookingId, role=$userRole');
+    debugPrint('NotificationService: Processing route. Type: $type, BookingId: $bookingId, Role: $userRole');
 
     if (bookingId != null && bookingId.isNotEmpty) {
       _navigateToBookingDetails(bookingId, userRole);
       return;
     }
 
-    // Role-specific and generic routes
-    switch (type) {
-      case 'NEW_FARMER_REGISTERED':
-      case 'NEW_RETAILER_REGISTERED':
-      case 'NEW_PILOT_REGISTERED':
-      case 'SYSTEM_ERROR':
-        if (userRole == 'admin') {
-          _router!.push('/admin');
-        }
-        break;
-      case 'RETAILER_APPROVED':
+    if (_currentUser == null && roleOverride == null) {
+      debugPrint('NotificationService: User not initialized. Navigation might be restricted.');
+    }
+
+    try {
+      // Handle navigation based on type and role
+      switch (type) {
+        case 'NEW_FARMER_REGISTERED':
+        case 'NEW_PILOT_REGISTERED':
+        case 'NEW_EXTERNAL_PILOT_REGISTERED':
+        case 'SYSTEM_ERROR':
+          if (userRole == 'admin') {
+            _router!.push('/admin/employees');
+            return;
+          }
+          break;
+        case 'NEW_RETAILER_REGISTERED':
+        case 'REGISTRATION_SUBMITTED':
+          if (userRole == 'admin') {
+            _router!.push('/admin/retailers');
+            return;
+          } else if (userRole == 'retailer') {
+            _router!.push('/retailer-status');
+            return;
+          }
+          break;
+        case 'REGISTRATION_APPROVED':
+        case 'RETAILER_APPROVED':
+          if (userRole == 'retailer') {
+            _router!.push('/retailer');
+            return;
+          }
+          break;
+        case 'REGISTRATION_REJECTED':
+        case 'RETAILER_REJECTED':
+          if (userRole == 'retailer') {
+            _router!.push('/retailer-status');
+            return;
+          }
+          break;
+        case 'PILOT_ARRIVED':
+        case 'PILOT_EN_ROUTE':
+        case 'MISSION_STARTED':
+        case 'MISSION_COMPLETED':
+        case 'PAYMENT_RECORDED':
+        case 'PAYMENT_CONFIRMED':
+        case 'PAYMENT_REJECTED':
+          if (userRole == 'farmer') {
+            _router!.push('/my-bookings');
+            return;
+          } else if (userRole == 'admin') {
+            _router!.push('/admin/payments');
+            return;
+          } else if (userRole == 'operations') {
+            _router!.push('/operations');
+            return;
+          } else if (userRole == 'pilot' || userRole == 'externalPilot') {
+            _router!.push('/pilot');
+            return;
+          }
+          break;
+        case 'COUPON_VERIFIED':
+        case 'COUPON_VERIFICATION_REQUIRED':
+          if (userRole == 'admin') {
+            _router!.push('/admin/coupons');
+            return;
+          } else if (userRole == 'retailer') {
+            _router!.push('/retailer/coupons');
+            return;
+          } else if (userRole == 'pilot' || userRole == 'externalPilot') {
+            _router!.push('/pilot');
+            return;
+          }
+          break;
+        case 'CASH_DEPOSITED':
+        case 'CASH_COLLECTION_REQUIRED':
+        case 'CASH_DEPOSIT_REMINDER':
+          if (userRole == 'admin') {
+            _router!.push('/admin/payments');
+            return;
+          } else if (userRole == 'pilot' || userRole == 'externalPilot') {
+            _router!.push('/pilot');
+            return;
+          }
+          break;
+        case 'COUPON_ASSIGNED':
+        case 'COUPON_EXPIRING_SOON':
+          if (userRole == 'retailer') {
+            _router!.push('/retailer/coupons');
+            return;
+          }
+          break;
+      }
+
+      // Fallback if no specific route matched or returned
+      debugPrint('NotificationService: No specific route for type: $type. Falling back to dashboard.');
+      if (userRole == 'farmer') {
+        _router!.push('/farmer');
+      } else if (userRole == 'retailer') {
         _router!.push('/retailer');
-        break;
-      case 'RETAILER_REJECTED':
-        _router!.push('/retailer-status');
-        break;
-      case 'COUPON_ASSIGNED':
-      case 'COUPON_EXPIRING_SOON':
-        if (userRole == 'retailer') {
-          _router!.push('/retailer/coupons');
-        }
-        break;
-      default:
-        // Fallback to role-specific dashboard
-        if (userRole == 'farmer') {
-          _router!.push('/my-bookings');
-        } else if (userRole == 'retailer') {
-          _router!.push('/retailer/bookings');
-        } else if (userRole == 'pilot') {
-          _router!.push('/pilot');
-        } else if (userRole == 'operations') {
-          _router!.push('/operations');
-        } else if (userRole == 'admin') {
-          _router!.push('/admin');
-        }
+      } else if (userRole == 'pilot' || userRole == 'externalPilot') {
+        _router!.push('/pilot');
+      } else if (userRole == 'operations') {
+        _router!.push('/operations');
+      } else if (userRole == 'admin') {
+        _router!.push('/admin');
+      } else {
+        _router!.push('/');
+      }
+    } catch (e) {
+      debugPrint('NotificationService: Navigation error: $e');
     }
   }
 
@@ -141,12 +243,15 @@ class NotificationService {
 
     try {
       final doc = await _firestore.collection('bookings').doc(bookingId).get();
-      if (!doc.exists) return;
+      if (!doc.exists) {
+        debugPrint('Booking document not found: $bookingId');
+        return;
+      }
       final booking = BookingModel.fromMap(doc.data()!, doc.id);
 
-      if (userRole == 'pilot') {
+      if (userRole == 'pilot' || userRole == 'externalPilot') {
         _router!.push('/pilot/job-details', extra: booking);
-      } else if (userRole == 'operations') {
+      } else if (userRole == 'operations' || userRole == 'admin') {
         _router!.push('/ops-booking-details', extra: booking);
       } else {
         _router!.push('/booking-details', extra: booking);
@@ -163,17 +268,27 @@ class NotificationService {
 
     if (user == null || user.docId == null) return;
 
-    await _saveCurrentToken(user.docId!);
+    // Don't block notification listening on FCM token retrieval
+    _saveCurrentToken(user.docId!).catchError((e) {
+      debugPrint('FCM Token sync failed: $e');
+    });
+
     _tokenRefreshSub = _messaging.onTokenRefresh.listen((token) {
       _saveToken(user.docId!, token);
     });
+
     _listenForAppNotifications(user);
   }
 
   static Future<void> _saveCurrentToken(String userDocId) async {
-    final token = await _messaging.getToken();
-    if (token == null || token.isEmpty) return;
-    await _saveToken(userDocId, token);
+    try {
+      final token = await _messaging.getToken();
+      if (token == null || token.isEmpty) return;
+      await _saveToken(userDocId, token);
+    } catch (e) {
+      debugPrint('Error getting FCM token: $e');
+      // Continue without token - likely a configuration error (DEVELOPER_ERROR)
+    }
   }
 
   static Future<void> _saveToken(String userDocId, String token) async {
@@ -186,9 +301,12 @@ class NotificationService {
   static void _listenForAppNotifications(UserModel user) {
     if (user.uid == null) return;
 
+    // Use a small offset to account for server/client time drift
+    final startTime = DateTime.now().subtract(const Duration(seconds: 5));
+
     _userNotificationSub = _firestore
         .collection('notifications')
-        .where('createdAt', isGreaterThan: Timestamp.fromDate(DateTime.now()))
+        .where('createdAt', isGreaterThan: Timestamp.fromDate(startTime))
         .snapshots()
         .listen(
       (snapshot) {
@@ -198,7 +316,7 @@ class NotificationService {
           if (data == null || !_isForUser(data, user)) continue;
           if (!_shownNotificationIds.add(change.doc.id)) continue;
 
-          final title = data['title']?.toString() ?? 'Lakshya Aerotech';
+          final title = data['title']?.toString() ?? 'Lakshya Smartguard systems';
           final message = data['message']?.toString() ?? '';
           final type = data['type']?.toString();
           final bookingId = data['bookingId']?.toString();
@@ -237,7 +355,7 @@ class NotificationService {
 
   static Future<void> _showRemoteMessage(RemoteMessage message) async {
     final notification = message.notification;
-    final title = notification?.title ?? message.data['title']?.toString() ?? 'Lakshya Aerotech';
+    final title = notification?.title ?? message.data['title']?.toString() ?? 'Lakshya Smartguard systems';
     final body = notification?.body ?? message.data['body']?.toString() ?? '';
     final type = message.data['type']?.toString();
     final bookingId = message.data['bookingId']?.toString();

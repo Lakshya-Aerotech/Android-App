@@ -40,7 +40,6 @@ class AdminExcelReportService {
       );
       _addSheet(excel, 'Farmers', preview, analyticsData.topFarmers);
       _addSheet(excel, 'Pilot Performance', preview, analyticsData.pilotTable);
-      _addSheet(excel, 'Drone Fleet', preview, analyticsData.droneTable);
       _addSheet(
         excel,
         'Operations Performance',
@@ -98,7 +97,7 @@ class AdminExcelReportService {
     await Share.shareXFiles(
       [XFile(file.path)],
       subject: preview.definition.title,
-      text: 'Lakshya Aerotech ${preview.definition.title}',
+      text: 'Lakshya Smartguard systems ${preview.definition.title}',
     );
     return file.path;
   }
@@ -111,7 +110,7 @@ class AdminExcelReportService {
   ) {
     final sheet = excel[_safeSheetName(sheetName)];
     var row = 0;
-    _writeRow(sheet, row++, ['Lakshya Aerotech']);
+    _writeRow(sheet, row++, ['Lakshya Smartguard systems']);
     _writeRow(sheet, row++, [preview.definition.title]);
     _writeRow(sheet, row++, ['Date Range', preview.filter.dateRange.label]);
     _writeRow(sheet, row++, ['State', preview.filter.state]);

@@ -1,5 +1,5 @@
 name: lakshya_aerotech
-description: Lakshya Aerotech - Smart Drone Solutions for Modern Agriculture
+description: Lakshya Smartguard systems - Smart Drone Solutions for Modern Agriculture
 publish_to: "none"
 
 version: 1.0.0+1
@@ -51,6 +51,13 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/lakshya_logo.png"
+  min_sdk_android: 21
 
 flutter:
   uses-material-design: true

@@ -1,6 +1,6 @@
-# Lakshya Aerotech
+# Lakshya Smartguard systems
 
-Lakshya Aerotech is a comprehensive agriculture drone service platform designed to modernize farming practices through precision technology. The application facilitates the seamless booking and execution of drone-based services such as pesticide spraying and crop monitoring, connecting farmers with certified pilots and regional retailers.
+Lakshya Smartguard systems is a comprehensive agriculture drone service platform designed to modernize farming practices through precision technology. The application facilitates the seamless booking and execution of drone-based services such as pesticide spraying and crop monitoring, connecting farmers with certified pilots and regional retailers.
 
 ## Project Overview
 
@@ -201,5 +201,5 @@ Centralized tracking of system-wide events for the Admin dashboard.
 ---
 
 ## License
-Copyright © 2024 Lakshya Aerotech. All rights reserved.
+Copyright © 2024 Lakshya Smartguard systems. All rights reserved.
 Proprietary software. Unauthorized copying, distribution, or use is strictly prohibited.

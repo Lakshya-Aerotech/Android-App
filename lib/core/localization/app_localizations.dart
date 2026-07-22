@@ -27,7 +27,7 @@ class AppLocalizations {
 
   String translateText(String text) => t(text);
 
-  String get appTitle => t('Lakshya Aerotech');
+  String get appTitle => t('Lakshya Smartguard systems');
   String get language => t('Language');
   String get english => t('English');
   String get telugu => t('Telugu');
@@ -243,7 +243,7 @@ const Map<String, Map<String, String>> _couponLocalizedValues = {
 
 const Map<String, Map<String, String>> _localizedValues = {
   'en': {
-    'Lakshya Aerotech': 'Lakshya Aerotech',
+    'Lakshya Smartguard systems': 'Lakshya Smartguard systems',
     'Login': 'Login',
     'Logout': 'Logout',
     'Are you sure you want to log out?': 'Are you sure you want to log out?',
@@ -437,7 +437,7 @@ const Map<String, Map<String, String>> _localizedValues = {
         'Retailer notifications are delivered by the app.',
   },
   'te': {
-    'Lakshya Aerotech': 'లక్ష్య ఏరోటెక్',
+    'Lakshya Smartguard systems': 'లక్ష్య స్మార్ట్‌గార్డ్ సిస్టమ్స్',
     'Login': 'లాగిన్',
     'Logout': 'లాగ్ అవుట్',
     'Are you sure you want to log out?':

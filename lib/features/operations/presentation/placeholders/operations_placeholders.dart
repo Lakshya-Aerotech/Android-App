@@ -40,7 +40,7 @@ class OpsAssignmentsPlaceholder extends StatelessWidget {
   const OpsAssignmentsPlaceholder({super.key});
   @override
   Widget build(BuildContext context) =>
-      const ModulePlaceholder(title: 'Pilot & Drone Assignment');
+      const ModulePlaceholder(title: 'Pilot Assignment');
 }
 
 class OpsTrackJobsPlaceholder extends StatelessWidget {

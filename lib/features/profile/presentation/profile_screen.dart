@@ -395,7 +395,6 @@ class _PilotStatsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final avgRating = ref.watch(pilotAverageRatingProvider);
-    final activeJobs = ref.watch(inProgressJobsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -445,30 +444,6 @@ class _PilotStatsSection extends ConsumerWidget {
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 24),
-        Text(
-          context.tr('Assignment'),
-          style: AppTextStyles.titleMedium.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-        activeJobs.when(
-          data: (jobs) {
-            final droneName = jobs.isNotEmpty
-                ? jobs.first.assignedDroneName
-                : 'No active drone';
-            return _InfoTile(
-              label: context.tr('Current Drone'),
-              value: droneName ?? context.tr('N/A'),
-            );
-          },
-          loading: () => const LinearProgressIndicator(),
-          error: (_, __) => _InfoTile(
-            label: context.tr('Current Drone'),
-            value: 'Error loading',
-          ),
         ),
       ],
     );

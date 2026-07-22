@@ -205,6 +205,7 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
     required double originalAmount,
     required double finalAmount,
     double? discountAmount,
+    String? pilotId,
   }) async {
     state = const AsyncLoading();
     try {
@@ -214,6 +215,7 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
         originalAmount: originalAmount,
         finalAmount: finalAmount,
         discountAmount: discountAmount,
+        pilotId: pilotId,
       );
       state = const AsyncData(null);
     } catch (e, st) {

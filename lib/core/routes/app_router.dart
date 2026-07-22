@@ -48,6 +48,7 @@ import 'package:lakshya_aerotech/features/retailer/presentation/retailer_status_
 import 'package:lakshya_aerotech/features/retailer/presentation/retailer_coupons_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/coupons/coupon_management_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/coupons/coupon_history_screen.dart';
+import 'package:lakshya_aerotech/core/notifications/notification_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final user = ref.watch(userModelProvider);
@@ -126,6 +127,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/edit-profile',
         builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationScreen(),
       ),
 
       // Farmer Dashboard
@@ -322,10 +327,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               final pilot = state.extra as UserModel;
               return ExternalPilotDetailsScreen(pilot: pilot);
             },
-          ),
-          GoRoute(
-            path: 'drones',
-            builder: (context, state) => const DronesPlaceholder(),
           ),
           GoRoute(
             path: 'retailers',

@@ -20,20 +20,13 @@ abstract class OperationsRepository {
   Stream<Map<String, dynamic>> getDashboardStatsStream();
   Stream<List<BookingModel>> getApprovedUnassignedBookingsStream();
   Stream<List<OpsPilotResource>> getAvailablePilotsStream();
-  Stream<List<OpsDroneResource>> getDronesStream();
   Future<void> assignPilot(
     String bookingDocId,
     String pilotId,
     String pilotName,
     StatusHistoryEntry historyEntry,
   );
-  Future<void> assignDrone(
-    String bookingDocId,
-    String droneId,
-    String droneName,
-    StatusHistoryEntry historyEntry,
-  );
-  Future<void> assignPilotAndDrone(
+  Future<void> assignPilots(
     OpsAssignmentRequest request,
     StatusHistoryEntry historyEntry,
   );
@@ -63,7 +56,7 @@ class OperationsRepositoryImpl implements OperationsRepository {
     BookingStatus status,
     StatusHistoryEntry historyEntry, {
     OperationsRemark? remark,
-    BookingModel? booking, // Add optional booking for better logging
+    BookingModel? booking,
   }) async {
     final updates = <String, dynamic>{
       'status': status.toFirestore(),
@@ -101,7 +94,21 @@ class OperationsRepositoryImpl implements OperationsRepository {
             ? 'Your booking ${booking.bookingId} for ${booking.farmName} has been approved.'
             : 'Your booking ${booking.bookingId} for ${booking.farmName} has been rejected.',
         bookingId: docId,
+        type: isApproved ? 'BOOKING_APPROVED' : 'BOOKING_REJECTED',
       );
+      if (booking.createdByRetailerId != null) {
+        await _notifications.createForUser(
+          recipientUid: booking.createdByRetailerId!,
+          eventKey:
+              'retailer-${isApproved ? 'booking-approved' : 'booking-rejected'}-$docId',
+          title: isApproved ? 'Booking approved' : 'Booking rejected',
+          message: isApproved
+              ? 'Booking ${booking.bookingId} (${booking.farmerName}) has been approved.'
+              : 'Booking ${booking.bookingId} (${booking.farmerName}) has been rejected.',
+          bookingId: docId,
+          type: isApproved ? 'BOOKING_APPROVED' : 'BOOKING_REJECTED',
+        );
+      }
     }
   }
 
@@ -141,7 +148,6 @@ class OperationsRepositoryImpl implements OperationsRepository {
       int pending = 0;
       int reviewed = 0;
       int pilotAssigned = 0;
-      int droneAssigned = 0;
       int activeMissions = 0;
       int completedToday = 0;
 
@@ -160,7 +166,6 @@ class OperationsRepositoryImpl implements OperationsRepository {
         if (status == BookingStatus.pending) pending++;
         if (status == BookingStatus.reviewed) reviewed++;
         if (status == BookingStatus.pilotAssigned) pilotAssigned++;
-        if (status == BookingStatus.droneAssigned) droneAssigned++;
 
         if ([
           BookingStatus.accepted,
@@ -191,7 +196,6 @@ class OperationsRepositoryImpl implements OperationsRepository {
         'pending': pending,
         'reviewed': reviewed,
         'pilotAssigned': pilotAssigned,
-        'droneAssigned': droneAssigned,
         'activeMissions': activeMissions,
         'completedToday': completedToday,
         'acresScheduledToday': acresScheduledToday,
@@ -281,15 +285,6 @@ class OperationsRepositoryImpl implements OperationsRepository {
   }
 
   @override
-  Stream<List<OpsDroneResource>> getDronesStream() {
-    return _firestore.collection('drones').snapshots().map((snapshot) {
-      final drones = snapshot.docs.map((doc) => _droneFromDoc(doc)).toList()
-        ..sort((a, b) => a.code.compareTo(b.code));
-      return drones;
-    });
-  }
-
-  @override
   Future<void> assignPilot(
     String bookingDocId,
     String pilotId,
@@ -324,6 +319,7 @@ class OperationsRepositoryImpl implements OperationsRepository {
         message:
             'Pilot $pilotName has been assigned to booking ${booking.bookingId}.',
         bookingId: bookingDocId,
+        type: 'PILOT_ASSIGNED',
       );
       await _notifications.createForUser(
         recipientUid: pilotId,
@@ -332,39 +328,13 @@ class OperationsRepositoryImpl implements OperationsRepository {
         message:
             'You have a new job for ${booking.farmName} on ${booking.bookingId}.',
         bookingId: bookingDocId,
+        type: 'PILOT_ASSIGNED',
       );
     }
   }
 
   @override
-  Future<void> assignDrone(
-    String bookingDocId,
-    String droneId,
-    String droneName,
-    StatusHistoryEntry historyEntry,
-  ) async {
-    await _firestore.collection('bookings').doc(bookingDocId).update({
-      'assignedDroneId': droneId,
-      'assignedDroneName': droneName,
-      'status': BookingStatus.droneAssigned.toFirestore(),
-      'updatedAt': FieldValue.serverTimestamp(),
-      'statusHistory': FieldValue.arrayUnion([historyEntry.toMap()]),
-    });
-
-    // Log Activity
-    await ActivityRepository.logActivity(
-      ActivityModel(
-        type: ActivityType.droneAssigned,
-        description: 'Drone $droneName assigned to booking: $bookingDocId',
-        userName: historyEntry.updatedBy,
-        timestamp: DateTime.now(),
-        metadata: {'bookingId': bookingDocId},
-      ),
-    );
-  }
-
-  @override
-  Future<void> assignPilotAndDrone(
+  Future<void> assignPilots(
     OpsAssignmentRequest request,
     StatusHistoryEntry historyEntry,
   ) async {
@@ -380,7 +350,6 @@ class OperationsRepositoryImpl implements OperationsRepository {
     final bookingRef = _firestore
         .collection('bookings')
         .doc(request.bookingDocId);
-    final droneRef = _firestore.collection('drones').doc(request.drone.id);
     final pilotRef = _firestore
         .collection('users')
         .doc(request.pilot.documentId);
@@ -407,9 +376,7 @@ class OperationsRepositoryImpl implements OperationsRepository {
       final bookingStatus = BookingStatus.fromString(
         bookingData['status']?.toString(),
       );
-      final alreadyAssigned =
-          bookingData['assignedPilotId'] != null ||
-          bookingData['assignedDroneId'] != null;
+      final alreadyAssigned = bookingData['assignedPilotId'] != null;
       if (alreadyAssigned || bookingStatus != BookingStatus.reviewed) {
         throw FirebaseException(
           plugin: 'cloud_firestore',
@@ -438,21 +405,10 @@ class OperationsRepositoryImpl implements OperationsRepository {
         }
       }
 
-      final droneDoc = await transaction.get(droneRef);
-      if (!droneDoc.exists || !_isDroneSelectableData(droneDoc.data())) {
-        throw FirebaseException(
-          plugin: 'cloud_firestore',
-          code: 'failed-precondition',
-          message: 'Selected drone is no longer available.',
-        );
-      }
-
       final bookingUpdates = <String, dynamic>{
         'assignedPilotId': request.pilot.uid,
         'assignedPilotName': request.pilot.name,
-        'assignedDroneId': request.drone.id,
-        'assignedDroneName': request.drone.name,
-        'status': BookingStatus.droneAssigned.toFirestore(),
+        'status': BookingStatus.pilotAssigned.toFirestore(),
         'updatedAt': timestamp,
         'statusHistory': FieldValue.arrayUnion([historyEntry.toMap()]),
       };
@@ -469,9 +425,7 @@ class OperationsRepositoryImpl implements OperationsRepository {
         'bookingId': request.bookingDocId,
         'assignedPilotId': request.pilot.uid,
         'assignedPilotName': request.pilot.name,
-        'assignedDroneId': request.drone.id,
-        'assignedDroneName': request.drone.name,
-        'status': BookingStatus.droneAssigned.toFirestore(),
+        'status': BookingStatus.pilotAssigned.toFirestore(),
         'updatedAt': timestamp,
       };
       if (copilot != null) {
@@ -486,13 +440,6 @@ class OperationsRepositoryImpl implements OperationsRepository {
         assignmentUpdates,
         SetOptions(merge: true),
       );
-
-      transaction.update(droneRef, {
-        'status': 'busy',
-        'assignedBookingId': request.bookingDocId,
-        'assignedPilotId': request.pilot.uid,
-        'updatedAt': timestamp,
-      });
     });
 
     // Log Activity
@@ -516,6 +463,7 @@ class OperationsRepositoryImpl implements OperationsRepository {
         message:
             'Pilot ${request.pilot.name} has been assigned to booking ${booking.bookingId}.',
         bookingId: request.bookingDocId,
+        type: 'PILOT_ASSIGNED',
       );
       await _notifications.createForUser(
         recipientUid: request.pilot.uid,
@@ -523,8 +471,9 @@ class OperationsRepositoryImpl implements OperationsRepository {
             'new-job-assigned-${request.bookingDocId}-${request.pilot.uid}',
         title: 'New job assigned',
         message:
-            'You have a new job for ${booking.farmName} with drone ${request.drone.name}.',
+            'You have a new job for ${booking.farmName} on ${booking.bookingId}.',
         bookingId: request.bookingDocId,
+        type: 'PILOT_ASSIGNED',
       );
       if (request.copilot != null) {
         await _notifications.createForUser(
@@ -533,8 +482,9 @@ class OperationsRepositoryImpl implements OperationsRepository {
               'new-job-assigned-${request.bookingDocId}-${request.copilot!.uid}',
           title: 'New job assigned',
           message:
-              'You have a co-pilot job for ${booking.farmName} with drone ${request.drone.name}.',
+              'You have a co-pilot job for ${booking.farmName} on ${booking.bookingId}.',
           bookingId: request.bookingDocId,
+          type: 'PILOT_ASSIGNED',
         );
       }
       await _notifications.createForRole(
@@ -542,8 +492,9 @@ class OperationsRepositoryImpl implements OperationsRepository {
         eventKey: 'assignment-completed-${request.bookingDocId}',
         title: 'Assignment completed',
         message:
-            '${request.pilot.name} and ${request.drone.name} were assigned to booking ${booking.bookingId}.',
+            '${request.pilot.name} was assigned to booking ${booking.bookingId}.',
         bookingId: request.bookingDocId,
+        type: 'PILOT_ASSIGNED',
       );
     }
   }
@@ -558,20 +509,17 @@ class OperationsRepositoryImpl implements OperationsRepository {
     final statusText = data['status']?.toString();
     final status = BookingStatus.fromString(statusText);
 
-    final isValidForAssignment =
-        status == BookingStatus.reviewed ||
-        status == BookingStatus.pilotAssigned;
+    final isValidForAssignment = status == BookingStatus.reviewed;
 
     final isDeleted = data['isDeleted'] == true;
     final isCancelled = status == BookingStatus.cancelled;
 
     final assignedPilot = data['assignedPilotId'];
-    final assignedDrone = data['assignedDroneId'];
 
     return isValidForAssignment &&
         !isDeleted &&
         !isCancelled &&
-        (assignedPilot == null || assignedDrone == null);
+        assignedPilot == null;
   }
 
   OpsPilotResource? _pilotFromDoc(
@@ -640,68 +588,6 @@ class OperationsRepositoryImpl implements OperationsRepository {
         data['isAvailable'] != false &&
         availability != 'unavailable' &&
         availability != 'assigned' &&
-        (activeBookingId == null || activeBookingId.toString().isEmpty);
-  }
-
-  OpsDroneResource _droneFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data() ?? const <String, dynamic>{};
-    final availability =
-        (data['availability'] ?? data['availabilityStatus'] ?? '')
-            .toString()
-            .toLowerCase();
-    final status = (data['operationalStatus'] ?? data['status'] ?? 'available')
-        .toString();
-    final activeBookingId =
-        data['currentBookingId'] ??
-        data['activeBookingId'] ??
-        data['assignedBookingId'];
-
-    return OpsDroneResource(
-      id: doc.id,
-      code:
-          (data['droneCode'] ?? data['code'] ?? data['serialNumber'] ?? doc.id)
-              .toString(),
-      name: (data['droneName'] ?? data['name'] ?? data['model'] ?? 'Drone')
-          .toString(),
-      batteryPercentage:
-          (data['batteryPercentage'] as num?)?.toInt() ??
-          (data['battery'] as num?)?.toInt(),
-      operationalStatus: status,
-      isActive: data['isActive'] != false && status.toLowerCase() != 'inactive',
-      isAvailable:
-          data['isAvailable'] != false &&
-          availability != 'assigned' &&
-          availability != 'unavailable' &&
-          availability != 'maintenance',
-      isDeleted: data['isDeleted'] == true || data['deleted'] == true,
-      activeBookingId: activeBookingId?.toString(),
-    );
-  }
-
-  bool _isDroneSelectableData(Map<String, dynamic>? data) {
-    if (data == null) return false;
-
-    final availability =
-        (data['availability'] ?? data['availabilityStatus'] ?? '')
-            .toString()
-            .toLowerCase();
-    final status = (data['operationalStatus'] ?? data['status'] ?? 'available')
-        .toString()
-        .toLowerCase();
-    final activeBookingId =
-        data['currentBookingId'] ??
-        data['activeBookingId'] ??
-        data['assignedBookingId'];
-
-    return data['isActive'] != false &&
-        data['isDeleted'] != true &&
-        data['deleted'] != true &&
-        data['isAvailable'] != false &&
-        status != 'inactive' &&
-        status != 'busy' &&
-        availability != 'assigned' &&
-        availability != 'unavailable' &&
-        availability != 'maintenance' &&
         (activeBookingId == null || activeBookingId.toString().isEmpty);
   }
 }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../auth/viewmodel/auth_viewmodel.dart';
 import '../../models/booking_model.dart';
 import '../../viewmodels/booking_viewmodel.dart';
 
@@ -37,7 +38,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Payment'),
+        title: const Text('Payment Collection'),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.primary,
         elevation: 0,
@@ -51,18 +52,26 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             const SizedBox(height: 16),
             _buildSummaryCard(originalAmount, discount, payableAmount),
             const SizedBox(height: 32),
-            Text('Select Payment Method', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              'Select the payment method used by the farmer',
+              style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Record how the farmer completed the payment for this service.',
+              style: AppTextStyles.bodySmall,
+            ),
             const SizedBox(height: 16),
             _buildPaymentOption(
               title: 'UPI',
-              subtitle: 'Pay using any UPI app',
+              subtitle: 'Farmer paid using UPI',
               icon: Icons.account_balance_wallet_outlined,
               value: 'UPI',
             ),
             const SizedBox(height: 12),
             _buildPaymentOption(
               title: 'Cash',
-              subtitle: 'Pay cash to the pilot',
+              subtitle: 'Farmer paid in cash',
               icon: Icons.money_outlined,
               value: 'Cash',
             ),
@@ -166,11 +175,29 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   }
 
   void _handlePayment(double original, double finalAmt, double discount) async {
-    if (_selectedMethod == 'UPI') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('UPI payment integration will be available in a future update.')),
+    if (_selectedMethod == 'Cash') {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Confirm Cash Collection'),
+          content: const Text('Please confirm that you have received the cash payment from the farmer.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Confirm'),
+            ),
+          ],
+        ),
       );
+
+      if (confirmed != true) return;
     }
+
+    final pilotId = ref.read(userModelProvider)?.uid;
 
     await ref.read(bookingViewModelProvider.notifier).requestPayment(
       docId: widget.booking.docId!,
@@ -178,9 +205,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       originalAmount: original,
       finalAmount: finalAmt,
       discountAmount: discount > 0 ? discount : null,
+      pilotId: pilotId,
     );
 
     if (mounted) {
+      if (_selectedMethod == 'UPI') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('UPI payment method recorded successfully.')),
+        );
+      }
       context.pop();
     }
   }

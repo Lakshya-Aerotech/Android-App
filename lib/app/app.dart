@@ -15,14 +15,23 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final locale = ref.watch(localeViewModelProvider);
+    final user = ref.watch(userModelProvider);
+
     NotificationService.setRouter(router);
+    
+    // Ensure user is synced if already available
+    if (user != null && NotificationService.currentUser == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        NotificationService.syncUser(user);
+      });
+    }
 
     ref.listen(userModelProvider, (_, next) {
       NotificationService.syncUser(next);
     });
 
     return MaterialApp.router(
-      title: 'Lakshya Aerotech',
+      title: 'Lakshya Smartguard systems',
       theme: AppTheme.lightTheme,
       debugShowCheckedModeBanner: false,
       locale: locale,

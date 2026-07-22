@@ -72,7 +72,6 @@ class AdminAnalyticsViewModel
       AdminReportType.pesticideSpraying => data.bookingTable,
       AdminReportType.farmers => data.topFarmers,
       AdminReportType.pilots => data.pilotTable,
-      AdminReportType.drones => data.droneTable,
       AdminReportType.operations => AnalyticsTable(
         columns: ['Metric', 'Value'],
         rows: data.operationsMetrics.map((m) => [m.title, m.value]).toList(),
@@ -95,7 +94,6 @@ class AdminAnalyticsViewModel
       AdminReportType.pesticideSpraying => data.pesticideMetrics,
       AdminReportType.farmers => data.farmerMetrics,
       AdminReportType.pilots => data.pilotMetrics,
-      AdminReportType.drones => data.droneMetrics,
       AdminReportType.operations => data.operationsMetrics,
       AdminReportType.geographic => data.geographicMetrics,
       AdminReportType.revenue => [
@@ -157,7 +155,6 @@ class AdminAnalyticsViewModel
     final farmers = users.where((u) => _role(u) == UserRole.farmer).toList();
     final pilots = users.where((u) => _role(u) == UserRole.pilot).toList();
     final ops = users.where((u) => _role(u) == UserRole.operations).toList();
-    final drones = source.drones;
     final completed = filteredBookings.where(_isCompleted).toList();
     final active = filteredBookings.where(_isActiveJob).toList();
     final assigned = filteredBookings.where(_isAssigned).toList();
@@ -225,12 +222,6 @@ class AdminAnalyticsViewModel
         pilots.where(_isAvailableUser).length,
         Icons.person_pin_circle_outlined,
         Colors.cyan,
-      ),
-      _metric(
-        'Available Drones',
-        drones.where(_isAvailableDrone).length,
-        Icons.precision_manufacturing,
-        Colors.indigo,
       ),
       _metricValue(
         'Total Farm Area Serviced',
@@ -473,7 +464,6 @@ class AdminAnalyticsViewModel
     ];
 
     final pilotMetrics = _pilotMetrics(pilots, filteredBookings, completed);
-    final droneMetrics = _droneMetrics(drones, filteredBookings, completed);
     final geo = _geographic(filteredBookings);
     final operationsMetrics = _operationsMetrics(filteredBookings);
 
@@ -544,7 +534,6 @@ class AdminAnalyticsViewModel
       pesticideMetrics: pesticideMetrics,
       farmerMetrics: farmerMetrics,
       pilotMetrics: pilotMetrics,
-      droneMetrics: droneMetrics,
       geographicMetrics: geo.metrics,
       operationsMetrics: operationsMetrics,
       couponMetrics: couponMetrics,
@@ -557,7 +546,6 @@ class AdminAnalyticsViewModel
       districts: _districtOptions(source, filter.state),
       topFarmers: _topFarmers(farmers, filteredBookings, completed, hasRevenue),
       pilotTable: _pilotTable(pilots, filteredBookings, completed),
-      droneTable: _droneTable(drones, filteredBookings, completed),
       geographicTable: geo.table,
       bookingTable: _bookingTable(filteredBookings, hasRevenue),
       hasRevenueData: hasRevenue,
@@ -585,7 +573,7 @@ class AdminAnalyticsViewModel
         .map(
           (b) => _durationBetweenStatuses(
             b,
-            BookingStatus.droneAssigned,
+            BookingStatus.pilotAssigned,
             BookingStatus.completed,
           ),
         )
@@ -643,72 +631,6 @@ class AdminAnalyticsViewModel
             : _durationText(_averageDuration(durations)),
         Icons.timer_outlined,
         Colors.purple,
-      ),
-    ];
-  }
-
-  List<AnalyticsMetric> _droneMetrics(
-    List<Map<String, dynamic>> drones,
-    List<Map<String, dynamic>> bookings,
-    List<Map<String, dynamic>> completed,
-  ) {
-    final mostUsed = _mostUsedDrone(bookings);
-    return [
-      _metric(
-        'Total Registered Drones',
-        drones.length,
-        Icons.precision_manufacturing,
-        Colors.indigo,
-      ),
-      _metric(
-        'Available Drones',
-        drones.where(_isAvailableDrone).length,
-        Icons.check_circle_outline,
-        Colors.green,
-      ),
-      _metric(
-        'Assigned Drones',
-        bookings.where((b) => _text(b['assignedDroneId']).isNotEmpty).length,
-        Icons.assignment_ind_outlined,
-        Colors.blue,
-      ),
-      _metric(
-        'Drones Currently In Use',
-        drones.where(_isBusyDrone).length,
-        Icons.track_changes,
-        Colors.teal,
-      ),
-      _metric(
-        'Drones Under Maintenance',
-        drones
-            .where((d) => _text(d['status']).toLowerCase() == 'maintenance')
-            .length,
-        Icons.build_outlined,
-        Colors.orange,
-      ),
-      _metric(
-        'Inactive Drones',
-        drones.where((d) => d['isActive'] == false).length,
-        Icons.block,
-        Colors.red,
-      ),
-      _metric(
-        'Total Completed Jobs By Drones',
-        completed.length,
-        Icons.task_alt,
-        Colors.green,
-      ),
-      _metricValue(
-        'Total Farm Area Serviced',
-        _areaText(completed.fold<double>(0, (s, b) => s + _area(b))),
-        Icons.crop_free,
-        Colors.green,
-      ),
-      _metricValue(
-        'Most-Used Drone',
-        mostUsed,
-        Icons.star_outline,
-        Colors.amber,
       ),
     ];
   }
@@ -821,7 +743,7 @@ class AdminAnalyticsViewModel
     final assignment = _averageStatusGap(
       bookings,
       BookingStatus.reviewed,
-      BookingStatus.droneAssigned,
+      BookingStatus.pilotAssigned,
     );
     final travel = _averageStatusGap(
       bookings,
@@ -867,7 +789,7 @@ class AdminAnalyticsViewModel
         'Average Assignment-to-Travelling Time',
         _averageStatusGap(
                   bookings,
-                  BookingStatus.droneAssigned,
+                  BookingStatus.pilotAssigned,
                   BookingStatus.enRoute,
                 ) ==
                 null
@@ -875,7 +797,7 @@ class AdminAnalyticsViewModel
             : _durationText(
                 _averageStatusGap(
                   bookings,
-                  BookingStatus.droneAssigned,
+                  BookingStatus.pilotAssigned,
                   BookingStatus.enRoute,
                 )!,
               ),
@@ -1039,69 +961,6 @@ class AdminAnalyticsViewModel
     );
   }
 
-  AnalyticsTable _droneTable(
-    List<Map<String, dynamic>> drones,
-    List<Map<String, dynamic>> bookings,
-    List<Map<String, dynamic>> completed,
-  ) {
-    return AnalyticsTable(
-      columns: [
-        'Drone ID',
-        'Name / Model',
-        'Status',
-        'Assigned',
-        'Active',
-        'Completed',
-        'Area serviced',
-        'Last used',
-      ],
-      rows: drones.map((drone) {
-        final id = _text(drone['_docId']);
-        final code = _text(drone['droneId']).isNotEmpty
-            ? _text(drone['droneId'])
-            : (_text(drone['droneCode']).isNotEmpty
-                  ? _text(drone['droneCode'])
-                  : id);
-        final assigned = bookings
-            .where(
-              (b) =>
-                  _text(b['assignedDroneId']) == id ||
-                  _text(b['assignedDroneId']) == code,
-            )
-            .toList();
-        final done = completed
-            .where(
-              (b) =>
-                  _text(b['assignedDroneId']) == id ||
-                  _text(b['assignedDroneId']) == code,
-            )
-            .toList();
-        final lastDates =
-            assigned
-                .map((b) => _date(b['updatedAt']))
-                .whereType<DateTime>()
-                .toList()
-              ..sort();
-        return [
-          code,
-          _text(drone['droneName']).isNotEmpty
-              ? _text(drone['droneName'])
-              : _text(drone['model']),
-          _text(drone['status']).isEmpty
-              ? _text(drone['operationalStatus'])
-              : _text(drone['status']),
-          assigned.length.toString(),
-          assigned.where(_isActiveJob).length.toString(),
-          done.length.toString(),
-          _areaText(done.fold<double>(0, (s, b) => s + _area(b))),
-          lastDates.isEmpty
-              ? 'Not available'
-              : DateFormat('d MMM yyyy').format(lastDates.last),
-        ];
-      }).toList(),
-    );
-  }
-
   AnalyticsTable _bookingTable(
     List<Map<String, dynamic>> bookings,
     bool hasRevenue,
@@ -1182,7 +1041,7 @@ class AdminAnalyticsViewModel
       type: AdminReportType.complete,
       title: 'Complete Platform Report',
       description:
-          'Executive overview across bookings, farmers, pilots, drones, operations, geography, and revenue.',
+          'Executive overview across bookings, farmers, pilots, operations, geography, and revenue.',
       icon: Icons.dashboard_customize_outlined,
     ),
     const ReportDefinition(
@@ -1210,13 +1069,6 @@ class AdminAnalyticsViewModel
       title: 'Pilot Performance Report',
       description: 'Assigned, active, and completed job performance by pilot.',
       icon: Icons.flight,
-    ),
-    const ReportDefinition(
-      type: AdminReportType.drones,
-      title: 'Drone Fleet Report',
-      description:
-          'Drone availability, usage, maintenance, and completed job metrics.',
-      icon: Icons.precision_manufacturing,
     ),
     const ReportDefinition(
       type: AdminReportType.operations,
@@ -1248,12 +1100,9 @@ class AdminAnalyticsViewModel
       _status(b) == BookingStatus.closed;
   static bool _isAssigned(Map<String, dynamic> b) =>
       _status(b) == BookingStatus.pilotAssigned ||
-      _status(b) == BookingStatus.droneAssigned ||
-      _text(b['assignedPilotId']).isNotEmpty ||
-      _text(b['assignedDroneId']).isNotEmpty;
+      _text(b['assignedPilotId']).isNotEmpty;
   static bool _isActiveJob(Map<String, dynamic> b) => {
     BookingStatus.pilotAssigned,
-    BookingStatus.droneAssigned,
     BookingStatus.enRoute,
     BookingStatus.arrived,
     BookingStatus.inProgress,
@@ -1275,28 +1124,6 @@ class AdminAnalyticsViewModel
         user['isAvailableForJobs'] != false &&
         availability != 'unavailable' &&
         availability != 'assigned';
-  }
-
-  static bool _isAvailableDrone(Map<String, dynamic> drone) {
-    final status =
-        (_text(drone['status']).isEmpty
-                ? _text(drone['operationalStatus'])
-                : _text(drone['status']))
-            .toLowerCase();
-    return drone['isActive'] != false &&
-        drone['isAvailable'] != false &&
-        status == 'available';
-  }
-
-  static bool _isBusyDrone(Map<String, dynamic> drone) {
-    final status =
-        (_text(drone['status']).isEmpty
-                ? _text(drone['operationalStatus'])
-                : _text(drone['status']))
-            .toLowerCase();
-    return status == 'busy' ||
-        status == 'assigned' ||
-        _text(drone['assignedBookingId']).isNotEmpty;
   }
 
   static String _text(Object? value) => value?.toString().trim() ?? '';
@@ -1385,17 +1212,6 @@ class AdminAnalyticsViewModel
     final entries = values.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     return entries.first.key;
-  }
-
-  static String _mostUsedDrone(List<Map<String, dynamic>> bookings) {
-    final counts = <String, int>{};
-    for (final b in bookings) {
-      final drone = _text(b['assignedDroneName']).isNotEmpty
-          ? _text(b['assignedDroneName'])
-          : _text(b['assignedDroneId']);
-      if (drone.isNotEmpty) counts[drone] = (counts[drone] ?? 0) + 1;
-    }
-    return _topKey(counts);
   }
 
   static Duration _averageDuration(List<Duration> durations) {

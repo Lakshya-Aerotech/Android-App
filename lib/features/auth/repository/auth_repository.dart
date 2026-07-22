@@ -138,8 +138,9 @@ class AuthRepositoryImpl implements AuthRepository {
       role: UserRole.admin,
       eventKey: 'farmer-registered-${user.uid}',
       title: 'New farmer registered',
-      message: '${user.name ?? 'A farmer'} registered with Lakshya Aerotech.',
+      message: '${user.name ?? 'A farmer'} registered with Lakshya Smartguard systems.',
       data: {'farmerUid': user.uid},
+      type: 'NEW_FARMER_REGISTERED',
     );
   }
 
@@ -164,6 +165,7 @@ class AuthRepositoryImpl implements AuthRepository {
       message:
           'Your retailer registration has been submitted for admin approval.',
       data: {'retailerUid': user.uid},
+      type: 'REGISTRATION_SUBMITTED',
     );
     await _notifications.createForRole(
       role: UserRole.admin,
@@ -172,6 +174,7 @@ class AuthRepositoryImpl implements AuthRepository {
       message:
           '${user.shopName ?? 'A retailer'} submitted a registration request.',
       data: {'retailerUid': user.uid},
+      type: 'NEW_RETAILER_REGISTERED',
     );
   }
 
@@ -261,6 +264,7 @@ class AuthRepositoryImpl implements AuthRepository {
       title: 'New external pilot registration',
       message: '${user.name} has registered as an external pilot and is awaiting approval.',
       data: {'pilotUid': uid},
+      type: 'NEW_EXTERNAL_PILOT_REGISTERED',
     );
   }
 
@@ -301,8 +305,9 @@ class AuthRepositoryImpl implements AuthRepository {
       role: UserRole.admin,
       eventKey: 'farmer-registered-$uid',
       title: 'New farmer registration',
-      message: '${user.name ?? 'A farmer'} registered with Lakshya Aerotech.',
+      message: '${user.name ?? 'A farmer'} registered with Lakshya Smartguard systems.',
       data: {'farmerUid': uid},
+      type: 'NEW_FARMER_REGISTERED',
     );
   }
 }

@@ -92,8 +92,6 @@ class PilotJobCard extends StatelessWidget {
                 _buildInfoItem(Icons.calendar_today_outlined, DateFormat('dd MMM').format(job.bookingDate)),
                 const SizedBox(width: 16),
                 _buildInfoItem(Icons.access_time_outlined, job.preferredTime),
-                const SizedBox(width: 16),
-                _buildInfoItem(Icons.precision_manufacturing_outlined, job.assignedDroneName ?? 'No Drone'),
                 const Spacer(),
                 const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
               ],

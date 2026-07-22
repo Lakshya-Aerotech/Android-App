@@ -102,22 +102,15 @@ class BookingDetailsScreen extends ConsumerWidget {
             icon: Icons.crop_free,
           ),
 
-          if (b.assignedPilotName != null || b.assignedDroneName != null) ...[
+          if (b.assignedPilotName != null) ...[
             const SizedBox(height: 24),
             Text('Assigned Resources', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            if (b.assignedPilotName != null)
-              BookingSummaryCard(
-                label: 'Pilot',
-                value: b.assignedPilotName!,
-                icon: Icons.person_add_alt_1_outlined,
-              ),
-            if (b.assignedDroneName != null)
-              BookingSummaryCard(
-                label: 'Drone',
-                value: b.assignedDroneName!,
-                icon: Icons.precision_manufacturing_outlined,
-              ),
+            BookingSummaryCard(
+              label: 'Pilot',
+              value: b.assignedPilotName!,
+              icon: Icons.person_add_alt_1_outlined,
+            ),
           ],
 
           const SizedBox(height: 24),
@@ -288,12 +281,16 @@ class BookingDetailsScreen extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: AppTextStyles.bodySmall),
-          Text(
-            value,
-            style: AppTextStyles.bodyMedium.copyWith(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-              color: valueColor,
+          Expanded(child: Text(label, style: AppTextStyles.bodySmall)),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              value,
+              style: AppTextStyles.bodyMedium.copyWith(
+                fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+                color: valueColor,
+              ),
+              textAlign: TextAlign.end,
             ),
           ),
         ],
@@ -351,16 +348,8 @@ class BookingDetailsScreen extends ConsumerWidget {
   }
 
   Widget _buildPostServiceActions(BuildContext context, WidgetRef ref, BookingModel b) {
-    final isLoading = ref.watch(bookingViewModelProvider).isLoading;
-
     return Column(
       children: [
-        PrimaryButton(
-          text: 'Confirm Service Completion',
-          onPressed: () => _showConfirmServiceDialog(context, ref, b.docId!),
-          isLoading: isLoading,
-        ),
-        const SizedBox(height: 12),
         OutlinedButton(
           onPressed: () => _showIssueReportDialog(context, b.docId!),
           style: OutlinedButton.styleFrom(
@@ -372,20 +361,6 @@ class BookingDetailsScreen extends ConsumerWidget {
           child: const Text('Report an Issue'),
         ),
       ],
-    );
-  }
-
-  void _showConfirmServiceDialog(BuildContext context, WidgetRef ref, String docId) {
-    showDialog(
-      context: context,
-      builder: (context) => widgets.ConfirmationDialog(
-        title: 'Confirm Service',
-        content: 'Have you verified that the requested service has been completed satisfactorily?',
-        confirmLabel: 'Yes, Confirm',
-        onConfirm: () {
-          ref.read(bookingViewModelProvider.notifier).confirmService(docId);
-        },
-      ),
     );
   }
 

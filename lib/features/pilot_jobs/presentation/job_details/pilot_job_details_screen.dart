@@ -121,7 +121,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
                 ],
 
                 const SizedBox(height: 24),
-                _buildSectionTitle('Drone Assignment'),
+                _buildSectionTitle('Pilot Assignment'),
                 _buildInfoCard(
                   items: [
                     {
@@ -135,16 +135,6 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
                         'value': job.copilotName!,
                         'icon': Icons.support_agent_outlined,
                       },
-                    {
-                      'label': 'Drone Code',
-                      'value': job.assignedDroneId ?? 'N/A',
-                      'icon': Icons.precision_manufacturing_outlined,
-                    },
-                    {
-                      'label': 'Model',
-                      'value': job.assignedDroneName ?? 'N/A',
-                      'icon': Icons.model_training,
-                    },
                   ],
                 ),
 
@@ -368,7 +358,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
     }
 
     switch (job.status) {
-      case BookingStatus.droneAssigned:
+      case BookingStatus.pilotAssigned:
       case BookingStatus.accepted:
       case BookingStatus.enRoute:
         return PrimaryButton(
@@ -639,7 +629,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
               flags: InteractiveFlag.none,
             ),
             onTap: (_, __) async {
-              if (widget.job.status == BookingStatus.droneAssigned ||
+              if (widget.job.status == BookingStatus.pilotAssigned ||
                   widget.job.status == BookingStatus.accepted) {
                 await ref
                     .read(pilotJobsViewModelProvider.notifier)

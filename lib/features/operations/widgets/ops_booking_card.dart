@@ -105,21 +105,13 @@ class OpsBookingCard extends StatelessWidget {
                 const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
               ],
             ),
-            if (booking.assignedPilotName != null || booking.assignedDroneName != null) ...[
+            if (booking.assignedPilotName != null) ...[
               const SizedBox(height: 12),
               Row(
                 children: [
-                  if (booking.assignedPilotName != null) ...[
-                    const Icon(Icons.person_outline, size: 12, color: AppColors.accent),
-                    const SizedBox(width: 4),
-                    Text(booking.assignedPilotName!, style: AppTextStyles.bodySmall.copyWith(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 12),
-                  ],
-                  if (booking.assignedDroneName != null) ...[
-                    const Icon(Icons.precision_manufacturing_outlined, size: 12, color: AppColors.accent),
-                    const SizedBox(width: 4),
-                    Text(booking.assignedDroneName!, style: AppTextStyles.bodySmall.copyWith(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.bold)),
-                  ],
+                  const Icon(Icons.person_outline, size: 12, color: AppColors.accent),
+                  const SizedBox(width: 4),
+                  Text(booking.assignedPilotName!, style: AppTextStyles.bodySmall.copyWith(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.bold)),
                 ],
               ),
             ],

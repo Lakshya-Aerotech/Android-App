@@ -191,7 +191,6 @@ class AnalyticsFilterBar extends StatelessWidget {
               BookingStatus.pending,
               BookingStatus.reviewed,
               BookingStatus.pilotAssigned,
-              BookingStatus.droneAssigned,
               BookingStatus.enRoute,
               BookingStatus.arrived,
               BookingStatus.inProgress,
@@ -474,7 +473,7 @@ class ReportSummarySection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Lakshya Aerotech', style: AppTextStyles.titleMedium),
+          Text('Lakshya Smartguard systems', style: AppTextStyles.titleMedium),
           const SizedBox(height: 4),
           Text(preview.definition.title, style: AppTextStyles.bodyMedium),
           const SizedBox(height: 10),

@@ -1,7 +1,7 @@
 {
   "name": "lakshya-aerotech-notification-service",
   "version": "1.0.0",
-  "description": "Backend Push Notification Service for Lakshya Aerotech",
+  "description": "Backend Push Notification Service for Lakshya Smartguard systems",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
