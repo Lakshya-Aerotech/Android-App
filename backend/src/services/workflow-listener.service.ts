@@ -87,6 +87,16 @@ export class WorkflowListenerService {
                     'BOOKING_APPROVAL_REQUIRED',
                     bookingId
                   );
+                  // Notify Creator Retailer
+                  if (data.createdByRetailerId) {
+                    await NotificationService.sendNotification({
+                      recipientUid: data.createdByRetailerId,
+                      title: 'New Booking Created',
+                      body: `A new booking request (${bookingId}) has been created for your farmer.`,
+                      type: 'BOOKING_CREATED',
+                      bookingId,
+                    });
+                  }
                 }
               }
             } else if (change.type === 'modified') {
@@ -124,17 +134,32 @@ export class WorkflowListenerService {
                       bookingId,
                     });
                   }
+                  if (data.createdByRetailerId) {
+                    await NotificationService.sendNotification({
+                      recipientUid: data.createdByRetailerId,
+                      title: 'Booking Approved',
+                      body: `The booking request (${bookingId}) you created has been approved.`,
+                      type: 'BOOKING_APPROVED',
+                      bookingId,
+                    });
+                  }
                 }
 
                 // Booking Rejected / Cancelled (any active -> cancelled)
                 if (oldStatus !== 'cancelled' && newStatus === 'cancelled') {
+                  const isRejection = oldStatus === 'pending';
+                  const title = isRejection ? 'Booking Rejected' : 'Booking Cancelled';
+                  const type = isRejection ? 'BOOKING_REJECTED' : 'BOOKING_CANCELLED';
+
                   // Notify Farmer
                   if (data.farmerUid) {
                     await NotificationService.sendNotification({
                       recipientUid: data.farmerUid,
-                      title: 'Booking Cancelled',
-                      body: `Your booking request (${bookingId}) has been cancelled or rejected.`,
-                      type: 'BOOKING_REJECTED',
+                      title,
+                      body: isRejection
+                        ? `Your booking request (${bookingId}) was declined by the administrator.`
+                        : `Your booking request (${bookingId}) has been cancelled.`,
+                      type,
                       bookingId,
                     });
                   }
@@ -142,17 +167,19 @@ export class WorkflowListenerService {
                   if (data.createdByRetailerId) {
                     await NotificationService.sendNotification({
                       recipientUid: data.createdByRetailerId,
-                      title: 'Booking Cancelled',
-                      body: `The service booking (${bookingId}) has been cancelled.`,
-                      type: 'BOOKING_CANCELLED',
+                      title,
+                      body: isRejection
+                        ? `The booking request (${bookingId}) you created has been rejected.`
+                        : `The service booking (${bookingId}) has been cancelled.`,
+                      type,
                       bookingId,
                     });
                   }
-                  // Notify Admins (Booking Cancelled)
+                  // Notify Admins
                   await this.notifyAdmins(
-                    'Booking Cancelled',
-                    `Service booking (${bookingId}) has been cancelled.`,
-                    'BOOKING_CANCELLED',
+                    title,
+                    `Service booking (${bookingId}) has been ${isRejection ? 'rejected' : 'cancelled'}.`,
+                    type,
                     bookingId
                   );
                 }
@@ -174,7 +201,7 @@ export class WorkflowListenerService {
                       recipientUid: data.createdByRetailerId,
                       title: 'Pilot Assigned to Booking',
                       body: `A pilot has been successfully assigned to booking (${bookingId}).`,
-                      type: 'BOOKING_ASSIGNED',
+                      type: 'PILOT_ASSIGNED',
                       bookingId,
                     });
                   }
@@ -252,6 +279,15 @@ export class WorkflowListenerService {
                       bookingId,
                     });
                   }
+                  if (data.createdByRetailerId) {
+                    await NotificationService.sendNotification({
+                      recipientUid: data.createdByRetailerId,
+                      title: 'Spray Completed',
+                      body: `Spraying operations have been completed by the pilot for booking (${bookingId}).`,
+                      type: 'OPERATION_COMPLETED',
+                      bookingId,
+                    });
+                  }
                 }
 
                 // Report Uploaded (missionPhotos or missionNotes goes from empty to non-empty)
@@ -266,6 +302,20 @@ export class WorkflowListenerService {
                       bookingId,
                     });
                   }
+                  // Notify Admins
+                  await this.notifyAdmins(
+                    'Mission Report Uploaded',
+                    `The pilot has uploaded the mission report for booking (${bookingId}).`,
+                    'REPORT_UPLOADED',
+                    bookingId
+                  );
+                  // Notify Operations
+                  await this.notifyOperations(
+                    'Mission Report Uploaded',
+                    `The pilot has uploaded the mission report for booking (${bookingId}).`,
+                    'REPORT_UPLOADED',
+                    bookingId
+                  );
                 }
 
                 // Booking Completed (status becomes closed or farmerConfirmed)
@@ -303,10 +353,27 @@ export class WorkflowListenerService {
                       bookingId,
                     });
                   }
+                  // Notify Creator Retailer
+                  if (data.createdByRetailerId) {
+                    await NotificationService.sendNotification({
+                      recipientUid: data.createdByRetailerId,
+                      title: 'Payment Completed',
+                      body: `Payment of ₹${data.payableAmount || '0'} for booking (${bookingId}) has been successfully processed.`,
+                      type: 'PAYMENT_SUCCESSFUL',
+                      bookingId,
+                    });
+                  }
                   // Notify Operations
                   await this.notifyOperations(
                     'Payment Successful',
                     `Payment of ₹${data.payableAmount || '0'} for booking (${bookingId}) has been successfully verified.`,
+                    'PAYMENT_SUCCESSFUL',
+                    bookingId
+                  );
+                  // Notify Admins
+                  await this.notifyAdmins(
+                    'Payment Successful',
+                    `Payment of ₹${data.payableAmount || '0'} for booking (${bookingId}) has been successfully processed.`,
                     'PAYMENT_SUCCESSFUL',
                     bookingId
                   );
@@ -400,7 +467,7 @@ export class WorkflowListenerService {
       opsUsers.forEach((doc) => {
         promises.push(
           NotificationService.sendNotification({
-            recipientUid: doc.id,
+            recipientUid: doc.data().uid || doc.id,
             title,
             body,
             type,
@@ -426,7 +493,7 @@ export class WorkflowListenerService {
       adminUsers.forEach((doc) => {
         promises.push(
           NotificationService.sendNotification({
-            recipientUid: doc.id,
+            recipientUid: doc.data().uid || doc.id,
             title,
             body,
             type,

@@ -307,13 +307,19 @@ class NotificationService {
     _userNotificationSub = _firestore
         .collection('notifications')
         .where('createdAt', isGreaterThan: Timestamp.fromDate(startTime))
+        .where(
+          Filter.or(
+            Filter('recipientUid', isEqualTo: user.uid),
+            Filter('recipientRole', isEqualTo: user.role.name),
+          ),
+        )
         .snapshots()
         .listen(
       (snapshot) {
         for (final change in snapshot.docChanges) {
           if (change.type != DocumentChangeType.added) continue;
           final data = change.doc.data();
-          if (data == null || !_isForUser(data, user)) continue;
+          if (data == null) continue;
           if (!_shownNotificationIds.add(change.doc.id)) continue;
 
           final title = data['title']?.toString() ?? 'Lakshya Smartguard systems';
@@ -347,11 +353,7 @@ class NotificationService {
     );
   }
 
-  static bool _isForUser(Map<String, dynamic> data, UserModel user) {
-    final recipientUid = data['recipientUid']?.toString();
-    final recipientRole = data['recipientRole']?.toString();
-    return recipientUid == user.uid || recipientRole == user.role.name;
-  }
+
 
   static Future<void> _showRemoteMessage(RemoteMessage message) async {
     final notification = message.notification;

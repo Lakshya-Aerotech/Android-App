@@ -111,6 +111,7 @@ class NotificationRepository {
   Future<void> markAsRead(String notificationId) async {
     await _firestore.collection('notifications').doc(notificationId).update({
       'read': true,
+      'isRead': true,
     });
   }
 
@@ -125,7 +126,10 @@ class NotificationRepository {
         .get();
 
     for (final doc in userSnapshots.docs) {
-      batch.update(doc.reference, {'read': true});
+      batch.update(doc.reference, {
+        'read': true,
+        'isRead': true,
+      });
     }
 
     // Fetch role-specific unread notifications
@@ -136,7 +140,10 @@ class NotificationRepository {
         .get();
 
     for (final doc in roleSnapshots.docs) {
-      batch.update(doc.reference, {'read': true});
+      batch.update(doc.reference, {
+        'read': true,
+        'isRead': true,
+      });
     }
 
     await batch.commit();

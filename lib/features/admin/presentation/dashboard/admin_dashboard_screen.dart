@@ -39,7 +39,6 @@ class AdminDashboardScreen extends ConsumerWidget {
               DashboardHeader(
                 userName: user?.name ?? context.tr('Admin'),
                 subtitle: today,
-                onNotificationPressed: () {},
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(

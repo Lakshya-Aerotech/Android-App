@@ -118,7 +118,7 @@ export class UserListenerService {
       adminUsers.forEach((doc) => {
         promises.push(
           NotificationService.sendNotification({
-            recipientUid: doc.id,
+            recipientUid: doc.data().uid || doc.id,
             title,
             body,
             type,

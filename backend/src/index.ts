@@ -27,7 +27,7 @@ async function notifyAdminsOfSystemError(errorMsg: string): Promise<void> {
     adminUsers.forEach((doc) => {
       promises.push(
         NotificationService.sendNotification({
-          recipientUid: doc.id,
+          recipientUid: doc.data().uid || doc.id,
           title: 'System Error Alert',
           body: `A system exception has occurred: ${errorMsg}`,
           type: 'SYSTEM_ERROR',

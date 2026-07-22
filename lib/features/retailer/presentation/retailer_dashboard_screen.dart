@@ -89,7 +89,6 @@ class _RetailerHomeContent extends ConsumerWidget {
           DashboardHeader(
             userName: user?.shopName ?? user?.name ?? 'Retailer',
             subtitle: 'Manage farmers and bookings.',
-            onNotificationPressed: () {},
           ),
           Padding(
             padding: const EdgeInsets.all(AppSizes.screenPadding),
@@ -178,7 +177,7 @@ class _RetailerHomeContent extends ConsumerWidget {
                     _ActionTile(
                       title: 'Notifications',
                       icon: Icons.notifications_none,
-                      onTap: () => context.push('/retailer/notifications'),
+                      onTap: () => context.push('/notifications'),
                     ),
                   ],
                 ),
