@@ -4,14 +4,18 @@ Lakshya Smartguard systems is a comprehensive agriculture drone service platform
 
 ## Project Overview
 
-The application serves as a centralized ecosystem for agricultural drone services. It bridges the gap between technology providers and end-users (farmers) by managing the entire service lifecycle—from registration and farm mapping to service booking, pilot assignment, and job execution.
+Lakshya Smartguard Systems is a comprehensive agriculture drone service platform designed to modernize farming operations through precision agriculture.
+
+The platform enables farmers and retailers to seamlessly book drone-based agricultural services such as pesticide spraying and crop monitoring. It manages the complete service lifecycle, including user onboarding, farm registration, booking creation, pilot assignment, mission progress tracking, payment confirmation, notifications, and analytics.
+
+The application follows a modular MVVM architecture built with Flutter and Firebase, supported by a Node.js backend for workflow automation and real-time alerts.
 
 ### Target Users
 *   **Farmers**: Primary consumers who register their farms and book drone services.
 *   **Retailers**: Regional partners who manage multiple farmers and facilitate service bookings.
 *   **Pilots (Internal & External)**: Certified drone operators who execute the requested services.
 *   **Operations**: Staff responsible for scheduling, resource allocation, and job monitoring.
-*   **Admins**: Platform administrators who manage users, approvals, and system-wide analytics.
+*   **Admins**: Platform administrators who manage users, approvals, incentives, and system-wide analytics.
 
 ---
 
@@ -22,10 +26,11 @@ The application serves as a centralized ecosystem for agricultural drone service
 *   **Dart**: Programming language used for development.
 
 ### Backend & Infrastructure
-*   **Firebase Authentication**: Secure user management (Email/Password).
-*   **Cloud Firestore**: NoSQL document database for real-time data storage.
-*   **Firebase Storage**: Hosting for user documents and profile photographs.
-*   **Firebase Cloud Messaging**: Push notifications for job updates and approvals.
+- **Firebase Authentication**: Secure user management (Email/Password).
+- **Cloud Firestore**: NoSQL document database for real-time data storage.
+- **Firebase Storage**: Hosting for user documents and profile photographs.
+- **Firebase Cloud Messaging (FCM)**: Push notifications for job updates and approvals.
+- **Node.js + Express Backend**: Dedicated service for workflow automation and secure operations.
 
 ### Architecture & State Management
 *   **MVVM (Model-View-ViewModel)**: Separation of UI logic from business logic.
@@ -41,19 +46,6 @@ The application serves as a centralized ecosystem for agricultural drone service
 
 ---
 
-## Application Architecture
-
-The project follows a clean, modular MVVM architecture combined with the Repository pattern to ensure scalability and maintainability.
-
-### Data Flow
-1.  **UI (Presentation)**: Users interact with widgets and trigger events.
-2.  **ViewModel**: Handles UI logic and calls Repository methods. Listens to state changes.
-3.  **Repository**: Encapsulates data fetching logic (Firestore, Auth, Storage).
-4.  **Firebase**: Provides the data persistence and backend services.
-5.  **Riverpod Providers**: Act as the "glue," managing the lifecycle of ViewModels and Repositories.
-
----
-
 ## Project Structure
 
 ```text
@@ -65,6 +57,7 @@ lib/
 │   ├── routes/       # GoRouter configuration and role-based redirection.
 │   ├── services/     # Utility services (File upload, Logging).
 │   ├── localization/ # Multi-language support (English/Telugu).
+│   ├── notifications/# Real-time notification management.
 │   └── widgets/      # Shared UI components (Buttons, TextFields).
 ├── features/     # Domain-specific modules (Feature-based).
 │   ├── auth/         # Login, Registration (Farmer/Retailer/Pilot).
@@ -83,28 +76,25 @@ lib/
 
 ---
 
-## Feature Modules
+## Key Modules & Features
 
 ### Authentication Module
-Handles multi-role authentication using Email and Password. It manages session persistence, password resets, and role identification during the login process.
+Handles multi-role authentication. Includes role-based redirection, registration approval workflows for retailers and external pilots, and session persistence.
 
-### Admin Module
-Provides platform-wide oversight. Features include employee management (Operations/Pilots), External Pilot approvals, Retailer management, and performance analytics.
-
-### Booking Module
-The core workflow engine. Allows Farmers and Retailers to schedule services, select farms, and track job progress from "Pending" to "Closed."
-
-### Farm Module
-Enables users to register farms by capturing details such as crop type, area, and precise GPS coordinates using an interactive OpenStreetMap picker.
-
-### Pilot Jobs Module
-A specialized interface for operators to accept assignments, navigate to farm locations, record mission telemetry, and upload service completion proofs.
+### Booking & Farm Module
+Enables farmers and retailers to register farms with precise GPS coordinates using OSM. Supports a full booking lifecycle from request to approval, assignment, and completion.
 
 ### Wallet Module (Earnings Ledger)
-A comprehensive system for Pilots and Copilots to track their service-based incentives. It calculates earnings dynamically based on acreage and provides a detailed transaction history of earnings and salary payments.
+A comprehensive system for Pilots and Copilots to track service-based incentives. It calculates earnings dynamically based on acreage and provides a detailed transaction history of earnings and salary payments.
 
 ### Notification System
-A real-time in-app notification center that alerts users about critical events such as booking approvals, pilot assignments, mission progress, and payment confirmations.
+A real-time in-app notification center that alerts users about critical events such as booking approvals, pilot assignments, mission progress (En Route, Arrived, Started, Completed), and payment confirmations. Supports push notifications via FCM.
+
+### Pilot Module
+Specialized interface for operators to accept assignments, navigate to farm locations, record mission telemetry, upload proof of service, and verify retailer coupons.
+
+### Admin Module
+Provides platform-wide oversight, including employee management, retailer/pilot approvals, incentive configuration, coupon management, and business analytics.
 
 ---
 
@@ -112,35 +102,22 @@ A real-time in-app notification center that alerts users about critical events s
 
 | Role | Responsibility | Key Actions |
 | :--- | :--- | :--- |
-| **Admin** | System Governance | Approve Users, Manage Employees, View Analytics |
-| **Operations** | Resource Management | Assign Pilots/Drones, Monitor Active Missions |
+| **Admin** | System Governance | Approve Users, Manage Employees, Configure Rates, View Analytics |
+| **Operations** | Resource Management | Approve Bookings, Assign Pilots, Monitor Active Missions |
 | **Farmer** | Service Consumer | Create Farms, Book Services, Confirm Completion |
-| **Retailer** | Regional Facilitator | Manage Farmers, Book Services on behalf of Farmers |
-| **Pilot** | Service Executor | Accept Jobs, Navigate, Complete Missions |
+| **Retailer** | Regional Facilitator | Manage Farmers, Book Services with Coupons |
+| **Pilot** | Service Executor | Accepting Jobs, Navigation, Mission Completion, Cash Collection |
 | **External Pilot** | Freelance Operator | Register, Await Approval, Execute Jobs |
-
----
-
-## Approval Workflow
-
-To ensure service quality and security, several roles require manual administrator approval:
-
-1.  **Pending**: User has registered but cannot access the application.
-2.  **Approved**: Admin has verified documents; user gains full access.
-3.  **Rejected**: Registration denied; user is informed of the reason.
-4.  **Suspended**: Account access revoked due to policy violations.
 
 ---
 
 ## Database Structure (Firestore)
 
 ### Users Collection
-Stores profile data, roles, account status, and pilot-specific statistics.
-*   **Relationship**: One User has Many Farms; One User has Many Bookings.
+Stores profile data, roles, account status, wallet balances, and performance statistics.
 
 ### Bookings Collection
-Stores job metadata, assigned resources, status history, and mission results.
-*   **Key Fields**: `farmerUid`, `pilotId`, `copilotId`, `status`, `bookingDate`, `payableAmount`, `paymentStatus`.
+Stores job metadata, assigned resources, status history, payment status, and mission results.
 
 ### Wallet Transactions
 Ledger entries for pilot/copilot incentives and salary payments.
@@ -150,10 +127,6 @@ Records of historical salary payments made to employees outside the application.
 
 ### System Settings
 Global configuration for incentive rates (e.g., `pilotRatePerAcre`, `copilotRatePerAcre`).
-
-### Farms Collection
-Stores farm-specific data including boundaries and location.
-*   **Relationship**: Linked to `Users` via `ownerUid`.
 
 ### Activity Logs
 Centralized tracking of system-wide events for the Admin dashboard.
@@ -180,39 +153,19 @@ Centralized tracking of system-wide events for the Admin dashboard.
 ## Security
 *   **Authentication**: Managed by Firebase Auth with role-based validation.
 *   **Access Control**: Firestore Rules restrict data access based on user UID and role.
-*   **Approval Gate**: Crucial roles (Retailer/External Pilot) are locked until the `approvalStatus` is updated to `approved`.
+*   **Approval Gate**: Retailer and External Pilot roles are locked until Admin verification.
 
 ---
 
 ## Known Limitations
-*   In-app real-time drone tracking (Planned for v2.0).
-*   Integrated payment gateway (Currently handled externally).
+- Real-time drone telemetry is planned for a future release.
+- Integrated payment gateway (PhonePe) is under development.
 
 ## Future Enhancements
 *   Advanced Analytics for Farmers (Yield Prediction).
 *   Offline Map Support for remote areas.
-*   In-app digital payment gateway integration.
-
----
-
-## Dependencies
-
-| Package | Purpose |
-| :--- | :--- |
-| `flutter_riverpod` | State Management |
-| `go_router` | Navigation |
-| `cloud_firestore` | Database |
-| `flutter_map` | OpenStreetMap Integration |
-| `geolocator` | GPS Services |
-| `maps_launcher` | External Navigation |
-| `excel` | Report Generation |
-
----
-
-## Contributing
-1.  **Branching**: `feature/feature-name` or `fix/issue-name`.
-2.  **Commits**: Use conventional commits (e.g., `feat:`, `fix:`, `chore:`).
-3.  **Pull Requests**: Must pass `flutter analyze` and require one peer review.
+*   AI-powered crop health insights.
+*   Full digital payment gateway integration.
 
 ---
 
