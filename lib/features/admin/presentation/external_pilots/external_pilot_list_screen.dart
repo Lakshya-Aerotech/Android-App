@@ -126,7 +126,7 @@ class _ExternalPilotListScreenState extends ConsumerState<ExternalPilotListScree
             const SizedBox(height: 4),
             Row(
               children: [
-                _buildBadge(pilot.approvalStatus?.name.toUpperCase() ?? 'PENDING', 
+                _buildBadge(pilot.approvalStatus?.value.toUpperCase() ?? 'PENDING',
                   pilot.approvalStatus == ApprovalStatus.approved ? AppColors.success : 
                   pilot.approvalStatus == ApprovalStatus.rejected ? Colors.red : Colors.orange),
                 const SizedBox(width: 8),

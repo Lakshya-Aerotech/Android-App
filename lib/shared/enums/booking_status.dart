@@ -14,6 +14,8 @@ enum BookingStatus {
   issueReported,
   cancelled;
 
+  String get value => toString().split('.').last;
+
   /// Returns a user-friendly display name
   String get displayName {
     switch (this) {
@@ -105,21 +107,21 @@ enum BookingStatus {
   }
 
   /// Serialization for Firestore
-  String toFirestore() => name;
+  String toFirestore() => value;
 
   /// Deserialization from Firestore
   static BookingStatus fromString(String? status) {
     if (status == null || status.isEmpty) return BookingStatus.pending;
 
     // Exact match
-    for (var value in BookingStatus.values) {
-      if (value.name == status) return value;
+    for (var v in BookingStatus.values) {
+      if (v.value == status) return v;
     }
 
     // Normalization fallback (for robustness)
     final normalized = status.toLowerCase().replaceAll('_', '');
-    for (var value in BookingStatus.values) {
-      if (value.name.toLowerCase() == normalized) return value;
+    for (var v in BookingStatus.values) {
+      if (v.value.toLowerCase() == normalized) return v;
     }
 
     // Explicit snake_case mappings

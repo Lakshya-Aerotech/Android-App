@@ -2,9 +2,21 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum UserRole { farmer, pilot, operations, admin, externalPilot, retailer }
 
+extension UserRoleExtension on UserRole {
+  String get value => toString().split('.').last;
+}
+
 enum ApprovalStatus { pending, approved, rejected, suspended }
 
+extension ApprovalStatusExtension on ApprovalStatus {
+  String get value => toString().split('.').last;
+}
+
 enum AccountStatus { active, inactive, suspended }
+
+extension AccountStatusExtension on AccountStatus {
+  String get value => toString().split('.').last;
+}
 
 class UserModel {
   final String? docId; // Firestore Document ID
@@ -32,7 +44,15 @@ class UserModel {
   final bool authCreated;
   final List<String> fcmTokens;
 
-  // Pilot Specific Statistics
+  // Earnings & Wallet Fields
+  final double walletBalance;
+  final int completedJobs;
+  final double totalAcres;
+  final double totalEarned;
+  final DateTime? lastSalaryPaidAt;
+  final double? lastSalaryAmount;
+
+  // Pilot Specific Statistics (Legacy/Redundant if using Wallet fields above)
   final int completedMissions;
   final double totalAcresCovered;
   final int totalFlightMinutes;
@@ -84,6 +104,12 @@ class UserModel {
     this.mustChangePassword = true,
     this.authCreated = false,
     this.fcmTokens = const [],
+    this.walletBalance = 0.0,
+    this.completedJobs = 0,
+    this.totalAcres = 0.0,
+    this.totalEarned = 0.0,
+    this.lastSalaryPaidAt,
+    this.lastSalaryAmount,
     this.completedMissions = 0,
     this.totalAcresCovered = 0.0,
     this.totalFlightMinutes = 0,
@@ -114,7 +140,7 @@ class UserModel {
       'uid': uid,
       'phoneNumber': phoneNumber,
       'email': email,
-      'role': role.name,
+      'role': role.value,
       'profileCompleted': profileCompleted,
       'isActive': isActive,
       'createdAt': Timestamp.fromDate(createdAt),
@@ -132,6 +158,12 @@ class UserModel {
       'mustChangePassword': mustChangePassword,
       'authCreated': authCreated,
       'fcmTokens': fcmTokens,
+      'walletBalance': walletBalance,
+      'completedJobs': completedJobs,
+      'totalAcres': totalAcres,
+      'totalEarned': totalEarned,
+      'lastSalaryPaidAt': lastSalaryPaidAt != null ? Timestamp.fromDate(lastSalaryPaidAt!) : null,
+      'lastSalaryAmount': lastSalaryAmount,
       'completedMissions': completedMissions,
       'totalAcresCovered': totalAcresCovered,
       'totalFlightMinutes': totalFlightMinutes,
@@ -144,8 +176,8 @@ class UserModel {
       'operatingDistricts': operatingDistricts,
       'operatingRadius': operatingRadius,
       'profilePhotographUrl': profilePhotographUrl,
-      'approvalStatus': approvalStatus?.name,
-      'accountStatus': accountStatus?.name,
+      'approvalStatus': approvalStatus?.value,
+      'accountStatus': accountStatus?.value,
       'rejectionReason': rejectionReason,
       'shopName': shopName,
       'ownerName': ownerName,
@@ -159,12 +191,21 @@ class UserModel {
   }
 
   factory UserModel.fromMap(Map<String, dynamic> map, {required String docId}) {
+    UserRole parsedRole = UserRole.farmer;
+    final roleStr = map['role'] ?? 'farmer';
+    for (var r in UserRole.values) {
+      if (r.value == roleStr) {
+        parsedRole = r;
+        break;
+      }
+    }
+
     return UserModel(
       docId: docId,
       uid: map['uid'],
       phoneNumber: map['phoneNumber'],
       email: map['email'],
-      role: UserRole.values.byName(map['role'] ?? 'farmer'),
+      role: parsedRole,
       profileCompleted: map['profileCompleted'] ?? false,
       isActive: map['isActive'] ?? true,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
@@ -185,6 +226,12 @@ class UserModel {
       mustChangePassword: map['mustChangePassword'] ?? true,
       authCreated: map['authCreated'] ?? false,
       fcmTokens: List<String>.from(map['fcmTokens'] ?? []),
+      walletBalance: (map['walletBalance'] as num?)?.toDouble() ?? 0.0,
+      completedJobs: map['completedJobs'] ?? 0,
+      totalAcres: (map['totalAcres'] as num?)?.toDouble() ?? 0.0,
+      totalEarned: (map['totalEarned'] as num?)?.toDouble() ?? 0.0,
+      lastSalaryPaidAt: map['lastSalaryPaidAt'] != null ? (map['lastSalaryPaidAt'] as Timestamp).toDate() : null,
+      lastSalaryAmount: (map['lastSalaryAmount'] as num?)?.toDouble(),
       completedMissions: map['completedMissions'] ?? 0,
       totalAcresCovered: (map['totalAcresCovered'] as num?)?.toDouble() ?? 0.0,
       totalFlightMinutes: map['totalFlightMinutes'] ?? 0,
@@ -199,11 +246,11 @@ class UserModel {
       profilePhotographUrl: map['profilePhotographUrl'],
       approvalStatus:
           map['approvalStatus'] != null
-              ? ApprovalStatus.values.byName(map['approvalStatus'])
+              ? ApprovalStatus.values.firstWhere((s) => s.value == map['approvalStatus'], orElse: () => ApprovalStatus.pending)
               : null,
       accountStatus:
           map['accountStatus'] != null
-              ? AccountStatus.values.byName(map['accountStatus'])
+              ? AccountStatus.values.firstWhere((s) => s.value == map['accountStatus'], orElse: () => AccountStatus.active)
               : null,
       rejectionReason: map['rejectionReason'],
       shopName: map['shopName'],
@@ -240,6 +287,12 @@ class UserModel {
     bool? mustChangePassword,
     bool? authCreated,
     List<String>? fcmTokens,
+    double? walletBalance,
+    int? completedJobs,
+    double? totalAcres,
+    double? totalEarned,
+    DateTime? lastSalaryPaidAt,
+    double? lastSalaryAmount,
     int? completedMissions,
     double? totalAcresCovered,
     int? totalFlightMinutes,
@@ -287,6 +340,12 @@ class UserModel {
       mustChangePassword: mustChangePassword ?? this.mustChangePassword,
       authCreated: authCreated ?? this.authCreated,
       fcmTokens: fcmTokens ?? this.fcmTokens,
+      walletBalance: walletBalance ?? this.walletBalance,
+      completedJobs: completedJobs ?? this.completedJobs,
+      totalAcres: totalAcres ?? this.totalAcres,
+      totalEarned: totalEarned ?? this.totalEarned,
+      lastSalaryPaidAt: lastSalaryPaidAt ?? this.lastSalaryPaidAt,
+      lastSalaryAmount: lastSalaryAmount ?? this.lastSalaryAmount,
       completedMissions: completedMissions ?? this.completedMissions,
       totalAcresCovered: totalAcresCovered ?? this.totalAcresCovered,
       totalFlightMinutes: totalFlightMinutes ?? this.totalFlightMinutes,

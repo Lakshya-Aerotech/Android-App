@@ -1111,7 +1111,11 @@ class AdminAnalyticsViewModel
       AdminAnalyticsConstants.teluguStates.contains(_text(doc['state']));
   static UserRole? _role(Map<String, dynamic> user) {
     try {
-      return UserRole.values.byName(_text(user['role']));
+      final roleStr = _text(user['role']);
+      for (var r in UserRole.values) {
+        if (r.value == roleStr) return r;
+      }
+      return null;
     } catch (_) {
       return null;
     }

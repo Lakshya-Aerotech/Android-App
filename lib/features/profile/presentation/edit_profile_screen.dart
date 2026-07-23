@@ -124,7 +124,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               CustomTextField(
                 label: 'Role',
                 hintText: '',
-                controller: TextEditingController(text: user?.role.name.toUpperCase()),
+                controller: TextEditingController(text: user?.role.value.toUpperCase()),
                 enabled: false,
               ),
               const SizedBox(height: 16),

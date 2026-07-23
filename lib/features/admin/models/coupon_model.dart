@@ -2,6 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum CouponDiscountType { percentage, fixed }
 
+extension CouponDiscountTypeExtension on CouponDiscountType {
+  String get value => toString().split('.').last;
+}
+
 class CouponModel {
   final String? docId;
   final String couponCode;
@@ -43,7 +47,7 @@ class CouponModel {
     return {
       'couponCode': couponCode.trim().toUpperCase(),
       'couponCodeNormalized': normalizedCode,
-      'discountType': discountType.name,
+      'discountType': discountType.value,
       'discountValue': discountValue,
       'validFrom': Timestamp.fromDate(validFrom),
       'validUntil': Timestamp.fromDate(validUntil),
@@ -64,7 +68,7 @@ class CouponModel {
       docId: docId,
       couponCode: map['couponCode'] ?? '',
       discountType: CouponDiscountType.values.firstWhere(
-        (type) => type.name == map['discountType'],
+        (type) => type.value == map['discountType'],
         orElse: () => CouponDiscountType.percentage,
       ),
       discountValue: (map['discountValue'] as num?)?.toDouble() ?? 0,

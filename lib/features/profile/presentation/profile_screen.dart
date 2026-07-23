@@ -100,7 +100,7 @@ class ProfileScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      user.role.name.toUpperCase(),
+                      user.role.value.toUpperCase(),
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
@@ -281,7 +281,7 @@ class _ExternalPilotProfileSection extends StatelessWidget {
         AppSpacing.verticalMd,
         _InfoTile(
           label: 'Approval Status', 
-          value: user.approvalStatus?.name.toUpperCase() ?? 'PENDING',
+          value: user.approvalStatus?.value.toUpperCase() ?? 'PENDING',
         ),
       ],
     );

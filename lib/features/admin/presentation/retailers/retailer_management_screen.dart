@@ -120,7 +120,7 @@ class _RetailerCard extends ConsumerWidget {
             Wrap(
               spacing: 8,
               children: [
-                _Badge(status.name.toUpperCase(), statusColor),
+                _Badge(status.value.toUpperCase(), statusColor),
                 _Badge(
                   retailer.isActive ? 'ACTIVE' : 'INACTIVE',
                   retailer.isActive ? AppColors.success : AppColors.error,

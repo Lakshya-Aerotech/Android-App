@@ -121,8 +121,52 @@ class _PilotHomeContent extends ConsumerWidget {
                 _SectionTitle(title: context.tr('Execution Overview')),
                 AppSpacing.verticalMd,
                 switch (statsAsync) {
-                  AsyncData(:final value) => LayoutBuilder(
-                    builder: (context, constraints) {
+                  AsyncData(:final value) => Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.2),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            )
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.account_balance_wallet_outlined, color: Colors.white, size: 40),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Current Earnings', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                  Text(
+                                    '₹${(user?.walletBalance ?? 0.0).toStringAsFixed(2)}',
+                                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => context.push('/pilot/wallet'),
+                              style: TextButton.styleFrom(
+                                backgroundColor: Colors.white12,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              child: const Text('View Wallet'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
                       final itemWidth = (constraints.maxWidth - 16) / 2;
                       final minHeight = itemWidth < 160 ? 126.0 : 138.0;
                       return GridView.count(
@@ -162,6 +206,8 @@ class _PilotHomeContent extends ConsumerWidget {
                       );
                     },
                   ),
+                ],
+              ),
                   AsyncError(:final error) => Text('Error: $error'),
                   _ => const Center(child: CircularProgressIndicator()),
                 },

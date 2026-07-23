@@ -5,10 +5,13 @@ import '../../../shared/models/activity_model.dart';
 import '../../../shared/repositories/activity_repository.dart';
 import '../models/admin_statistic.dart';
 import '../models/coupon_model.dart';
+import '../models/system_settings_model.dart';
 import '../repositories/admin_repository.dart';
 import '../../auth/models/user_model.dart';
 import '../../auth/viewmodel/auth_viewmodel.dart';
 import '../../booking/models/booking_model.dart';
+import '../../wallet/models/wallet_transaction_model.dart';
+import '../../wallet/models/salary_payment_model.dart';
 
 final adminRepositoryProvider = Provider<AdminRepository>((ref) {
   return AdminRepositoryImpl();
@@ -42,6 +45,18 @@ final allPaymentsStreamProvider = StreamProvider<List<BookingModel>>((ref) {
 
 final couponsStreamProvider = StreamProvider<List<CouponModel>>((ref) {
   return ref.watch(adminRepositoryProvider).getCouponsStream();
+});
+
+final systemSettingsStreamProvider = StreamProvider<SystemSettingsModel>((ref) {
+  return ref.watch(adminRepositoryProvider).getSystemSettingsStream();
+});
+
+final walletTransactionsStreamProvider = StreamProvider.family<List<WalletTransactionModel>, String>((ref, userId) {
+  return ref.watch(adminRepositoryProvider).getWalletTransactionsStream(userId);
+});
+
+final salaryPaymentsStreamProvider = StreamProvider.family<List<SalaryPaymentModel>, String>((ref, pilotId) {
+  return ref.watch(adminRepositoryProvider).getSalaryPaymentsStream(pilotId);
 });
 
 final adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((ref, ) {
@@ -345,6 +360,7 @@ class AdminViewModel extends StateNotifier<AsyncValue<void>> {
       await _repository.confirmPaymentDeposit(docId, user?.uid ?? 'admin');
       state = const AsyncValue.data(null);
     } catch (e, st) {
+      debugPrint('AdminViewModel: confirmPayment failed: $e');
       state = AsyncValue.error(e, st);
     }
   }
@@ -354,6 +370,39 @@ class AdminViewModel extends StateNotifier<AsyncValue<void>> {
     final user = _ref.read(userModelProvider);
     try {
       await _repository.rejectPaymentDeposit(docId, user?.uid ?? 'admin', remarks);
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<void> updateSystemSettings(SystemSettingsModel settings) async {
+    state = const AsyncValue.loading();
+    try {
+      await _repository.updateSystemSettings(settings);
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<void> markSalaryAsPaid({
+    required String pilotId,
+    required double amount,
+    required String period,
+    String? remarks,
+  }) async {
+    state = const AsyncValue.loading();
+    final admin = _ref.read(userModelProvider);
+    try {
+      await _repository.markSalaryAsPaid(
+        pilotId: pilotId,
+        amount: amount,
+        period: period,
+        adminId: admin?.uid ?? 'admin',
+        adminName: admin?.name ?? 'Administrator',
+        remarks: remarks,
+      );
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);

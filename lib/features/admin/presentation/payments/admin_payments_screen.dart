@@ -20,6 +20,14 @@ class _AdminPaymentsScreenState extends ConsumerState<AdminPaymentsScreen> {
   Widget build(BuildContext context) {
     final paymentsAsync = ref.watch(allPaymentsStreamProvider);
 
+    ref.listen(adminViewModelProvider, (previous, next) {
+      if (next is AsyncError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${next.error}'), backgroundColor: Colors.red),
+        );
+      }
+    });
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(

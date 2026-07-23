@@ -46,9 +46,9 @@ class NotificationRepository {
     Map<String, dynamic>? data,
   }) async {
     await _writeNotification(
-      documentId: '$eventKey-role-${role.name}',
+      documentId: '$eventKey-role-${role.value}',
       payload: {
-        'recipientRole': role.name,
+        'recipientRole': role.value,
         'title': title,
         'message': message,
         'bookingId': bookingId,
@@ -93,7 +93,7 @@ class NotificationRepository {
         .where(
           Filter.or(
             Filter('recipientUid', isEqualTo: uid),
-            Filter('recipientRole', isEqualTo: role.name),
+            Filter('recipientRole', isEqualTo: role.value),
           ),
         )
         .snapshots()
@@ -135,7 +135,7 @@ class NotificationRepository {
     // Fetch role-specific unread notifications
     final roleSnapshots = await _firestore
         .collection('notifications')
-        .where('recipientRole', isEqualTo: role.name)
+        .where('recipientRole', isEqualTo: role.value)
         .where('read', isEqualTo: false)
         .get();
 

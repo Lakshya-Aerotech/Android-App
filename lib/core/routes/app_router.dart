@@ -28,7 +28,6 @@ import 'package:lakshya_aerotech/features/admin/presentation/employees/employee_
 import 'package:lakshya_aerotech/features/admin/presentation/employees/add_employee_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/external_pilots/external_pilot_list_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/external_pilots/external_pilot_details_screen.dart';
-import 'package:lakshya_aerotech/features/admin/presentation/placeholders/admin_placeholders.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/retailers/retailer_management_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/payments/admin_payments_screen.dart';
 import 'package:lakshya_aerotech/features/pilot/presentation/pilot_dashboard.dart';
@@ -49,6 +48,10 @@ import 'package:lakshya_aerotech/features/retailer/presentation/retailer_coupons
 import 'package:lakshya_aerotech/features/admin/presentation/coupons/coupon_management_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/coupons/coupon_history_screen.dart';
 import 'package:lakshya_aerotech/core/notifications/notification_screen.dart';
+import 'package:lakshya_aerotech/features/wallet/presentation/pilot_wallet_screen.dart';
+import 'package:lakshya_aerotech/features/admin/presentation/earnings/pilot_earnings_list_screen.dart';
+import 'package:lakshya_aerotech/features/admin/presentation/earnings/pilot_earning_details_screen.dart';
+import 'package:lakshya_aerotech/features/admin/presentation/settings/system_settings_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final user = ref.watch(userModelProvider);
@@ -265,6 +268,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               return PilotJobDetailsScreen(job: job);
             },
           ),
+          GoRoute(
+            path: 'wallet',
+            builder: (context, state) => const PilotWalletScreen(),
+          ),
         ],
       ),
 
@@ -337,6 +344,17 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const AdminPaymentsScreen(),
           ),
           GoRoute(
+            path: 'pilot-earnings',
+            builder: (context, state) => const PilotEarningsListScreen(),
+          ),
+          GoRoute(
+            path: 'pilot-earning-details',
+            builder: (context, state) {
+              final pilot = state.extra as UserModel;
+              return PilotEarningDetailsScreen(pilot: pilot);
+            },
+          ),
+          GoRoute(
             path: 'coupons',
             builder: (context, state) => const CouponManagementScreen(),
             routes: [
@@ -356,7 +374,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: 'settings',
-            builder: (context, state) => const SettingsPlaceholder(),
+            builder: (context, state) => const SystemSettingsScreen(),
           ),
         ],
       ),

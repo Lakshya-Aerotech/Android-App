@@ -59,7 +59,7 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
                   const SizedBox(height: 16),
                   Text(_filterRole == null
                       ? 'No employees found'
-                      : 'No ${ _filterRole!.name}s found'),
+                      : 'No ${ _filterRole!.value}s found'),
                   if (_filterRole == null)
                     TextButton(
                       onPressed: () => context.push('/admin/add-employee'),
@@ -201,7 +201,7 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
             const SizedBox(height: 4),
             Row(
               children: [
-                _buildBadge(employee.role.name.toUpperCase(), Colors.blue),
+                _buildBadge(employee.role.value.toUpperCase(), Colors.blue),
                 const SizedBox(width: 8),
                 _buildBadge(
                   employee.isActive ? 'ACTIVE' : 'INACTIVE',

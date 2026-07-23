@@ -6,6 +6,9 @@ import '../../../shared/enums/booking_status.dart';
 import '../../auth/models/user_model.dart';
 import '../../booking/models/booking_model.dart';
 import '../models/coupon_model.dart';
+import '../models/system_settings_model.dart';
+import '../../wallet/models/wallet_transaction_model.dart';
+import '../../wallet/models/salary_payment_model.dart';
 
 abstract class AdminRepository {
   Stream<List<UserModel>> getEmployeesStream();
@@ -36,6 +39,10 @@ abstract class AdminRepository {
   Future<void> deleteCoupon(String docId);
   Future<void> updateCouponStatus(String docId, bool isActive);
 
+  // System Settings
+  Stream<SystemSettingsModel> getSystemSettingsStream();
+  Future<void> updateSystemSettings(SystemSettingsModel settings);
+
   // External Pilot Management
   Stream<List<UserModel>> getExternalPilotsStream();
   Future<void> updateExternalPilotApproval({
@@ -50,11 +57,37 @@ abstract class AdminRepository {
   Future<void> confirmPaymentDeposit(String docId, String adminId);
   Future<void> rejectPaymentDeposit(String docId, String adminId, String remarks);
   Stream<List<BookingModel>> getBookingsByPaymentStatus(List<String> statuses);
+
+  // Wallet & Salary
+  Future<void> markSalaryAsPaid({
+    required String pilotId,
+    required double amount,
+    required String period,
+    required String adminId,
+    required String adminName,
+    String? remarks,
+  });
+  Stream<List<WalletTransactionModel>> getWalletTransactionsStream(String userId);
+  Stream<List<SalaryPaymentModel>> getSalaryPaymentsStream(String pilotId);
 }
 
 class AdminRepositoryImpl implements AdminRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final NotificationRepository _notifications = NotificationRepository();
+
+  @override
+  Stream<SystemSettingsModel> getSystemSettingsStream() {
+    return _firestore
+        .collection('system')
+        .doc('settings')
+        .snapshots()
+        .map((doc) => SystemSettingsModel.fromMap(doc.data() ?? {}));
+  }
+
+  @override
+  Future<void> updateSystemSettings(SystemSettingsModel settings) async {
+    await _firestore.collection('system').doc('settings').set(settings.toMap());
+  }
 
   @override
   Stream<List<UserModel>> getEmployeesStream() {
@@ -83,7 +116,7 @@ class AdminRepositoryImpl implements AdminRepository {
   Stream<List<UserModel>> getRetailersStream() {
     return _firestore
         .collection('users')
-        .where('role', isEqualTo: UserRole.retailer.name)
+        .where('role', isEqualTo: UserRole.retailer.value)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
@@ -102,7 +135,7 @@ class AdminRepositoryImpl implements AdminRepository {
       ActivityModel(
         type: ActivityType.employeeCreated,
         description:
-            'New employee created: ${employee.name} (${employee.role.name})',
+            'New employee created: ${employee.name} (${employee.role.value})',
         userId: docRef.id,
         userName: employee.name,
         timestamp: DateTime.now(),
@@ -114,7 +147,7 @@ class AdminRepositoryImpl implements AdminRepository {
       eventKey: 'employee-added-${docRef.id}',
       title: 'New employee added',
       message:
-          '${employee.name ?? 'An employee'} was added as ${employee.role.name}.',
+          '${employee.name ?? 'An employee'} was added as ${employee.role.value}.',
       employeeId: docRef.id,
       type: 'NEW_PILOT_REGISTERED',
     );
@@ -156,7 +189,7 @@ class AdminRepositoryImpl implements AdminRepository {
       'name': name,
       'email': email,
       'phoneNumber': phone,
-      'role': role.name,
+      'role': role.value,
       'preferredLanguage': language,
       'isActive': isActive,
       'updatedAt': FieldValue.serverTimestamp(),
@@ -206,7 +239,7 @@ class AdminRepositoryImpl implements AdminRepository {
     }
 
     await docRef.update({
-      'approvalStatus': approvalStatus.name,
+      'approvalStatus': approvalStatus.value,
       'isActive': isActive,
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -220,9 +253,9 @@ class AdminRepositoryImpl implements AdminRepository {
     };
     await _notifications.createForUser(
       recipientUid: retailer.uid ?? docId,
-      eventKey: 'retailer-${approvalStatus.name}-$docId',
+      eventKey: 'retailer-${approvalStatus.value}-$docId',
       title: title,
-      message: 'Your retailer account status is now ${approvalStatus.name}.',
+      message: 'Your retailer account status is now ${approvalStatus.value}.',
       data: {'retailerUid': retailer.uid ?? docId},
       type: approvalStatus == ApprovalStatus.approved ? 'REGISTRATION_APPROVED' : 'REGISTRATION_REJECTED',
     );
@@ -380,7 +413,7 @@ class AdminRepositoryImpl implements AdminRepository {
   Stream<List<UserModel>> getExternalPilotsStream() {
     return _firestore
         .collection('users')
-        .where('role', isEqualTo: UserRole.externalPilot.name)
+        .where('role', isEqualTo: UserRole.externalPilot.value)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
@@ -397,16 +430,16 @@ class AdminRepositoryImpl implements AdminRepository {
     String? rejectionReason,
   }) async {
     final updates = <String, dynamic>{
-      'approvalStatus': status.name,
+      'approvalStatus': status.value,
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
     if (status == ApprovalStatus.approved) {
-      updates['accountStatus'] = AccountStatus.active.name;
+      updates['accountStatus'] = AccountStatus.active.value;
       updates['isActive'] = true;
     } else if (status == ApprovalStatus.rejected) {
       updates['rejectionReason'] = rejectionReason;
-      updates['accountStatus'] = AccountStatus.inactive.name;
+      updates['accountStatus'] = AccountStatus.inactive.value;
       updates['isActive'] = false;
     }
 
@@ -415,8 +448,8 @@ class AdminRepositoryImpl implements AdminRepository {
     // Notify user
     await _notifications.createForUser(
       recipientUid: docId,
-      eventKey: 'external-pilot-approval-$status-$docId',
-      title: 'Account ${status.name}',
+      eventKey: 'external-pilot-approval-${status.value}-$docId',
+      title: 'Account ${status.value}',
       message: status == ApprovalStatus.approved
           ? 'Your account has been approved. You can now login.'
           : 'Your registration has been rejected. Reason: $rejectionReason',
@@ -429,7 +462,7 @@ class AdminRepositoryImpl implements AdminRepository {
     required AccountStatus status,
   }) async {
     await _firestore.collection('users').doc(docId).update({
-      'accountStatus': status.name,
+      'accountStatus': status.value,
       'isActive': status == AccountStatus.active,
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -446,39 +479,202 @@ class AdminRepositoryImpl implements AdminRepository {
 
   @override
   Future<void> confirmPaymentDeposit(String docId, String adminId) async {
-    await _firestore.collection('bookings').doc(docId).update({
-      'paymentStatus': 'Paid',
-      'status': BookingStatus.closed.toFirestore(),
-      'paymentVerifiedByAdmin': true,
-      'paymentVerifiedAt': FieldValue.serverTimestamp(),
-      'verifiedByAdminId': adminId,
-      'updatedAt': FieldValue.serverTimestamp(),
+    // 1. Get booking and settings first
+    final bookingSnap = await _firestore.collection('bookings').doc(docId).get();
+    if (!bookingSnap.exists) return;
+    final b = BookingModel.fromMap(bookingSnap.data()!, bookingSnap.id);
+
+    final settingsDoc = await _firestore.collection('system').doc('settings').get();
+    final settings = SystemSettingsModel.fromMap(settingsDoc.data() ?? {});
+
+    // 2. Resolve Pilot and Copilot Document IDs (they might be UIDs)
+    String? pilotDocId;
+    if (b.assignedPilotId != null) {
+      final snap = await _firestore.collection('users').where('uid', isEqualTo: b.assignedPilotId).limit(1).get();
+      pilotDocId = snap.docs.isNotEmpty ? snap.docs.first.id : b.assignedPilotId;
+    }
+
+    String? copilotDocId;
+    if (b.copilotId != null) {
+      final snap = await _firestore.collection('users').where('uid', isEqualTo: b.copilotId).limit(1).get();
+      copilotDocId = snap.docs.isNotEmpty ? snap.docs.first.id : b.copilotId;
+    }
+
+    final bookingRef = _firestore.collection('bookings').doc(docId);
+
+    await _firestore.runTransaction((transaction) async {
+      // Re-get booking inside transaction to ensure consistency
+      final bookingDoc = await transaction.get(bookingRef);
+      if (!bookingDoc.exists) return;
+
+      final currentBooking = BookingModel.fromMap(bookingDoc.data()!, bookingDoc.id);
+      if (currentBooking.paymentVerifiedByAdmin) return;
+
+      // 1. Update Booking
+      transaction.update(bookingRef, {
+        'paymentStatus': 'Paid',
+        'status': BookingStatus.closed.toFirestore(),
+        'paymentVerifiedByAdmin': true,
+        'paymentVerifiedAt': FieldValue.serverTimestamp(),
+        'verifiedByAdminId': adminId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      final acres = currentBooking.actualAreaCovered ?? currentBooking.estimatedArea;
+
+      // 2. Credit Pilot
+      if (pilotDocId != null) {
+        final pilotRef = _firestore.collection('users').doc(pilotDocId);
+        final incentive = acres * settings.pilotRatePerAcre;
+        
+        transaction.update(pilotRef, {
+          'walletBalance': FieldValue.increment(incentive),
+          'totalEarned': FieldValue.increment(incentive),
+          'completedJobs': FieldValue.increment(1),
+          'totalAcres': FieldValue.increment(acres),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        final pilotTxRef = _firestore.collection('walletTransactions').doc();
+        transaction.set(pilotTxRef, {
+          'userId': currentBooking.assignedPilotId, // Store UID in transactions for consistency
+          'bookingId': docId,
+          'type': TransactionType.earning.value,
+          'amount': incentive,
+          'acres': acres,
+          'ratePerAcre': settings.pilotRatePerAcre,
+          'description': 'Incentive for booking ${currentBooking.bookingId}',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      // 3. Credit Copilot
+      if (copilotDocId != null) {
+        final copilotRef = _firestore.collection('users').doc(copilotDocId);
+        final incentive = acres * settings.copilotRatePerAcre;
+
+        transaction.update(copilotRef, {
+          'walletBalance': FieldValue.increment(incentive),
+          'totalEarned': FieldValue.increment(incentive),
+          'completedJobs': FieldValue.increment(1),
+          'totalAcres': FieldValue.increment(acres),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        final copilotTxRef = _firestore.collection('walletTransactions').doc();
+        transaction.set(copilotTxRef, {
+          'userId': currentBooking.copilotId,
+          'bookingId': docId,
+          'type': TransactionType.earning.value,
+          'amount': incentive,
+          'acres': acres,
+          'ratePerAcre': settings.copilotRatePerAcre,
+          'description': 'Copilot incentive for booking ${currentBooking.bookingId}',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
     });
 
-    final booking = await _firestore.collection('bookings').doc(docId).get();
-    if (booking.exists) {
-      final b = BookingModel.fromMap(booking.data()!, booking.id);
+    // Notify users (using the latest data)
+    await _notifications.createForUser(
+      recipientUid: b.farmerUid,
+      eventKey: 'payment-confirmed-farmer-$docId',
+      title: 'Payment confirmed',
+      message: 'Payment for booking ${b.bookingId} has been confirmed. Thank you!',
+      bookingId: docId,
+      type: 'PAYMENT_CONFIRMED',
+    );
+    if (b.assignedPilotId != null) {
       await _notifications.createForUser(
-        recipientUid: b.farmerUid,
-        eventKey: 'payment-confirmed-farmer-$docId',
-        title: 'Payment confirmed',
-        message:
-            'Payment for booking ${b.bookingId} has been confirmed. Thank you!',
+        recipientUid: b.assignedPilotId!,
+        eventKey: 'payment-confirmed-pilot-$docId',
+        title: 'Deposit confirmed',
+        message: 'Admin has confirmed your cash deposit for booking ${b.bookingId}.',
         bookingId: docId,
         type: 'PAYMENT_CONFIRMED',
       );
-      if (b.assignedPilotId != null) {
-        await _notifications.createForUser(
-          recipientUid: b.assignedPilotId!,
-          eventKey: 'payment-confirmed-pilot-$docId',
-          title: 'Deposit confirmed',
-          message:
-              'Admin has confirmed your cash deposit for booking ${b.bookingId}.',
-          bookingId: docId,
-          type: 'PAYMENT_CONFIRMED',
-        );
-      }
     }
+  }
+
+  @override
+  Future<void> markSalaryAsPaid({
+    required String pilotId, // This is expected to be the UID
+    required double amount,
+    required String period,
+    required String adminId,
+    required String adminName,
+    String? remarks,
+  }) async {
+    // 1. Resolve Pilot Document ID from UID
+    final pilotSnap = await _firestore.collection('users').where('uid', isEqualTo: pilotId).limit(1).get();
+    final String pilotDocId = pilotSnap.docs.isNotEmpty ? pilotSnap.docs.first.id : pilotId;
+    
+    final pilotRef = _firestore.collection('users').doc(pilotDocId);
+    
+    await _firestore.runTransaction((transaction) async {
+      final pilotDoc = await transaction.get(pilotRef);
+      if (!pilotDoc.exists) throw Exception('Pilot not found');
+
+      // 2. Update Pilot Wallet
+      transaction.update(pilotRef, {
+        'walletBalance': 0.0,
+        'lastSalaryPaidAt': FieldValue.serverTimestamp(),
+        'lastSalaryAmount': amount,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // 3. Create Salary Payment Record
+      final paymentRef = _firestore.collection('salaryPayments').doc();
+      transaction.set(paymentRef, {
+        'pilotId': pilotId, // Store UID for consistency
+        'amountPaid': amount,
+        'salaryPeriod': period,
+        'paidBy': adminName,
+        'paidAt': FieldValue.serverTimestamp(),
+        'remarks': remarks,
+      });
+
+      // 4. Create Wallet Transaction
+      final txRef = _firestore.collection('walletTransactions').doc();
+      transaction.set(txRef, {
+        'userId': pilotId, // Store UID for consistency
+        'type': TransactionType.salaryPayment.value,
+        'amount': -amount,
+        'description': 'Salary paid for period: $period',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    });
+
+    await _notifications.createForUser(
+      recipientUid: pilotId,
+      eventKey: 'salary-paid-${DateTime.now().millisecondsSinceEpoch}',
+      title: 'Salary Paid',
+      message: 'Your salary has been marked as paid by the Administrator.',
+    );
+  }
+
+  @override
+  Stream<List<WalletTransactionModel>> getWalletTransactionsStream(String userId) {
+    return _firestore
+        .collection('walletTransactions')
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => WalletTransactionModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  @override
+  Stream<List<SalaryPaymentModel>> getSalaryPaymentsStream(String pilotId) {
+    return _firestore
+        .collection('salaryPayments')
+        .where('pilotId', isEqualTo: pilotId)
+        .orderBy('paidAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => SalaryPaymentModel.fromMap(doc.data(), doc.id))
+            .toList());
   }
 
   @override

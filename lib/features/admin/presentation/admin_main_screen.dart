@@ -5,7 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import 'dashboard/admin_dashboard_screen.dart';
 import 'employees/employee_list_screen.dart';
 import 'payments/admin_payments_screen.dart';
-import 'placeholders/admin_placeholders.dart';
+import 'earnings/pilot_earnings_list_screen.dart';
 import '../../profile/presentation/profile_screen.dart';
 
 class AdminMainScreen extends ConsumerStatefulWidget {
@@ -22,7 +22,7 @@ class _AdminMainScreenState extends ConsumerState<AdminMainScreen> {
     const AdminDashboardScreen(),
     const EmployeeListScreen(),
     const AdminPaymentsScreen(),
-    const BookingsPlaceholder(),
+    const PilotEarningsListScreen(),
     const ProfileScreen(),
   ];
 
@@ -63,9 +63,9 @@ class _AdminMainScreenState extends ConsumerState<AdminMainScreen> {
               label: 'Payments',
             ),
             BottomNavigationBarItem(
-              icon: const Icon(Icons.calendar_month_outlined),
-              activeIcon: const Icon(Icons.calendar_month),
-              label: context.tr('Bookings'),
+              icon: const Icon(Icons.account_balance_wallet_outlined),
+              activeIcon: const Icon(Icons.account_balance_wallet),
+              label: 'Earnings',
             ),
             BottomNavigationBarItem(
               icon: const Icon(Icons.person_outline),

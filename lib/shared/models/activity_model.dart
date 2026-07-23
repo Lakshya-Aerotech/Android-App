@@ -15,6 +15,10 @@ enum ActivityType {
   externalPilotRegistered,
 }
 
+extension ActivityTypeExtension on ActivityType {
+  String get value => toString().split('.').last;
+}
+
 class ActivityModel {
   final String? id;
   final ActivityType type;
@@ -36,7 +40,7 @@ class ActivityModel {
 
   Map<String, dynamic> toMap() {
     return {
-      'type': type.name,
+      'type': type.value,
       'description': description,
       'userId': userId,
       'userName': userName,
@@ -48,7 +52,7 @@ class ActivityModel {
   factory ActivityModel.fromMap(Map<String, dynamic> map, String id) {
     return ActivityModel(
       id: id,
-      type: ActivityType.values.byName(map['type']),
+      type: ActivityType.values.firstWhere((t) => t.value == map['type'], orElse: () => ActivityType.bookingCreated),
       description: map['description'] ?? '',
       userId: map['userId'],
       userName: map['userName'],

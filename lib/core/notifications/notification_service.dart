@@ -115,7 +115,7 @@ class NotificationService {
     final roleOverride = data['roleOverride']?.toString();
     
     // Use override, then stored _currentUser, then fallback to empty string
-    final userRole = roleOverride ?? _currentUser?.role.name ?? '';
+    final userRole = roleOverride ?? _currentUser?.role.value ?? '';
 
     debugPrint('NotificationService: Processing route. Type: $type, BookingId: $bookingId, Role: $userRole');
 
@@ -310,7 +310,7 @@ class NotificationService {
         .where(
           Filter.or(
             Filter('recipientUid', isEqualTo: user.uid),
-            Filter('recipientRole', isEqualTo: user.role.name),
+            Filter('recipientRole', isEqualTo: user.role.value),
           ),
         )
         .snapshots()

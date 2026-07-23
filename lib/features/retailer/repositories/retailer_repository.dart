@@ -67,7 +67,7 @@ class RetailerRepositoryImpl implements RetailerRepository {
       state: stateName,
       createdBy: retailerUid,
       createdByRetailerId: retailerUid,
-      createdByRole: UserRole.retailer.name,
+      createdByRole: UserRole.retailer.value,
     );
 
     await docRef.set(farmer.toMap());

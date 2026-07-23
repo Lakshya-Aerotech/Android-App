@@ -144,7 +144,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
           farmerOverride: widget.farmerOverride,
           couponId: _appliedCoupon?.docId,
           couponCode: _appliedCoupon?.couponCode,
-          couponDiscountType: _appliedCoupon?.discountType.name,
+          couponDiscountType: _appliedCoupon?.discountType.value,
           couponDiscountValue: _appliedCoupon?.discountValue,
           originalAmount: originalAmount,
           discountAmount: discountAmount,

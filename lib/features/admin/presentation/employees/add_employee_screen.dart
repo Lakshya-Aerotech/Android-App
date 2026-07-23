@@ -195,7 +195,7 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
                   UserRole.admin,
                 ],
                 onChanged: (v) => setState(() => _selectedRole = v!),
-                labelBuilder: (role) => role.name.toUpperCase(),
+                labelBuilder: (role) => role.value.toUpperCase(),
               ),
               const SizedBox(height: 16),
 

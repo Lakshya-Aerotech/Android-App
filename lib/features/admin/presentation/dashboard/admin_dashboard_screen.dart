@@ -127,6 +127,14 @@ class AdminDashboardScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     QuickActionCard(
+                      icon: Icons.payments_outlined,
+                      title: 'Pilot Earnings & Salary',
+                      subtitle: 'Manage pilot incentives and mark salaries as paid',
+                      iconColor: AppColors.primary,
+                      onTap: () => context.push('/admin/pilot-earnings'),
+                    ),
+                    const SizedBox(height: 12),
+                    QuickActionCard(
                       icon: Icons.local_offer_outlined,
                       title: context.tr('Coupon Management'),
                       subtitle: 'Create and manage retailer coupons',

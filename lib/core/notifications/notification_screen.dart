@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../features/auth/models/user_model.dart';
 import '../../features/auth/viewmodel/auth_viewmodel.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
@@ -85,7 +86,7 @@ class _NotificationCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userModelProvider);
-    final role = user?.role.name;
+    final role = user?.role.value;
 
     return InkWell(
       onTap: () {
