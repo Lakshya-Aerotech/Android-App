@@ -72,7 +72,8 @@ lib/
 │   ├── booking/      # Service booking and tracking.
 │   ├── pilot_jobs/   # Mission execution and job details.
 │   ├── admin/        # Platform management and analytics.
-│   └── retailer/     # Retailer-specific farmer management.
+│   ├── retailer/     # Retailer-specific farmer management.
+│   └── wallet/       # Earnings tracking and salary management.
 ├── shared/       # Reusable components across multiple features.
 │   ├── models/       # Common data structures (User, Activity).
 │   ├── repositories/ # Shared data access logic.
@@ -98,6 +99,12 @@ Enables users to register farms by capturing details such as crop type, area, an
 
 ### Pilot Jobs Module
 A specialized interface for operators to accept assignments, navigate to farm locations, record mission telemetry, and upload service completion proofs.
+
+### Wallet Module (Earnings Ledger)
+A comprehensive system for Pilots and Copilots to track their service-based incentives. It calculates earnings dynamically based on acreage and provides a detailed transaction history of earnings and salary payments.
+
+### Notification System
+A real-time in-app notification center that alerts users about critical events such as booking approvals, pilot assignments, mission progress, and payment confirmations.
 
 ---
 
@@ -133,7 +140,16 @@ Stores profile data, roles, account status, and pilot-specific statistics.
 
 ### Bookings Collection
 Stores job metadata, assigned resources, status history, and mission results.
-*   **Key Fields**: `farmerUid`, `pilotId`, `droneId`, `status`, `bookingDate`.
+*   **Key Fields**: `farmerUid`, `pilotId`, `copilotId`, `status`, `bookingDate`, `payableAmount`, `paymentStatus`.
+
+### Wallet Transactions
+Ledger entries for pilot/copilot incentives and salary payments.
+
+### Salary Payments
+Records of historical salary payments made to employees outside the application.
+
+### System Settings
+Global configuration for incentive rates (e.g., `pilotRatePerAcre`, `copilotRatePerAcre`).
 
 ### Farms Collection
 Stores farm-specific data including boundaries and location.
@@ -175,7 +191,7 @@ Centralized tracking of system-wide events for the Admin dashboard.
 ## Future Enhancements
 *   Advanced Analytics for Farmers (Yield Prediction).
 *   Offline Map Support for remote areas.
-*   Wallet system for Pilots and Retailers.
+*   In-app digital payment gateway integration.
 
 ---
 
