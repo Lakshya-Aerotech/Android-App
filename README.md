@@ -4,7 +4,11 @@ Lakshya Smartguard systems is a comprehensive agriculture drone service platform
 
 ## Project Overview
 
-The application serves as a centralized ecosystem for agricultural drone services. It bridges the gap between technology providers and end-users (farmers) by managing the entire service lifecycle—from registration and farm mapping to service booking, pilot assignment, and job execution.
+Lakshya Smartguard Systems is a comprehensive agriculture drone service platform designed to modernize farming operations through precision agriculture.
+
+The platform enables farmers and retailers to seamlessly book drone-based agricultural services such as pesticide spraying and crop monitoring. It manages the complete service lifecycle, including user onboarding, farm registration, booking creation, pilot assignment, drone allocation, payment processing, notifications, and analytics.
+
+The application follows a modular MVVM architecture built with Flutter and Firebase, supported by a Node.js backend for workflow automation and real-time push notifications.
 
 ### Target Users
 *   **Farmers**: Primary consumers who register their farms and book drone services.
@@ -22,10 +26,14 @@ The application serves as a centralized ecosystem for agricultural drone service
 *   **Dart**: Programming language used for development.
 
 ### Backend & Infrastructure
-*   **Firebase Authentication**: Secure user management (Email/Password).
-*   **Cloud Firestore**: NoSQL document database for real-time data storage.
-*   **Firebase Storage**: Hosting for user documents and profile photographs.
-*   **Firebase Cloud Messaging**: Push notifications for job updates and approvals.
+
+- Firebase Authentication
+- Cloud Firestore
+- Firebase Storage
+- Firebase Cloud Messaging (FCM)
+- Node.js + Express Backend
+- Firebase Admin SDK
+- TypeScript
 
 ### Architecture & State Management
 *   **MVVM (Model-View-ViewModel)**: Separation of UI logic from business logic.
@@ -44,6 +52,21 @@ The application serves as a centralized ecosystem for agricultural drone service
 ## Application Architecture
 
 The project follows a clean, modular MVVM architecture combined with the Repository pattern to ensure scalability and maintainability.
+
+## Backend Services
+
+A dedicated Node.js backend handles server-side workflows that cannot be securely executed from the client application.
+
+Responsibilities include:
+
+- Sending Firebase Cloud Messaging (FCM) push notifications
+- Workflow event listeners
+- Coupon event processing
+- User event processing
+- Notification synchronization
+- Firestore event handling
+- Secure server-side operations
+
 
 ### Data Flow
 1.  **UI (Presentation)**: Users interact with widgets and trigger events.
@@ -84,20 +107,89 @@ lib/
 
 ## Feature Modules
 
-### Authentication Module
-Handles multi-role authentication using Email and Password. It manages session persistence, password resets, and role identification during the login process.
+### Authentication
+- Multi-role authentication
+- Role-based redirection
+- Approval workflow
+- Session persistence
+
+### Farmer Module
+- Farm registration
+- Farm boundary mapping
+- Service booking
+- Booking tracking
+- Booking history
+
+### Retailer Module
+- Farmer management
+- Service booking
+- Coupon application
+- Notification center
+
+### Operations Module
+- Pilot assignment
+- Drone assignment
+- Booking scheduling
+- Workflow management
+
+### Pilot Module
+- Job assignments
+- Navigation
+- Mission completion
+- Proof uploads
+- Notifications
 
 ### Admin Module
-Provides platform-wide oversight. Features include employee management (Operations/Pilots), External Pilot approvals, Retailer management, and performance analytics.
+- Employee management
+- Retailer approval
+- External pilot approval
+- Analytics dashboard
+- Reports
+- Coupon management
+- Notification management
 
-### Booking Module
-The core workflow engine. Allows Farmers and Retailers to schedule services, select farms, and track job progress from "Pending" to "Closed."
+---
 
-### Farm Module
-Enables users to register farms by capturing details such as crop type, area, and precise GPS coordinates using an interactive OpenStreetMap picker.
+## Coupon Management
 
-### Pilot Jobs Module
-A specialized interface for operators to accept assignments, navigate to farm locations, record mission telemetry, and upload service completion proofs.
+The platform includes a centralized coupon management system that allows administrators to create and manage promotional offers for retailers.
+
+### Features
+
+- Create and manage coupons
+- Edit existing coupons
+- Activate or deactivate coupons
+- Configure coupon validity period
+- Assign coupons to specific retailers or make them globally available
+- Support percentage and fixed amount discounts
+- Validate coupons during booking
+- Automatically calculate applicable discounts
+- Track coupon usage and remaining redemption limits
+- Maintain coupon history for reporting and analytics
+
+---
+
+## Notification System
+
+The application provides a real-time notification system for all user roles using Firebase Cloud Messaging (FCM) and an in-app notification center.
+
+### Features
+
+- Push notifications using Firebase Cloud Messaging
+- In-app notification center
+- Real-time notification updates
+- Notification badge count
+- Read/Unread notification tracking
+- Notification history
+- Role-based notification delivery
+
+### Supported Roles
+
+- Admin
+- Operations
+- Retailer
+- Farmer
+- Pilot
 
 ---
 
@@ -142,6 +234,36 @@ Stores farm-specific data including boundaries and location.
 ### Activity Logs
 Centralized tracking of system-wide events for the Admin dashboard.
 
+### Notifications Collection
+
+Stores all in-app notifications.
+
+Key Fields:
+
+- recipientId
+- recipientRole
+- title
+- body
+- isRead
+- createdAt
+- notificationType
+- referenceId
+
+### Coupons Collection
+
+Stores all coupon information.
+
+Key Fields:
+
+- code
+- discountType
+- value
+- startDate
+- endDate
+- assignedRetailers
+- applicableServices
+- remainingUsage
+
 ---
 
 ## Setup Guide
@@ -169,13 +291,19 @@ Centralized tracking of system-wide events for the Admin dashboard.
 ---
 
 ## Known Limitations
-*   In-app real-time drone tracking (Planned for v2.0).
-*   Integrated payment gateway (Currently handled externally).
+
+- Real-time drone telemetry is planned for a future release.
+- Integrated payment gateway (PhonePe) is under development.
 
 ## Future Enhancements
-*   Advanced Analytics for Farmers (Yield Prediction).
-*   Offline Map Support for remote areas.
-*   Wallet system for Pilots and Retailers.
+
+- PhonePe payment gateway
+- Live drone tracking
+- AI-powered crop health insights
+- Offline support
+- Wallet system
+- Advanced analytics
+- Multi-language expansion
 
 ---
 
@@ -190,6 +318,12 @@ Centralized tracking of system-wide events for the Admin dashboard.
 | `geolocator` | GPS Services |
 | `maps_launcher` | External Navigation |
 | `excel` | Report Generation |
+| firebase_messaging | Push Notifications |
+| flutter_local_notifications | Local Notifications |
+| firebase_storage | File Uploads |
+| firebase_auth | Authentication |
+| image_picker | Image Upload |
+| flutter_dotenv | Environment Variables |
 
 ---
 
