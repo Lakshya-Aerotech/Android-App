@@ -23,7 +23,7 @@ export class WorkflowListenerService {
     try {
       // 1. Warm cache with current bookings status to prevent duplicate notifications for historical data
       const bookingsSnapshot = await admin.firestore().collection('bookings').get();
-      bookingsSnapshot.forEach((doc) => {
+      bookingsSnapshot.forEach((doc: any) => {
         const data = doc.data();
         const missionPhotos = data.missionPhotos || [];
         const missionNotes = data.missionNotes || '';
@@ -44,7 +44,7 @@ export class WorkflowListenerService {
 
       // 2. Register onSnapshot listener
       admin.firestore().collection('bookings').onSnapshot(
-        async (snapshot) => {
+        async (snapshot: any) => {
           for (const change of snapshot.docChanges()) {
             const bookingId = change.doc.id;
             const data = change.doc.data();
@@ -448,11 +448,11 @@ export class WorkflowListenerService {
             }
           }
         },
-        (error) => {
+        (error: any) => {
           console.error('[WorkflowListenerService] Firestore listener error:', error);
         }
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('[WorkflowListenerService] Initialization failed:', error);
     }
   }
@@ -464,7 +464,7 @@ export class WorkflowListenerService {
     try {
       const opsUsers = await admin.firestore().collection('users').where('role', '==', 'operations').get();
       const promises: Promise<any>[] = [];
-      opsUsers.forEach((doc) => {
+      opsUsers.forEach((doc: any) => {
         promises.push(
           NotificationService.sendNotification({
             recipientUid: doc.data().uid || doc.id,
@@ -478,7 +478,7 @@ export class WorkflowListenerService {
         );
       });
       await Promise.all(promises);
-    } catch (error) {
+    } catch (error: any) {
       console.error('[WorkflowListenerService] Error notifying operations team:', error);
     }
   }
@@ -490,7 +490,7 @@ export class WorkflowListenerService {
     try {
       const adminUsers = await admin.firestore().collection('users').where('role', '==', 'admin').get();
       const promises: Promise<any>[] = [];
-      adminUsers.forEach((doc) => {
+      adminUsers.forEach((doc: any) => {
         promises.push(
           NotificationService.sendNotification({
             recipientUid: doc.data().uid || doc.id,

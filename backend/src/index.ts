@@ -1,49 +1,49 @@
 import express, { Request, Response, NextFunction } from 'express';
-import * as admin from 'firebase-admin';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import { config, HTTP_STATUS, RESPONSE_MESSAGES } from './config';
+import './firebase'; // Singleton Firebase initialization
+import { errorHandler, requestIdMiddleware } from './middleware';
+import { Logger } from './utils/logger';
 import { NotificationService } from './services/notification.service';
 import { WorkflowListenerService } from './services/workflow-listener.service';
 import { UserListenerService } from './services/user-listener.service';
 import { CouponListenerService } from './services/coupon-listener.service';
 
-// Initialize Firebase Admin SDK
-// This automatically picks up application default credentials or credentials from local environment
-admin.initializeApp();
+import paymentRoutes from './routes/payment.routes';
 
-// Initialize the real-time listeners
+// Initialize the real-time background listeners
 WorkflowListenerService.initialize();
 UserListenerService.initialize();
 CouponListenerService.initialize();
 
 const app = express();
+
+// Security and request tracking middleware
+app.use(requestIdMiddleware);
+app.use(helmet());
+app.use(cors());
+app.use(morgan(config.nodeEnv === 'production' ? 'combined' : 'dev'));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 /**
- * Helper to broadcast system errors to all Admins.
+ * Health check endpoint for system diagnostics.
  */
-async function notifyAdminsOfSystemError(errorMsg: string): Promise<void> {
-  try {
-    const adminUsers = await admin.firestore().collection('users').where('role', '==', 'admin').get();
-    const promises: Promise<any>[] = [];
-    adminUsers.forEach((doc) => {
-      promises.push(
-        NotificationService.sendNotification({
-          recipientUid: doc.data().uid || doc.id,
-          title: 'System Error Alert',
-          body: `A system exception has occurred: ${errorMsg}`,
-          type: 'SYSTEM_ERROR',
-        }).catch((err) =>
-          console.error(`[System Error Helper] Failed to send admin notification to ${doc.id}:`, err)
-        )
-      );
-    });
-    await Promise.all(promises);
-  } catch (error) {
-    console.error('[System Error Helper] Error notifying admin team:', error);
-  }
-}
+app.get('/health', (req: Request, res: Response) => {
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: RESPONSE_MESSAGES.HEALTH_CHECK_OK,
+    requestId: req.id,
+  });
+});
+
+// Register payment API routes
+app.use('/api/payment', paymentRoutes);
 
 /**
- * API POST endpoint to send notification.
+ * API POST endpoint to send push notification.
  */
 app.post('/api/send-notification', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -51,8 +51,10 @@ app.post('/api/send-notification', async (req: Request, res: Response, next: Nex
 
     // Validate required parameters
     if (!recipientUid || !title || !body || !type) {
-      return res.status(400).json({
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
         error: 'Missing required fields: recipientUid, title, body, and type are required.',
+        requestId: req.id,
       });
     }
 
@@ -65,28 +67,17 @@ app.post('/api/send-notification', async (req: Request, res: Response, next: Nex
       additionalData,
     });
 
-    return res.status(200).json(result);
+    return res.status(HTTP_STATUS.OK).json(result);
   } catch (error: any) {
     next(error);
   }
 });
 
-/**
- * Catch-all Express Error Handler Middleware to intercept system errors.
- */
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  console.error('[Unhandled System Error]:', err);
-  const errorMsg = err.message || err.toString() || 'Unknown system exception.';
-  
-  // Asynchronously notify admins of the system exception
-  notifyAdminsOfSystemError(errorMsg).catch(console.error);
+// Register global error handler middleware
+app.use(errorHandler);
 
-  return res.status(500).json({
-    error: errorMsg || 'An internal server error occurred.',
-  });
+app.listen(config.port, () => {
+  Logger.info(`[Server] Backend service running on port ${config.port} (${config.nodeEnv} mode)`);
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`[Server] Notification service running on port ${PORT}`);
-});
+export default app;

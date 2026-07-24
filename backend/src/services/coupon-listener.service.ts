@@ -18,7 +18,7 @@ export class CouponListenerService {
     try {
       // 1. Warm cache with current coupons
       const couponsSnapshot = await admin.firestore().collection('coupons').get();
-      couponsSnapshot.forEach((doc) => {
+      couponsSnapshot.forEach((doc: any) => {
         const data = doc.data();
         this.couponCache.set(doc.id, {
           couponCode: data.couponCode || '',
@@ -29,7 +29,7 @@ export class CouponListenerService {
 
       // 2. Register onSnapshot listener
       admin.firestore().collection('coupons').onSnapshot(
-        async (snapshot) => {
+        async (snapshot: any) => {
           for (const change of snapshot.docChanges()) {
             const couponId = change.doc.id;
             const data = change.doc.data();
@@ -83,14 +83,14 @@ export class CouponListenerService {
             }
           }
         },
-        (error) => {
+        (error: any) => {
           console.error('[CouponListenerService] Firestore coupon listener error:', error);
         }
       );
 
       // 3. Register scheduler for coupon expiration warning (check every 12 hours)
       this.startExpirationCheckScheduler();
-    } catch (error) {
+    } catch (error: any) {
       console.error('[CouponListenerService] Initialization failed:', error);
     }
   }
@@ -118,26 +118,28 @@ export class CouponListenerService {
         .firestore()
         .collection('coupons')
         .where('isActive', '==', true)
-        .where('validUntil', '>', admin.firestore.Timestamp.fromDate(now))
-        .where('validUntil', '<=', admin.firestore.Timestamp.fromDate(threeDaysFromNow))
         .get();
 
-      couponsSnapshot.forEach((doc) => {
+      couponsSnapshot.forEach((doc: any) => {
         const data = doc.data();
-        const couponCode = data.couponCode;
-        const assignedRetailerIds: string[] = data.assignedRetailerIds || [];
+        if (!data.validUntil) return;
+        const validUntilDate = data.validUntil.toDate ? data.validUntil.toDate() : new Date(data.validUntil);
+        if (validUntilDate > now && validUntilDate <= threeDaysFromNow) {
+          const couponCode = data.couponCode;
+          const assignedRetailerIds: string[] = data.assignedRetailerIds || [];
 
-        assignedRetailerIds.forEach((retailerId) => {
-          NotificationService.sendNotification({
-            recipientUid: retailerId,
-            title: 'Coupon Expiring Soon',
-            body: `Your assigned coupon (${couponCode}) will expire soon on ${data.validUntil.toDate().toLocaleDateString()}.`,
-            type: 'COUPON_EXPIRING_SOON',
-            additionalData: { couponCode },
-          }).catch((err) =>
-            console.error(`[CouponListenerService] Failed to send expiration notice to ${retailerId}:`, err)
-          );
-        });
+          assignedRetailerIds.forEach((retailerId) => {
+            NotificationService.sendNotification({
+              recipientUid: retailerId,
+              title: 'Coupon Expiring Soon',
+              body: `Your assigned coupon (${couponCode}) will expire soon on ${data.validUntil.toDate().toLocaleDateString()}.`,
+              type: 'COUPON_EXPIRING_SOON',
+              additionalData: { couponCode },
+            }).catch((err) =>
+              console.error(`[CouponListenerService] Failed to send expiration notice to ${retailerId}:`, err)
+            );
+          });
+        }
       });
     } catch (error) {
       console.error('[CouponListenerService] Error checking expiring coupons:', error);

@@ -18,7 +18,7 @@ export class UserListenerService {
     try {
       // 1. Warm cache with current users
       const usersSnapshot = await admin.firestore().collection('users').get();
-      usersSnapshot.forEach((doc) => {
+      usersSnapshot.forEach((doc: any) => {
         const data = doc.data();
         this.userCache.set(doc.id, {
           role: data.role || '',
@@ -29,7 +29,7 @@ export class UserListenerService {
 
       // 2. Register onSnapshot listener
       admin.firestore().collection('users').onSnapshot(
-        async (snapshot) => {
+        async (snapshot: any) => {
           for (const change of snapshot.docChanges()) {
             const userId = change.doc.id;
             const data = change.doc.data();
@@ -99,11 +99,11 @@ export class UserListenerService {
             }
           }
         },
-        (error) => {
+        (error: any) => {
           console.error('[UserListenerService] Firestore user listener error:', error);
         }
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('[UserListenerService] Initialization failed:', error);
     }
   }
@@ -115,7 +115,7 @@ export class UserListenerService {
     try {
       const adminUsers = await admin.firestore().collection('users').where('role', '==', 'admin').get();
       const promises: Promise<any>[] = [];
-      adminUsers.forEach((doc) => {
+      adminUsers.forEach((doc: any) => {
         promises.push(
           NotificationService.sendNotification({
             recipientUid: doc.data().uid || doc.id,
