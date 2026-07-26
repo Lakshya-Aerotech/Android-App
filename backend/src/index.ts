@@ -76,8 +76,20 @@ app.post('/api/send-notification', async (req: Request, res: Response, next: Nex
 // Register global error handler middleware
 app.use(errorHandler);
 
-app.listen(config.port, () => {
+app.listen(config.port, '0.0.0.0', () => {
   Logger.info(`[Server] Backend service running on port ${config.port} (${config.nodeEnv} mode)`);
+  
+  // Log PhonePe configuration for troubleshooting (masking secrets)
+  const maskedSaltKey = config.phonePe.saltKey ? `${config.phonePe.saltKey.slice(0, 4)}...${config.phonePe.saltKey.slice(-4)}` : 'NOT_CONFIGURED';
+  Logger.info(`[PhonePe Startup Config]
+    Environment: ${config.nodeEnv}
+    Merchant ID: ${config.phonePe.merchantId}
+    Salt Key: ${maskedSaltKey}
+    Salt Index: ${config.phonePe.saltIndex}
+    API Base URL: ${config.phonePe.baseUrl}
+    Callback URL: ${config.phonePe.callbackUrl}
+    Redirect URL: ${config.phonePe.callbackUrl.replace('/webhook', '/redirect')}
+  `);
 });
 
 export default app;

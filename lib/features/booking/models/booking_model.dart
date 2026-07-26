@@ -109,6 +109,10 @@ class BookingModel {
   final String? paymentMethod;
   final String? paymentStatus;
   final DateTime? paymentRequestedAt;
+  final String? paymentId;
+  final String? merchantTransactionId;
+  final String? transactionId;
+  final DateTime? paymentCompletedAt;
   final bool cashCollected;
   final String? cashCollectedBy;
   final DateTime? cashCollectedAt;
@@ -196,6 +200,10 @@ class BookingModel {
     this.paymentMethod,
     this.paymentStatus,
     this.paymentRequestedAt,
+    this.paymentId,
+    this.merchantTransactionId,
+    this.transactionId,
+    this.paymentCompletedAt,
     this.cashCollected = false,
     this.cashCollectedBy,
     this.cashCollectedAt,
@@ -272,6 +280,10 @@ class BookingModel {
       'paymentMethod': paymentMethod,
       'paymentStatus': paymentStatus,
       'paymentRequestedAt': paymentRequestedAt != null ? Timestamp.fromDate(paymentRequestedAt!) : null,
+      'paymentId': paymentId,
+      'merchantTransactionId': merchantTransactionId,
+      'transactionId': transactionId,
+      'paymentCompletedAt': paymentCompletedAt != null ? Timestamp.fromDate(paymentCompletedAt!) : null,
       'cashCollected': cashCollected,
       'cashCollectedBy': cashCollectedBy,
       'cashCollectedAt': cashCollectedAt != null ? Timestamp.fromDate(cashCollectedAt!) : null,
@@ -351,6 +363,10 @@ class BookingModel {
       paymentMethod: map['paymentMethod'],
       paymentStatus: map['paymentStatus'],
       paymentRequestedAt: (map['paymentRequestedAt'] as Timestamp?)?.toDate(),
+      paymentId: map['paymentId'],
+      merchantTransactionId: map['merchantTransactionId'],
+      transactionId: map['transactionId'],
+      paymentCompletedAt: (map['paymentCompletedAt'] as Timestamp?)?.toDate(),
       cashCollected: map['cashCollected'] ?? false,
       cashCollectedBy: map['cashCollectedBy'],
       cashCollectedAt: (map['cashCollectedAt'] as Timestamp?)?.toDate(),
@@ -432,6 +448,10 @@ class BookingModel {
     String? paymentMethod,
     String? paymentStatus,
     DateTime? paymentRequestedAt,
+    String? paymentId,
+    String? merchantTransactionId,
+    String? transactionId,
+    DateTime? paymentCompletedAt,
     bool? cashCollected,
     String? cashCollectedBy,
     DateTime? cashCollectedAt,
@@ -507,6 +527,10 @@ class BookingModel {
       paymentMethod: paymentMethod ?? this.paymentMethod,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       paymentRequestedAt: paymentRequestedAt ?? this.paymentRequestedAt,
+      paymentId: paymentId ?? this.paymentId,
+      merchantTransactionId: merchantTransactionId ?? this.merchantTransactionId,
+      transactionId: transactionId ?? this.transactionId,
+      paymentCompletedAt: paymentCompletedAt ?? this.paymentCompletedAt,
       cashCollected: cashCollected ?? this.cashCollected,
       cashCollectedBy: cashCollectedBy ?? this.cashCollectedBy,
       cashCollectedAt: cashCollectedAt ?? this.cashCollectedAt,

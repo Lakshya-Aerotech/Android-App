@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -14,6 +15,8 @@ import '../../widgets/booking_timeline.dart';
 import '../../widgets/mission_summary_card.dart';
 import '../../widgets/rating_card.dart';
 import '../../widgets/issue_report_dialog.dart';
+import '../../../auth/models/user_model.dart';
+import '../../../auth/viewmodel/auth_viewmodel.dart';
 
 class BookingDetailsScreen extends ConsumerWidget {
   final BookingModel booking;
@@ -47,6 +50,7 @@ class BookingDetailsScreen extends ConsumerWidget {
   }
 
   Widget _buildContent(BuildContext context, WidgetRef ref, BookingModel b) {
+    final user = ref.watch(userModelProvider);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -70,10 +74,10 @@ class BookingDetailsScreen extends ConsumerWidget {
             const SizedBox(height: 24),
           ],
 
-          if (b.paymentMethod != null) ...[
+          if (b.paymentMethod != null || (b.payableAmount ?? 0) > 0) ...[
             Text('Payment Details', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            _buildPaymentSummaryCard(b),
+            _buildPaymentSummaryCard(context, ref, b, user),
             const SizedBox(height: 24),
           ],
 
@@ -244,7 +248,12 @@ class BookingDetailsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPaymentSummaryCard(BookingModel b) {
+  Widget _buildPaymentSummaryCard(BuildContext context, WidgetRef ref, BookingModel b, UserModel? user) {
+    final showPayNow = user != null &&
+        (user.role == UserRole.farmer || user.role == UserRole.retailer) &&
+        b.paymentStatus?.toUpperCase() != 'SUCCESS' &&
+        (b.payableAmount ?? 0) > 0;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -268,8 +277,15 @@ class BookingDetailsScreen extends ConsumerWidget {
             valueColor: AppColors.primary,
           ),
           const Divider(height: 24),
-          _buildPaymentRow('Payment Method', b.paymentMethod ?? 'N/A'),
+          _buildPaymentRow('Payment Method', b.paymentMethod ?? 'Online (PhonePe)'),
           _buildPaymentRow('Payment Status', b.paymentStatus ?? 'Pending'),
+          if (showPayNow) ...[
+            const Divider(height: 24),
+            PrimaryButton(
+              text: 'PAY ONLINE NOW',
+              onPressed: () => context.push('/online-payment', extra: b),
+            ),
+          ],
         ],
       ),
     );

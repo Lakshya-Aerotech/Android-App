@@ -45,6 +45,8 @@ dependencies:
   excel: ^4.0.6
   path_provider: ^2.1.5
   share_plus: ^10.1.4
+  dio: ^5.10.0
+  webview_flutter: ^4.14.1
 
 dev_dependencies:
   flutter_test:

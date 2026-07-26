@@ -71,7 +71,7 @@ export class PhonePeService {
       );
       return response.data;
     } catch (err: any) {
-      if (phonePeConfig.merchantId === 'PGTESTPAYUAT' || !phonePeConfig.saltKey) {
+      if (phonePeConfig.merchantId === 'PGTESTPAYUAT' || phonePeConfig.merchantId === 'PGTESTPAYUAT86' || !phonePeConfig.saltKey) {
         console.warn(
           `[PhonePeService] Live Gateway call returned ${err.response?.data?.code || err.message}. Falling back to Development Sandbox Mock Mode.`
         );
@@ -115,7 +115,7 @@ export class PhonePeService {
       const response = await client.get<PhonePeStatusResponse>(apiPath, { headers });
       return response.data;
     } catch (err: any) {
-      if (merchantId === 'PGTESTPAYUAT' || !phonePeConfig.saltKey) {
+      if (merchantId === 'PGTESTPAYUAT' || merchantId === 'PGTESTPAYUAT86' || !phonePeConfig.saltKey) {
         console.warn(
           `[PhonePeService] Gateway status check returned ${err.response?.data?.code || err.message}. Returning Development Sandbox Mock Status.`
         );

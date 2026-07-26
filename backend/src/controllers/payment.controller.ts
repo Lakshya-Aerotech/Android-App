@@ -61,7 +61,7 @@ export class PaymentController {
         merchantTransactionId: pendingPayment.merchantTransactionId,
         merchantUserId: userId,
         amount: Math.round(amount * 100),
-        redirectUrl: phonePeConfig.callbackUrl,
+        redirectUrl: `${phonePeConfig.callbackUrl.replace('/webhook', '/redirect')}?merchantTransactionId=${pendingPayment.merchantTransactionId}`,
         redirectMode: 'REDIRECT',
         callbackUrl: phonePeConfig.callbackUrl,
         mobileNumber: mobileNumber || '9999999999',
@@ -248,6 +248,79 @@ export class PaymentController {
         message: 'Webhook processed successfully.',
         data: null,
       });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET/POST /api/payment/redirect
+   * Handles browser redirect from PhonePe check-out page. Renders a clean success/failure webpage
+   * which is captured by the Flutter app's webview to transition screens.
+   */
+  static async handleRedirect(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+    try {
+      const status = (req.query.status as string) || (req.body.status as string) || '';
+      const code = (req.query.code as string) || (req.body.code as string) || '';
+      const merchantTransactionId = (req.query.merchantTransactionId as string) || (req.body.merchantTransactionId as string) || (req.query.transactionId as string) || (req.body.transactionId as string) || '';
+
+      console.log(`[PhonePeRedirect] Redirect hit. Transaction: ${merchantTransactionId}, Status: ${status}, Code: ${code}`);
+
+      const isSuccess = status.toUpperCase() === 'SUCCESS' || code.toUpperCase() === 'PAYMENT_SUCCESS';
+
+      res.setHeader('Content-Type', 'text/html');
+      return res.status(HTTP_STATUS.OK).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Payment Status</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; padding: 40px 20px; background-color: #f7f9fa; margin: 0; display: flex; align-items: center; justify-content: center; height: 80vh; }
+            .card { max-width: 420px; width: 100%; background: white; padding: 40px 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); box-sizing: border-box; }
+            .icon-circle { width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto; }
+            .success-circle { background-color: #e8f5e9; color: #4caf50; }
+            .error-circle { background-color: #ffebee; color: #f44336; }
+            h1 { font-size: 24px; margin: 0 0 12px 0; color: #1a1f36; }
+            p { font-size: 16px; line-height: 24px; color: #4f566b; margin: 0 0 24px 0; }
+            .details { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: left; margin-bottom: 24px; font-size: 14px; border: 1px solid #e3e8ee; }
+            .details-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+            .details-row:last-child { margin-bottom: 0; }
+            .details-label { color: #697386; }
+            .details-value { font-weight: 600; color: #3c4257; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="icon-circle ${isSuccess ? 'success-circle' : 'error-circle'}">
+              ${isSuccess ? `
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              ` : `
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              `}
+            </div>
+            <h1>Payment ${isSuccess ? 'Successful' : 'Failed'}</h1>
+            <p>${isSuccess ? 'Your payment has been successfully processed.' : 'Something went wrong during your payment transaction.'}</p>
+            
+            ${merchantTransactionId ? `
+              <div class="details">
+                <div class="details-row">
+                  <span class="details-label">Transaction ID:</span>
+                  <span class="details-value">${merchantTransactionId}</span>
+                </div>
+              </div>
+            ` : ''}
+
+            <p style="font-size: 13px; color: #8792a2; margin: 24px 0 0 0;">You can close this screen or wait to return to the app.</p>
+          </div>
+        </body>
+        </html>
+      `);
     } catch (error: any) {
       next(error);
     }

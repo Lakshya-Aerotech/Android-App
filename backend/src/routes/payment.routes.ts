@@ -26,4 +26,12 @@ router.get('/status/:merchantTransactionId', statusCheckRateLimiter, PaymentCont
  */
 router.post('/webhook', webhookRateLimiter, PaymentController.handleWebhook);
 
+/**
+ * @route GET /api/payment/redirect
+ * @route POST /api/payment/redirect
+ * @desc Handles browser redirect from PhonePe payment page
+ */
+router.get('/redirect', PaymentController.handleRedirect);
+router.post('/redirect', PaymentController.handleRedirect);
+
 export default router;

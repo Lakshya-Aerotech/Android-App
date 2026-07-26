@@ -6,7 +6,11 @@ import { config } from '../config/env.config';
  * Ensures Firebase Admin app is initialized exactly once.
  */
 if (admin.apps.length === 0) {
-  if (config.firebase.projectId && config.firebase.clientEmail && config.firebase.privateKey) {
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+    });
+  } else if (config.firebase.projectId && config.firebase.clientEmail && config.firebase.privateKey) {
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: config.firebase.projectId,

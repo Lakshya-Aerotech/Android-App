@@ -21,6 +21,10 @@ import 'package:lakshya_aerotech/features/booking/presentation/booking_details/b
 import 'package:lakshya_aerotech/features/booking/presentation/success/booking_success_screen.dart';
 import 'package:lakshya_aerotech/features/booking/presentation/payment/payment_screen.dart';
 import 'package:lakshya_aerotech/features/booking/models/booking_model.dart';
+import 'package:lakshya_aerotech/features/payment/presentation/screens/payment_screen.dart' as online_payment;
+import 'package:lakshya_aerotech/features/payment/presentation/screens/payment_webview_screen.dart';
+import 'package:lakshya_aerotech/features/payment/presentation/screens/payment_success_screen.dart';
+import 'package:lakshya_aerotech/features/payment/presentation/screens/payment_failed_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/admin_main_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/activity/admin_recent_activity_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/analytics/admin_analytics_screen.dart';
@@ -183,6 +187,38 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final booking = state.extra as BookingModel;
           return PaymentScreen(booking: booking);
+        },
+      ),
+      GoRoute(
+        path: '/online-payment',
+        builder: (context, state) {
+          final booking = state.extra as BookingModel;
+          return online_payment.PaymentScreen(booking: booking);
+        },
+      ),
+      GoRoute(
+        path: '/payment-webview',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          final booking = extra['booking'] as BookingModel;
+          final paymentUrl = extra['paymentUrl'] as String;
+          return PaymentWebViewScreen(booking: booking, paymentUrl: paymentUrl);
+        },
+      ),
+      GoRoute(
+        path: '/payment-success',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          final booking = extra['booking'] as BookingModel;
+          final transactionId = extra['transactionId'] as String;
+          return PaymentSuccessScreen(booking: booking, transactionId: transactionId);
+        },
+      ),
+      GoRoute(
+        path: '/payment-failed',
+        builder: (context, state) {
+          final booking = state.extra as BookingModel;
+          return PaymentFailedScreen(booking: booking);
         },
       ),
       GoRoute(
