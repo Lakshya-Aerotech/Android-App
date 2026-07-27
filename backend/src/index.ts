@@ -12,6 +12,7 @@ import { UserListenerService } from './services/user-listener.service';
 import { CouponListenerService } from './services/coupon-listener.service';
 
 import paymentRoutes from './routes/payment.routes';
+import notificationRoutes from './routes/notification.routes';
 
 // Initialize the real-time background listeners
 WorkflowListenerService.initialize();
@@ -41,6 +42,7 @@ app.get('/health', (req: Request, res: Response) => {
 
 // Register payment API routes
 app.use('/api/payment', paymentRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 /**
  * API POST endpoint to send push notification.

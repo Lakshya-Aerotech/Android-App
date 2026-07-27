@@ -42,6 +42,7 @@ import 'package:lakshya_aerotech/features/operations/presentation/pending_bookin
 import 'package:lakshya_aerotech/features/operations/presentation/booking_details/ops_booking_details_screen.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/assignments/ops_assignments_screen.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/assignments/ops_assign_booking_screen.dart';
+import 'package:lakshya_aerotech/features/operations/presentation/notifications/ops_notifications_screen.dart';
 import 'package:lakshya_aerotech/features/retailer/presentation/retailer_dashboard_screen.dart';
 import 'package:lakshya_aerotech/features/retailer/presentation/retailer_farmer_details_screen.dart';
 import 'package:lakshya_aerotech/features/retailer/presentation/retailer_farmer_form_screen.dart';
@@ -336,6 +337,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'track-jobs',
             builder: (context, state) => const OpsTrackJobsPlaceholder(),
+          ),
+          GoRoute(
+            path: 'notifications',
+            builder: (context, state) => const OpsNotificationsScreen(),
           ),
         ],
       ),

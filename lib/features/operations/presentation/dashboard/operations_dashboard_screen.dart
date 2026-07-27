@@ -99,6 +99,14 @@ class OperationsDashboardScreen extends ConsumerWidget {
                     iconColor: Colors.purple,
                     onTap: () => context.push('/operations/assignments'),
                   ),
+                  const SizedBox(height: 12),
+                  OperationsQuickActionCard(
+                    icon: Icons.send,
+                    title: context.tr('Send Notifications'),
+                    subtitle: context.tr('Broadcast messages or alert users'),
+                    iconColor: Colors.orange,
+                    onTap: () => context.push('/operations/notifications'),
+                  ),
                   const SizedBox(height: 32),
 
                   // Recent Bookings
