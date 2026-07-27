@@ -17,7 +17,7 @@ class PilotEarningsListScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       appBar: AppBar(
-        title: const Text('Pilot Earnings'),
+        title: const Text('Pilot Incentives'),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.primary,
         elevation: 0,
@@ -27,6 +27,9 @@ class PilotEarningsListScreen extends ConsumerWidget {
           // Filter for roles that can earn incentives: Only Pilot and External Pilot
           final earningRoles = [UserRole.pilot, UserRole.externalPilot];
           final pilots = employees.where((e) => earningRoles.contains(e.role)).toList();
+
+          // Task 4: Sort by wallet balance descending (Unpaid on top)
+          pilots.sort((a, b) => b.walletBalance.compareTo(a.walletBalance));
 
           if (pilots.isEmpty) {
             return const Center(child: Text('No pilots found.'));
@@ -151,7 +154,7 @@ class _PilotEarningCard extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Salary Payment'),
+        title: const Text('Confirm Incentive Payment'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -164,7 +167,7 @@ class _PilotEarningCard extends ConsumerWidget {
             ),
             TextField(
               controller: periodController,
-              decoration: const InputDecoration(labelText: 'Period'),
+              decoration: const InputDecoration(labelText: 'Incentive Period'),
             ),
           ],
         ),

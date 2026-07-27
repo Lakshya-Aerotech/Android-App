@@ -58,7 +58,13 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
           backgroundColor: action == 'approve' ? AppColors.success : Colors.red,
         ),
       );
-      context.pop();
+      
+      if (action == 'approve') {
+        // Navigate to dedicated assignment page
+        context.pushReplacement('/operations/assignments/assign', extra: widget.booking);
+      } else {
+        context.pop();
+      }
     }
   }
 

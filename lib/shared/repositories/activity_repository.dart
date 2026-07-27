@@ -14,9 +14,11 @@ class ActivityRepository {
     }
   }
 
-  static Stream<List<ActivityModel>> getRecentActivities({int limit = 15}) {
+  static Stream<List<ActivityModel>> getRecentActivities({int limit = 20}) {
+    final twoDaysAgo = DateTime.now().subtract(const Duration(days: 2));
     return _firestore
         .collection('activities')
+        .where('timestamp', isGreaterThan: Timestamp.fromDate(twoDaysAgo))
         .orderBy('timestamp', descending: true)
         .limit(limit)
         .snapshots()

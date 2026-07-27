@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
 import '../viewmodel/auth_viewmodel.dart';
 import '../models/user_model.dart';
 import '../../../core/theme/app_colors.dart';
@@ -36,7 +36,6 @@ class _ExternalPilotRegistrationScreenState
   final _radiusController = TextEditingController();
 
   // Files
-  File? _profileImage;
   File? _pilotCert;
   File? _dgcaCert;
 
@@ -56,14 +55,6 @@ class _ExternalPilotRegistrationScreenState
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() => _profileImage = File(pickedFile.path));
-    }
-  }
-
   Future<void> _pickFile(String type) async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
     if (result != null) {
@@ -79,12 +70,6 @@ class _ExternalPilotRegistrationScreenState
 
   Future<void> _onSubmit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_profileImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please upload a profile photograph')),
-      );
-      return;
-    }
 
     setState(() => _isLoading = true);
 
@@ -109,11 +94,9 @@ class _ExternalPilotRegistrationScreenState
         updatedAt: DateTime.now(),
       );
 
-      // I'll create a more comprehensive registration method in AuthViewModel
       await authNotifier.registerExternalPilotWithFiles(
         user: registrationData,
         password: _passwordController.text,
-        profileImage: _profileImage!,
         pilotCert: _pilotCert,
         dgcaCert: _dgcaCert,
       );
@@ -220,6 +203,10 @@ class _ExternalPilotRegistrationScreenState
                 hintText: '12-digit Aadhaar number',
                 controller: _aadhaarController,
                 keyboardType: TextInputType.number,
+                maxLength: 12,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
                 validator: (v) => v!.length != 12 ? 'Enter 12 digits' : null,
               ),
 
@@ -252,16 +239,9 @@ class _ExternalPilotRegistrationScreenState
               ),
 
               const SizedBox(height: 32),
-              Text('Documents & Profile', style: AppTextStyles.titleMedium),
+              Text('Documents', style: AppTextStyles.titleMedium),
               const SizedBox(height: 16),
               
-              _FilePickerTile(
-                label: 'Profile Photograph *',
-                file: _profileImage,
-                onTap: _pickImage,
-                isImage: true,
-              ),
-              const SizedBox(height: 12),
               _FilePickerTile(
                 label: 'Drone Pilot Certificate (Optional)',
                 file: _pilotCert,
@@ -293,13 +273,11 @@ class _FilePickerTile extends StatelessWidget {
   final String label;
   final File? file;
   final VoidCallback onTap;
-  final bool isImage;
 
   const _FilePickerTile({
     required this.label,
     required this.file,
     required this.onTap,
-    this.isImage = false,
   });
 
   @override
@@ -323,7 +301,7 @@ class _FilePickerTile extends StatelessWidget {
             child: Row(
               children: [
                 Icon(
-                  isImage ? Icons.camera_alt_outlined : Icons.upload_file,
+                  Icons.upload_file,
                   color: file != null ? AppColors.success : AppColors.primary,
                 ),
                 const SizedBox(width: 12),
@@ -331,7 +309,7 @@ class _FilePickerTile extends StatelessWidget {
                   child: Text(
                     file != null 
                       ? 'Selected: ${file!.path.split('/').last}'
-                      : 'Choose ${isImage ? 'Image' : 'File'}',
+                      : 'Choose File',
                     style: TextStyle(
                       color: file != null ? AppColors.success : AppColors.textSecondary,
                     ),

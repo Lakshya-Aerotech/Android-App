@@ -19,7 +19,7 @@ class _ExternalPilotListScreenState extends ConsumerState<ExternalPilotListScree
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -44,7 +44,6 @@ class _ExternalPilotListScreenState extends ConsumerState<ExternalPilotListScree
           tabs: const [
             Tab(text: 'Pending'),
             Tab(text: 'Approved'),
-            Tab(text: 'Other'),
           ],
         ),
       ),
@@ -55,7 +54,6 @@ class _ExternalPilotListScreenState extends ConsumerState<ExternalPilotListScree
             children: [
               _buildPilotList(pilots.where((p) => p.approvalStatus == ApprovalStatus.pending).toList()),
               _buildPilotList(pilots.where((p) => p.approvalStatus == ApprovalStatus.approved && p.accountStatus == AccountStatus.active).toList()),
-              _buildPilotList(pilots.where((p) => p.approvalStatus == ApprovalStatus.rejected || p.accountStatus == AccountStatus.suspended).toList()),
             ],
           );
         },

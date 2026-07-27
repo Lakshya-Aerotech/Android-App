@@ -59,6 +59,17 @@ final salaryPaymentsStreamProvider = StreamProvider.family<List<SalaryPaymentMod
   return ref.watch(adminRepositoryProvider).getSalaryPaymentsStream(pilotId);
 });
 
+final pilotDetailsStreamProvider = StreamProvider.family<UserModel?, String>((ref, uid) {
+  return FirebaseFirestore.instance
+      .collection('users')
+      .where('uid', isEqualTo: uid)
+      .snapshots()
+      .map((snapshot) {
+    if (snapshot.docs.isEmpty) return null;
+    return UserModel.fromMap(snapshot.docs.first.data(), docId: snapshot.docs.first.id);
+  });
+});
+
 final adminStatisticsStreamProvider = StreamProvider<List<AdminStatistic>>((ref, ) {
   final repository = ref.watch(adminRepositoryProvider);
   return repository.getDashboardStats().map((stats) {

@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../models/admin_analytics.dart';
 
@@ -86,19 +85,26 @@ class AdminExcelReportService {
     final bytes = excel.encode();
     if (bytes == null) throw StateError('Excel encoding failed.');
 
-    final directory = await getApplicationDocumentsDirectory();
+    Directory? directory;
+    if (Platform.isAndroid) {
+      directory = Directory('/storage/emulated/0/Download');
+      if (!await directory.exists()) {
+        directory = await getExternalStorageDirectory();
+      }
+    } else {
+      directory = await getApplicationDocumentsDirectory();
+    }
+
     final date = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final name = preview.definition.title
         .replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_')
         .replaceAll(RegExp(r'_+'), '_')
         .replaceAll(RegExp(r'^_|_$'), '');
-    final file = File('${directory.path}/Lakshya_Aerotech_${name}_$date.xlsx');
+    
+    final fileName = 'Lakshya_Aerotech_${name}_$date.xlsx';
+    final file = File('${directory!.path}/$fileName');
     await file.writeAsBytes(bytes, flush: true);
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      subject: preview.definition.title,
-      text: 'Lakshya Smartguard systems ${preview.definition.title}',
-    );
+
     return file.path;
   }
 

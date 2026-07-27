@@ -39,7 +39,7 @@ class PilotWalletScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             _buildTransactionsList(transactionsAsync),
             const SizedBox(height: 32),
-            Text('Salary History', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
+            Text('Incentive History', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             _buildPaymentsList(paymentsAsync),
           ],
@@ -71,7 +71,7 @@ class PilotWalletScreen extends ConsumerWidget {
       child: Column(
         children: [
           Text(
-            'Current Earnings',
+            'Current Incentives',
             style: AppTextStyles.bodyMedium.copyWith(color: Colors.white70),
           ),
           const SizedBox(height: 8),
@@ -184,7 +184,7 @@ class PilotWalletScreen extends ConsumerWidget {
         if (payments.isEmpty) {
           return const Center(child: Padding(
             padding: EdgeInsets.all(20.0),
-            child: Text('No salary payments recorded yet.'),
+            child: Text('No incentive payments recorded yet.'),
           ));
         }
         return ListView.separated(
@@ -217,7 +217,7 @@ class PilotWalletScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Salary Paid',
+                          'Incentive Paid',
                           style: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.bold),
                         ),
                         Text(

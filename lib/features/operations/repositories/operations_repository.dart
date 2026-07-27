@@ -168,7 +168,6 @@ class OperationsRepositoryImpl implements OperationsRepository {
         if (status == BookingStatus.pilotAssigned) pilotAssigned++;
 
         if ([
-          BookingStatus.accepted,
           BookingStatus.enRoute,
           BookingStatus.arrived,
           BookingStatus.inProgress,

@@ -40,33 +40,37 @@ class OpsBookingCard extends StatelessWidget {
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      booking.bookingId,
-                      style: AppTextStyles.labelSmall.copyWith(
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.1,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Farmer: ${booking.farmerName ?? 'Not Provided'}',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    if (booking.farmerPhone != null)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        booking.farmerPhone!,
-                        style: AppTextStyles.bodySmall.copyWith(fontSize: 10),
+                        booking.bookingId,
+                        style: AppTextStyles.labelSmall.copyWith(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.1,
+                          color: AppColors.primary,
+                        ),
                       ),
-                  ],
+                      const SizedBox(height: 2),
+                      Text(
+                        'Farmer: ${booking.farmerName ?? 'Not Provided'}',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      if (booking.farmerPhone != null)
+                        Text(
+                          booking.farmerPhone!,
+                          style: AppTextStyles.bodySmall.copyWith(fontSize: 10),
+                        ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 StatusChip.fromStatus(booking.status),
               ],
             ),

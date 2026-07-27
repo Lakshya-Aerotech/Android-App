@@ -14,7 +14,6 @@ class FullBookingTimeline extends StatelessWidget {
       {'label': 'Pending', 'status': BookingStatus.pending},
       {'label': 'Reviewed', 'status': BookingStatus.reviewed},
       {'label': 'Pilot Assigned', 'status': BookingStatus.pilotAssigned},
-      {'label': 'Accepted', 'status': BookingStatus.accepted},
       {'label': 'En Route', 'status': BookingStatus.enRoute},
       {'label': 'Arrived', 'status': BookingStatus.arrived},
       {'label': 'In Progress', 'status': BookingStatus.inProgress},
@@ -30,8 +29,10 @@ class FullBookingTimeline extends StatelessWidget {
     if (activeIndex == -1) {
        if (isCancelled || isIssueReported) {
          activeIndex = 0; 
+       } else if (currentStatus == BookingStatus.accepted) {
+         activeIndex = 2; // Map 'Accepted' to 'Pilot Assigned' stage
        } else if (currentStatus == BookingStatus.farmerConfirmed) {
-         activeIndex = 7; // Completed stage
+         activeIndex = 6; // Completed stage
        }
     }
 

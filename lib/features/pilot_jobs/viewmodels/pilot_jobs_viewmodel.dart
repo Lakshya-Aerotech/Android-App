@@ -25,7 +25,6 @@ final inProgressJobsProvider = StreamProvider<List<BookingModel>>((ref) {
   if (user == null || user.uid == null) return Stream.value([]);
   if (user.role != UserRole.pilot && user.role != UserRole.externalPilot) return Stream.value([]);
   return ref.watch(pilotJobsRepositoryProvider).getJobsByStatus(user.uid!, [
-    BookingStatus.accepted,
     BookingStatus.enRoute,
     BookingStatus.arrived,
     BookingStatus.inProgress,
@@ -62,7 +61,6 @@ final pilotDashboardStatsProvider = StreamProvider<Map<String, dynamic>>((ref) {
 
         for (var job in jobs) {
           if ([
-            BookingStatus.accepted,
             BookingStatus.enRoute,
             BookingStatus.arrived,
             BookingStatus.inProgress,
@@ -101,28 +99,6 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
 
   PilotJobsViewModel(this._repository, this._ref)
     : super(const AsyncData(null));
-
-  Future<void> acceptJob(String docId) async {
-    state = const AsyncLoading();
-    final user = _ref.read(userModelProvider);
-    try {
-      final historyEntry = StatusHistoryEntry(
-        status: BookingStatus.accepted,
-        updatedBy: user?.name ?? 'Pilot',
-        updatedByRole: 'pilot',
-        timestamp: DateTime.now(),
-        remarks: 'Pilot accepted the assignment.',
-      );
-      await _repository.updateJobStatus(
-        docId,
-        BookingStatus.accepted,
-        historyEntry,
-      );
-      state = const AsyncData(null);
-    } catch (e, st) {
-      state = AsyncError(e, st);
-    }
-  }
 
   Future<void> startNavigation(String docId) async {
     state = const AsyncLoading();

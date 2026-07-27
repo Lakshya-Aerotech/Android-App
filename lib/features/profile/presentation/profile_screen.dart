@@ -169,11 +169,6 @@ class ProfileScreen extends ConsumerWidget {
                   );
                 },
               ),
-            _ProfileMenuItem(
-              icon: Icons.info_outline,
-              title: context.tr('App Information'),
-              onTap: () {},
-            ),
 
             AppSpacing.verticalXl,
             PrimaryButton(
@@ -453,7 +448,6 @@ class _PilotStatsSection extends ConsumerWidget {
 class _OperationsStatsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(userModelProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -470,13 +464,6 @@ class _OperationsStatsSection extends ConsumerWidget {
               child: _StatCard(
                 label: context.tr('Bookings Handled'),
                 value: '124', // Placeholder
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _StatCard(
-                label: context.tr('Assigned Region'),
-                value: user?.district ?? 'All',
               ),
             ),
           ],

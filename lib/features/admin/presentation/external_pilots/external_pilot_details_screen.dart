@@ -91,15 +91,29 @@ class _ExternalPilotDetailsScreenState extends ConsumerState<ExternalPilotDetail
 
   @override
   Widget build(BuildContext context) {
-    final p = widget.pilot;
+    final pilotAsync = ref.watch(pilotDetailsStreamProvider(widget.pilot.uid ?? ''));
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Pilot Details'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+      body: pilotAsync.when(
+        data: (p) {
+          if (p == null) return const Center(child: Text('Pilot not found'));
+          return _buildPilotDetails(context, p);
+        },
+        loading: () => _buildPilotDetails(context, widget.pilot, isStale: true),
+        error: (e, _) => Center(child: Text('Error: $e')),
+      ),
+    );
+  }
+
+  Widget _buildPilotDetails(BuildContext context, UserModel p, {bool isStale = false}) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Opacity(
+        opacity: isStale ? 0.6 : 1.0,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

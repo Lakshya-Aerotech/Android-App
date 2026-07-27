@@ -640,7 +640,7 @@ class AdminRepositoryImpl implements AdminRepository {
         'userId': pilotId, // Store UID for consistency
         'type': TransactionType.salaryPayment.value,
         'amount': -amount,
-        'description': 'Salary paid for period: $period',
+        'description': 'Incentive paid for period: $period',
         'createdAt': FieldValue.serverTimestamp(),
       });
     });
@@ -648,8 +648,8 @@ class AdminRepositoryImpl implements AdminRepository {
     await _notifications.createForUser(
       recipientUid: pilotId,
       eventKey: 'salary-paid-${DateTime.now().millisecondsSinceEpoch}',
-      title: 'Salary Paid',
-      message: 'Your salary has been marked as paid by the Administrator.',
+      title: 'Incentive Paid',
+      message: 'Your incentive has been marked as paid by the Administrator.',
     );
   }
 

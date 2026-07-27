@@ -152,17 +152,6 @@ class _AnalyticsTab extends ConsumerWidget {
               title: 'Coupon Analytics',
               metrics: data.couponMetrics,
             ),
-            if (data.missingFields.isNotEmpty) ...[
-              AppSpacing.verticalXl,
-              Text('Unavailable Metrics', style: AppTextStyles.titleMedium),
-              AppSpacing.verticalSm,
-              ...data.missingFields.map(
-                (field) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text('• $field', style: AppTextStyles.bodySmall),
-                ),
-              ),
-            ],
             AppSpacing.verticalXxl,
           ],
         ),

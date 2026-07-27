@@ -16,7 +16,6 @@ class BookingTimeline extends StatelessWidget {
       {'label': 'Booking Submitted', 'status': BookingStatus.pending},
       {'label': 'Reviewed', 'status': BookingStatus.reviewed},
       {'label': 'Pilot Assigned', 'status': BookingStatus.pilotAssigned},
-      {'label': 'Pilot Accepted', 'status': BookingStatus.accepted},
       {'label': 'Pilot En Route', 'status': BookingStatus.enRoute},
       {'label': 'Arrived At Farm', 'status': BookingStatus.arrived},
       {'label': 'Mission Started', 'status': BookingStatus.inProgress},
@@ -29,10 +28,12 @@ class BookingTimeline extends StatelessWidget {
 
     int activeIndex = stages.indexWhere((s) => s['status'] == booking.status);
     if (activeIndex == -1) {
-      if (booking.status == BookingStatus.farmerConfirmed) {
-        activeIndex = 7; // Completed stage
+      if (booking.status == BookingStatus.accepted) {
+        activeIndex = 2; // Map 'Accepted' to 'Pilot Assigned' stage
+      } else if (booking.status == BookingStatus.farmerConfirmed) {
+        activeIndex = 6; // Completed stage
       } else if (booking.status == BookingStatus.closed) {
-        activeIndex = 8; // Closed stage
+        activeIndex = 7; // Closed stage
       }
     }
     

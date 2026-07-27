@@ -359,7 +359,6 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
 
     switch (job.status) {
       case BookingStatus.pilotAssigned:
-      case BookingStatus.accepted:
       case BookingStatus.enRoute:
         return PrimaryButton(
           text: 'Arrived At Farm',
@@ -629,8 +628,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
               flags: InteractiveFlag.none,
             ),
             onTap: (_, __) async {
-              if (widget.job.status == BookingStatus.pilotAssigned ||
-                  widget.job.status == BookingStatus.accepted) {
+              if (widget.job.status == BookingStatus.pilotAssigned) {
                 await ref
                     .read(pilotJobsViewModelProvider.notifier)
                     .startNavigation(widget.job.docId!);

@@ -8,6 +8,7 @@ import 'package:lakshya_aerotech/core/widgets/empty_state.dart';
 import 'package:lakshya_aerotech/shared/components/dashboard_header.dart';
 import 'package:lakshya_aerotech/features/operations/viewmodels/operations_viewmodel.dart';
 import 'package:lakshya_aerotech/features/operations/widgets/ops_hydrated_booking_card.dart';
+import 'package:lakshya_aerotech/shared/enums/booking_status.dart';
 
 class OpsPendingBookingsScreen extends ConsumerStatefulWidget {
   const OpsPendingBookingsScreen({super.key});
@@ -21,8 +22,9 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
   String _searchQuery = '';
   String? _selectedService;
   String? _selectedCrop;
+  BookingStatus? _filterStatus;
   bool _isNewestFirst = true;
-  int _selectedTab = 0; // 0 for Pending, 1 for Reported Issues
+  int _selectedTab = 0; // 0 for All Bookings, 1 for Reported Issues
 
   @override
   void dispose() {
@@ -32,7 +34,7 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
 
   @override
   Widget build(BuildContext context) {
-    final pendingAsync = ref.watch(pendingBookingsStreamProvider);
+    final allBookingsAsync = ref.watch(allOperationsBookingsStreamProvider);
     final issuesAsync = ref.watch(reportedIssuesStreamProvider);
 
     return Scaffold(
@@ -54,7 +56,7 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        _selectedTab == 0 ? 'Pending Bookings' : 'Reported Issues',
+                        _selectedTab == 0 ? 'All Bookings' : 'Reported Issues',
                         style: AppTextStyles.headlineLarge.copyWith(
                           color: AppColors.textDark,
                           fontWeight: FontWeight.bold,
@@ -62,7 +64,7 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                       ),
                       IconButton(
                         onPressed: () {
-                          ref.invalidate(pendingBookingsStreamProvider);
+                          ref.invalidate(allOperationsBookingsStreamProvider);
                           ref.invalidate(reportedIssuesStreamProvider);
                         },
                         icon: const Icon(Icons.refresh, color: AppColors.primary),
@@ -81,7 +83,7 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                     child: Row(
                       children: [
                         Expanded(
-                          child: _buildTab(0, 'Pending', Icons.pending_actions),
+                          child: _buildTab(0, 'All', Icons.assignment_outlined),
                         ),
                         Expanded(
                           child: _buildTab(1, 'Issues', Icons.report_problem_outlined),
@@ -106,22 +108,24 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
+                      if (_selectedTab == 0) ...[
+                        const SizedBox(width: 12),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            onPressed: _showFilterDialog,
+                            icon: const Icon(Icons.filter_list, color: AppColors.primary),
+                          ),
                         ),
-                        child: IconButton(
-                          onPressed: _showFilterDialog,
-                          icon: const Icon(Icons.filter_list, color: AppColors.primary),
-                        ),
-                      ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 24),
                   
-                  (_selectedTab == 0 ? pendingAsync : issuesAsync).when(
+                  (_selectedTab == 0 ? allBookingsAsync : issuesAsync).when(
                     data: (bookings) {
                       var filtered = bookings.where((b) {
                         final matchesSearch = b.bookingId.toLowerCase().contains(_searchQuery) ||
@@ -131,17 +135,18 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                         
                         final matchesService = _selectedService == null || b.serviceType == _selectedService;
                         final matchesCrop = _selectedCrop == null || b.cropType == _selectedCrop;
+                        final matchesStatus = _selectedTab != 0 || _filterStatus == null || b.status == _filterStatus;
                         
-                        return matchesSearch && matchesService && matchesCrop;
+                        return matchesSearch && matchesService && matchesCrop && matchesStatus;
                       }).toList();
 
                       if (!_isNewestFirst) filtered = filtered.reversed.toList();
 
                       if (filtered.isEmpty) {
                         return EmptyState(
-                          title: _selectedTab == 0 ? 'No pending bookings.' : 'No reported issues.',
-                          message: _selectedTab == 0 ? 'All requests have been reviewed.' : 'Great job! No issues reported.',
-                          icon: _selectedTab == 0 ? Icons.done_all_rounded : Icons.check_circle_outline,
+                          title: _selectedTab == 0 ? 'No bookings found.' : 'No reported issues.',
+                          message: _selectedTab == 0 ? 'Try adjusting your filters.' : 'Great job! No issues reported.',
+                          icon: _selectedTab == 0 ? Icons.search_off_rounded : Icons.check_circle_outline,
                         );
                       }
 
@@ -218,6 +223,20 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                   Text('Filter & Sort', style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 24),
                   
+                  Text('Status', style: AppTextStyles.labelLarge),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _statusChip(setModalState, 'Pending', BookingStatus.pending),
+                      _statusChip(setModalState, 'Reviewed', BookingStatus.reviewed),
+                      _statusChip(setModalState, 'Assigned', BookingStatus.pilotAssigned),
+                      _statusChip(setModalState, 'Completed', BookingStatus.completed),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
                   Text('Sort By', style: AppTextStyles.labelLarge),
                   const SizedBox(height: 12),
                   Row(
@@ -243,24 +262,6 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                   ),
                   
                   const SizedBox(height: 24),
-                  Text('Service Type', style: AppTextStyles.labelLarge),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: ['Pesticide Spraying', 'Fertilizer Spraying', 'Survey Mapping', 'Seed Broadcasting'].map((s) {
-                      return ChoiceChip(
-                        label: Text(s),
-                        selected: _selectedService == s,
-                        onSelected: (selected) {
-                          setModalState(() => _selectedService = selected ? s : null);
-                          setState(() {});
-                        },
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 24),
                   Text('Crop Type', style: AppTextStyles.labelLarge),
                   const SizedBox(height: 12),
                   Wrap(
@@ -277,7 +278,7 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                       );
                     }).toList(),
                   ),
-                  
+
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
@@ -286,6 +287,7 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                         setModalState(() {
                           _selectedService = null;
                           _selectedCrop = null;
+                          _filterStatus = null;
                           _isNewestFirst = true;
                         });
                         setState(() {});
@@ -300,6 +302,17 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
             );
           }
         );
+      },
+    );
+  }
+
+  Widget _statusChip(StateSetter setModalState, String label, BookingStatus status) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: _filterStatus == status,
+      onSelected: (selected) {
+        setModalState(() => _filterStatus = selected ? status : null);
+        setState(() {});
       },
     );
   }

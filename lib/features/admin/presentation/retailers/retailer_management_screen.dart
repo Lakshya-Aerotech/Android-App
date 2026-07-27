@@ -148,13 +148,24 @@ class _RetailerCard extends ConsumerWidget {
               value: 'details',
               child: Text(context.tr('View Details')),
             ),
-            PopupMenuItem(value: 'approve', child: Text(context.tr('Approve'))),
-            PopupMenuItem(value: 'reject', child: Text(context.tr('Reject'))),
-            PopupMenuItem(value: 'suspend', child: Text(context.tr('Suspend'))),
-            PopupMenuItem(
-              value: 'reactivate',
-              child: Text(context.tr('Reactivate')),
-            ),
+            if (status == ApprovalStatus.pending) ...[
+              PopupMenuItem(
+                value: 'approve',
+                child: Text(context.tr('Approve')),
+              ),
+              PopupMenuItem(value: 'reject', child: Text(context.tr('Reject'))),
+            ],
+            if (status == ApprovalStatus.approved && retailer.isActive)
+              PopupMenuItem(
+                value: 'suspend',
+                child: Text(context.tr('Suspend')),
+              ),
+            if (status == ApprovalStatus.suspended ||
+                (status == ApprovalStatus.approved && !retailer.isActive))
+              PopupMenuItem(
+                value: 'reactivate',
+                child: Text(context.tr('Reactivate')),
+              ),
           ],
         ),
       ),

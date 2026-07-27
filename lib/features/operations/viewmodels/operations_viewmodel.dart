@@ -50,13 +50,6 @@ final dashboardStatsStreamProvider = StreamProvider<List<OperationsStatistic>>((
         value: stats['completedToday'].toString(),
       ),
       OperationsStatistic(
-        icon: Icons.calendar_today,
-        iconColor: Colors.teal,
-        title: 'Acres Scheduled',
-        value:
-            (stats['acresScheduledToday'] as num?)?.toStringAsFixed(1) ?? '0.0',
-      ),
-      OperationsStatistic(
         icon: Icons.done_all,
         iconColor: Colors.green.shade800,
         title: 'Acres Completed',
@@ -77,6 +70,31 @@ final pendingBookingsStreamProvider = StreamProvider<List<BookingModel>>((ref) {
   return ref.watch(operationsRepositoryProvider).getBookingsByStatus([
     BookingStatus.pending,
   ]);
+});
+
+final allOperationsBookingsStreamProvider = StreamProvider<List<BookingModel>>((ref) {
+  return ref.watch(operationsRepositoryProvider).getAllBookingsStream().map((bookings) {
+    // Only show bookings that are in states relevant to operations overview
+    // or just show all but sort them.
+    // User asked to keep Pending first.
+    final opsRelevant = bookings.where((b) => [
+      BookingStatus.pending,
+      BookingStatus.reviewed,
+      BookingStatus.pilotAssigned,
+      BookingStatus.enRoute,
+      BookingStatus.arrived,
+      BookingStatus.inProgress,
+      BookingStatus.completed,
+      BookingStatus.closed,
+    ].contains(b.status)).toList();
+
+    opsRelevant.sort((a, b) {
+      if (a.status == BookingStatus.pending && b.status != BookingStatus.pending) return -1;
+      if (a.status != BookingStatus.pending && b.status == BookingStatus.pending) return 1;
+      return b.createdAt.compareTo(a.createdAt);
+    });
+    return opsRelevant;
+  });
 });
 
 final reportedIssuesStreamProvider = StreamProvider<List<BookingModel>>((ref) {

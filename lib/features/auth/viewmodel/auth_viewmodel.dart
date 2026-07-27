@@ -215,7 +215,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
   Future<void> registerExternalPilotWithFiles({
     required UserModel user,
     required String password,
-    required File profileImage,
+    File? profileImage,
     File? pilotCert,
     File? dgcaCert,
   }) async {
@@ -227,32 +227,35 @@ class AuthViewModel extends StateNotifier<AuthState> {
       final uid = currentUser.uid;
 
       final fileService = _ref.read(fileServiceProvider);
+      final Map<String, dynamic> updates = {};
+
+      if (profileImage != null) {
+        final profileUrl = await fileService.uploadProfileImage(uid: uid, file: profileImage);
+        updates['profilePhotographUrl'] = profileUrl;
+        updates['profileImageUrl'] = profileUrl;
+      }
       
-      final profileUrl = await fileService.uploadProfileImage(uid: uid, file: profileImage);
-      String? pilotCertUrl;
       if (pilotCert != null) {
-        pilotCertUrl = await fileService.uploadUserDocument(
+        final pilotCertUrl = await fileService.uploadUserDocument(
           uid: uid, 
           file: pilotCert, 
           documentType: 'drone_pilot_certificate',
         );
+        updates['dronePilotCertificateUrl'] = pilotCertUrl;
       }
 
-      String? dgcaCertUrl;
       if (dgcaCert != null) {
-        dgcaCertUrl = await fileService.uploadUserDocument(
+        final dgcaCertUrl = await fileService.uploadUserDocument(
           uid: uid, 
           file: dgcaCert, 
           documentType: 'dgca_certificate',
         );
+        updates['dgcaCertificateUrl'] = dgcaCertUrl;
       }
 
-      await _repository.updateProfile(uid, {
-        'profilePhotographUrl': profileUrl,
-        'profileImageUrl': profileUrl,
-        'dronePilotCertificateUrl': pilotCertUrl,
-        'dgcaCertificateUrl': dgcaCertUrl,
-      });
+      if (updates.isNotEmpty) {
+        await _repository.updateProfile(uid, updates);
+      }
 
       await _repository.logout();
       state = state.copyWith(status: AuthStatus.unauthenticated);

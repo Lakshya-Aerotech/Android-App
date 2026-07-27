@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../localization/app_localizations.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
@@ -16,6 +17,8 @@ class CustomTextField extends StatelessWidget {
   final bool enabled;
   final int? maxLines;
   final int? minLines;
+  final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
 
   const CustomTextField({
     super.key,
@@ -31,6 +34,8 @@ class CustomTextField extends StatelessWidget {
     this.enabled = true,
     this.maxLines = 1,
     this.minLines,
+    this.maxLength,
+    this.inputFormatters,
   });
 
   @override
@@ -56,6 +61,8 @@ class CustomTextField extends StatelessWidget {
           enabled: enabled,
           maxLines: maxLines,
           minLines: minLines,
+          maxLength: maxLength,
+          inputFormatters: inputFormatters,
           style: AppTextStyles.bodyLarge.copyWith(
             color: enabled ? null : AppColors.textTertiary,
           ),
@@ -63,6 +70,7 @@ class CustomTextField extends StatelessWidget {
             hintText: hintText == null ? null : context.tr(hintText!),
             prefixIcon: prefixIcon,
             suffixIcon: suffixIcon,
+            counterText: "", // Hide the default counter
           ),
         ),
       ],

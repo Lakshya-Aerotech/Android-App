@@ -45,7 +45,7 @@ class _PilotEarningDetailsScreenState extends ConsumerState<PilotEarningDetailsS
             const SizedBox(height: 16),
             _buildTransactionsList(transactionsAsync),
             const SizedBox(height: 32),
-            Text('Salary History', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
+            Text('Incentive History', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             _buildPaymentsList(paymentsAsync),
           ],
@@ -113,7 +113,7 @@ class _PilotEarningDetailsScreenState extends ConsumerState<PilotEarningDetailsS
           const Text('Administrative Actions', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           PrimaryButton(
-            text: 'Mark Salary as Paid',
+            text: 'Mark Incentive as Paid',
             onPressed: widget.pilot.walletBalance > 0 ? () => _showMarkPaidDialog(context) : null,
             backgroundColor: AppColors.success,
           ),
@@ -130,12 +130,12 @@ class _PilotEarningDetailsScreenState extends ConsumerState<PilotEarningDetailsS
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Salary Payment'),
+        title: const Text('Confirm Incentive Payment'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Confirm that the salary has been paid to this employee outside the application.'),
+              const Text('Confirm that the incentive has been paid to this employee outside the application.'),
               const SizedBox(height: 16),
               TextField(
                 controller: amountController,
@@ -144,7 +144,7 @@ class _PilotEarningDetailsScreenState extends ConsumerState<PilotEarningDetailsS
               ),
               TextField(
                 controller: periodController,
-                decoration: const InputDecoration(labelText: 'Salary Period'),
+                decoration: const InputDecoration(labelText: 'Incentive Period'),
               ),
               TextField(
                 controller: remarksController,
@@ -206,7 +206,7 @@ class _PilotEarningDetailsScreenState extends ConsumerState<PilotEarningDetailsS
   Widget _buildPaymentsList(AsyncValue<List<SalaryPaymentModel>> paymentsAsync) {
     return paymentsAsync.when(
       data: (payments) {
-        if (payments.isEmpty) return const Center(child: Text('No salary records.'));
+        if (payments.isEmpty) return const Center(child: Text('No incentive records.'));
         return ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),

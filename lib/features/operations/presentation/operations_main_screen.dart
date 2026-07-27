@@ -4,7 +4,7 @@ import 'package:lakshya_aerotech/core/localization/app_localizations.dart';
 import 'package:lakshya_aerotech/core/theme/app_colors.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/dashboard/operations_dashboard_screen.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/pending_bookings/ops_pending_bookings_screen.dart';
-import 'package:lakshya_aerotech/features/operations/presentation/placeholders/operations_placeholders.dart';
+import 'package:lakshya_aerotech/features/operations/presentation/assignments/ops_assignments_screen.dart';
 import 'package:lakshya_aerotech/features/profile/presentation/profile_screen.dart';
 
 class OperationsMainScreen extends ConsumerStatefulWidget {
@@ -21,7 +21,7 @@ class _OperationsMainScreenState extends ConsumerState<OperationsMainScreen> {
   final List<Widget> _screens = [
     const OperationsDashboardScreen(),
     const OpsPendingBookingsScreen(),
-    const OpsAssignmentsPlaceholder(),
+    const OpsAssignmentsScreen(),
     const ProfileScreen(),
   ];
 
