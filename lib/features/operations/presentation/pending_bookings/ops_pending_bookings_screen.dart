@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lakshya_aerotech/core/constants/app_sizes.dart';
 import 'package:lakshya_aerotech/core/theme/app_colors.dart';
 import 'package:lakshya_aerotech/core/theme/app_text_styles.dart';
+import 'package:lakshya_aerotech/core/localization/app_localizations.dart';
 import 'package:lakshya_aerotech/core/widgets/empty_state.dart';
 import 'package:lakshya_aerotech/shared/components/dashboard_header.dart';
 import 'package:lakshya_aerotech/features/operations/viewmodels/operations_viewmodel.dart';
@@ -56,7 +57,7 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        _selectedTab == 0 ? 'All Bookings' : 'Reported Issues',
+                        _selectedTab == 0 ? context.tr('All Bookings') : context.tr('Reported Issues'),
                         style: AppTextStyles.headlineLarge.copyWith(
                           color: AppColors.textDark,
                           fontWeight: FontWeight.bold,
@@ -83,10 +84,10 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                     child: Row(
                       children: [
                         Expanded(
-                          child: _buildTab(0, 'All', Icons.assignment_outlined),
+                          child: _buildTab(0, context.tr('All'), Icons.assignment_outlined),
                         ),
                         Expanded(
-                          child: _buildTab(1, 'Issues', Icons.report_problem_outlined),
+                          child: _buildTab(1, context.tr('Issues'), Icons.report_problem_outlined),
                         ),
                       ],
                     ),
@@ -100,7 +101,7 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                           controller: _searchController,
                           onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
                           decoration: InputDecoration(
-                            hintText: 'Search ID, Farmer, Farm...',
+                            hintText: context.tr('Search ID, Farmer, Farm...'),
                             prefixIcon: const Icon(Icons.search),
                             fillColor: Colors.white,
                             filled: true,
@@ -144,8 +145,8 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
 
                       if (filtered.isEmpty) {
                         return EmptyState(
-                          title: _selectedTab == 0 ? 'No bookings found.' : 'No reported issues.',
-                          message: _selectedTab == 0 ? 'Try adjusting your filters.' : 'Great job! No issues reported.',
+                          title: _selectedTab == 0 ? context.tr('No bookings found.') : context.tr('No reported issues.'),
+                          message: _selectedTab == 0 ? context.tr('Try adjusting your filters.') : context.tr('Great job! No issues reported.'),
                           icon: _selectedTab == 0 ? Icons.search_off_rounded : Icons.check_circle_outline,
                         );
                       }

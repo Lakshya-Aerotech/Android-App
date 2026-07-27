@@ -111,25 +111,24 @@ class AdminDashboardScreen extends ConsumerWidget {
                     const SizedBox(height: 12),
                     QuickActionCard(
                       icon: Icons.verified_user_outlined,
-                      title: 'External Pilot Approvals',
-                      subtitle:
-                          'Approve or reject external pilot registrations',
+                      title: context.tr('External Pilot Approvals'),
+                      subtitle: context.tr('Approve or reject external pilot registrations'),
                       iconColor: Colors.orange,
                       onTap: () => context.push('/admin/external-pilots'),
                     ),
                     const SizedBox(height: 12),
                     QuickActionCard(
                       icon: Icons.storefront_outlined,
-                      title: 'Retailer Management',
-                      subtitle: 'Approve and manage retailer accounts',
+                      title: context.tr('Retailer Management'),
+                      subtitle: context.tr('Approve and manage retailer accounts'),
                       iconColor: AppColors.warning,
                       onTap: () => context.push('/admin/retailers'),
                     ),
                     const SizedBox(height: 12),
                     QuickActionCard(
                       icon: Icons.payments_outlined,
-                      title: 'Pilot Earnings & Incentives',
-                      subtitle: 'Manage pilot incentives and mark salaries as paid',
+                      title: context.tr('Pilot Earnings & Incentives'),
+                      subtitle: context.tr('Manage pilot incentives and mark salaries as paid'),
                       iconColor: AppColors.primary,
                       onTap: () => context.push('/admin/pilot-earnings'),
                     ),
@@ -283,7 +282,7 @@ class _ActivityItem extends StatelessWidget {
                         ),
                       ),
                     Text(
-                      _formatTimestamp(activity.timestamp),
+                      _formatTimestamp(context, activity.timestamp),
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.textTertiary,
                         fontSize: 10,
@@ -299,14 +298,14 @@ class _ActivityItem extends StatelessWidget {
     );
   }
 
-  String _formatTimestamp(DateTime dt) {
+  String _formatTimestamp(BuildContext context, DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
 
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inMinutes < 1) return context.tr('Just now');
+    if (diff.inMinutes < 60) return '${diff.inMinutes}${context.tr('m ago')}';
+    if (diff.inHours < 24) return '${diff.inHours}${context.tr('h ago')}';
+    if (diff.inDays == 1) return context.tr('Yesterday');
     return DateFormat('dd MMM').format(dt);
   }
 }

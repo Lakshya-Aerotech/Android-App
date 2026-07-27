@@ -533,6 +533,11 @@ class _LanguageMenuItem extends ConsumerWidget {
           onChanged: (value) {
             if (value == null) return;
             ref.read(localeViewModelProvider.notifier).setLocale(Locale(value));
+            // Update user profile preference persistently
+            final user = ref.read(userModelProvider);
+            if (user != null) {
+              ref.read(authViewModelProvider.notifier).updateProfile(language: value);
+            }
           },
         ),
       ),

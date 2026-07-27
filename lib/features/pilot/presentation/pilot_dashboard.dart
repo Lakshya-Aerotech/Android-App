@@ -145,7 +145,7 @@ class _PilotHomeContent extends ConsumerWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Current Earnings', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                  Text(context.tr('Current Earnings'), style: const TextStyle(color: Colors.white70, fontSize: 12)),
                                   Text(
                                     '₹${(user?.walletBalance ?? 0.0).toStringAsFixed(2)}',
                                     style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
@@ -160,7 +160,7 @@ class _PilotHomeContent extends ConsumerWidget {
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                               ),
-                              child: const Text('View Wallet'),
+                              child: Text(context.tr('View Wallet')),
                             ),
                           ],
                         ),
@@ -237,9 +237,9 @@ class _PilotHomeContent extends ConsumerWidget {
                 },
 
                 AppSpacing.verticalXl,
-                _SectionTitle(title: 'Cash Collection'),
+                _SectionTitle(title: context.tr('Cash Collection')),
                 AppSpacing.verticalMd,
-                _buildCashCollectionSection(ref),
+                _buildCashCollectionSection(context, ref),
 
                 AppSpacing.verticalXl,
                 _SectionTitle(title: context.tr('Overall Pilot Stats')),
@@ -280,7 +280,7 @@ class _PilotHomeContent extends ConsumerWidget {
     );
   }
 
-  Widget _buildCashCollectionSection(WidgetRef ref) {
+  Widget _buildCashCollectionSection(BuildContext context, WidgetRef ref) {
     final cashJobsAsync = ref.watch(pilotCashCollectionProvider);
 
     return switch (cashJobsAsync) {
@@ -288,12 +288,13 @@ class _PilotHomeContent extends ConsumerWidget {
         value.isEmpty
             ? Container(
               padding: const EdgeInsets.all(16),
+              width: double.infinity,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
               ),
-              child: const Text('No cash pending deposit.'),
+              child: Text(context.tr('No cash pending deposit.')),
             )
             : Column(
               children: value
@@ -336,9 +337,9 @@ class _CashCollectionCard extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text('Farmer: ${job.farmerName ?? 'N/A'}', style: AppTextStyles.bodySmall),
+          Text('${context.tr('Farmer: ')}${job.farmerName ?? 'N/A'}', style: AppTextStyles.bodySmall),
           if (job.cashCollectedAt != null)
-            Text('Collected: ${DateFormat('dd MMM, hh:mm a').format(job.cashCollectedAt!)}', style: AppTextStyles.bodySmall),
+            Text('${context.tr('Collected')}: ${DateFormat('dd MMM, hh:mm a').format(job.cashCollectedAt!)}', style: AppTextStyles.bodySmall),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -347,7 +348,7 @@ class _CashCollectionCard extends ConsumerWidget {
               style: OutlinedButton.styleFrom(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('Mark as Deposited'),
+              child: Text(context.tr('Mark as Deposited')),
             ),
           ),
         ],

@@ -7,6 +7,7 @@ import 'package:lakshya_aerotech/core/theme/app_colors.dart';
 import 'package:lakshya_aerotech/core/theme/app_text_styles.dart';
 import 'package:lakshya_aerotech/core/constants/app_sizes.dart';
 import 'package:lakshya_aerotech/core/constants/app_spacing.dart';
+import 'package:lakshya_aerotech/core/localization/app_localizations.dart';
 import 'package:lakshya_aerotech/shared/components/dashboard_header.dart';
 import 'package:lakshya_aerotech/features/operations/viewmodels/operations_viewmodel.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/widgets/operations_statistic_card.dart';
@@ -41,7 +42,7 @@ class OperationsDashboardScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionTitle('Operational Overview'),
+                  _buildSectionTitle(context.tr('Operational Overview')),
                   const SizedBox(height: 16),
                   switch (statsAsync) {
                     AsyncData(:final value) => LayoutBuilder(
@@ -68,7 +69,7 @@ class OperationsDashboardScreen extends ConsumerWidget {
                             return OperationsStatisticCard(
                               icon: stat.icon,
                               iconColor: stat.iconColor,
-                              title: stat.title,
+                              title: context.tr(stat.title),
                               value: stat.value,
                             );
                           },
@@ -81,34 +82,34 @@ class OperationsDashboardScreen extends ConsumerWidget {
                   const SizedBox(height: 32),
 
                   // Quick Actions
-                  _buildSectionTitle('Quick Actions'),
+                  _buildSectionTitle(context.tr('Quick Actions')),
                   const SizedBox(height: 16),
                   OperationsQuickActionCard(
                     icon: Icons.rate_review_outlined,
-                    title: 'Review Bookings',
-                    subtitle: 'Verify and approve new requests',
+                    title: context.tr('Review Bookings'),
+                    subtitle: context.tr('Verify and approve new requests'),
                     iconColor: Colors.blue,
                     onTap: () => context.push('/operations/bookings'),
                   ),
                   const SizedBox(height: 12),
                   OperationsQuickActionCard(
                     icon: Icons.assignment_ind_outlined,
-                    title: 'Assign Pilot',
-                    subtitle: 'Match pilots with approved bookings',
+                    title: context.tr('Assign Pilot'),
+                    subtitle: context.tr('Match pilots with approved bookings'),
                     iconColor: Colors.purple,
                     onTap: () => context.push('/operations/assignments'),
                   ),
                   const SizedBox(height: 32),
 
                   // Recent Bookings
-                  _buildSectionTitle('Recent Bookings'),
+                  _buildSectionTitle(context.tr('Recent Bookings')),
                   const SizedBox(height: 16),
                   switch (recentBookingsAsync) {
                     AsyncData(:final value) =>
                       value.isEmpty
-                          ? const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 20),
-                            child: Text('No bookings found.'),
+                          ? Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            child: Text(context.tr('No bookings found.')),
                           )
                           : Column(
                             children:
