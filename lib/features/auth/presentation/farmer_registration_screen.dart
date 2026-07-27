@@ -54,6 +54,27 @@ class _FarmerRegistrationScreenState extends ConsumerState<FarmerRegistrationScr
     }
   }
 
+  Future<bool> _showLeaveConfirmationDialog(BuildContext context) async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Leave Registration?'),
+        content: const Text('Are you sure you want to leave? Your entered information will not be saved.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Stay'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Leave'),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(authViewModelProvider);
@@ -71,14 +92,23 @@ class _FarmerRegistrationScreenState extends ConsumerState<FarmerRegistrationScr
       }
     });
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Farmer Registration'),
-        elevation: 0,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldLeave = await _showLeaveConfirmationDialog(context);
+        if (shouldLeave && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
         backgroundColor: Colors.white,
-        foregroundColor: AppColors.primary,
-      ),
+        appBar: AppBar(
+          title: const Text('Farmer Registration'),
+          elevation: 0,
+          backgroundColor: Colors.white,
+          foregroundColor: AppColors.primary,
+        ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSizes.screenPadding),
@@ -182,6 +212,7 @@ class _FarmerRegistrationScreenState extends ConsumerState<FarmerRegistrationScr
           ),
         ),
       ),
+    ),
     );
   }
 }

@@ -35,6 +35,7 @@ abstract class AuthRepository {
   Future<void> sendPasswordResetEmail(String email);
   Future<void> registerExternalPilot(UserModel user, String password);
   Future<void> registerFarmer(UserModel user, String password);
+  Future<void> deleteUserDocument(String docId);
 }
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -320,5 +321,10 @@ class AuthRepositoryImpl implements AuthRepository {
       data: {'farmerUid': uid},
       type: 'NEW_FARMER_REGISTERED',
     );
+  }
+
+  @override
+  Future<void> deleteUserDocument(String docId) async {
+    await _firestore.collection('users').doc(docId).delete();
   }
 }

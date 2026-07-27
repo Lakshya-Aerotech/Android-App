@@ -1,22 +1,23 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/primary_button.dart';
 
-class MapPickerScreen extends StatefulWidget {
+class MapPickerScreen extends ConsumerStatefulWidget {
   final LatLng? initialLocation;
 
   const MapPickerScreen({super.key, this.initialLocation});
 
   @override
-  State<MapPickerScreen> createState() => _MapPickerScreenState();
+  ConsumerState<MapPickerScreen> createState() => _MapPickerScreenState();
 }
 
-class _MapPickerScreenState extends State<MapPickerScreen> {
+class _MapPickerScreenState extends ConsumerState<MapPickerScreen> {
   LatLng? _selectedLocation;
   final MapController _mapController = MapController();
   String _statusMessage = 'Initializing...';
@@ -46,10 +47,10 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       return;
     }
 
-    await _handleLocationFlow();
+    await _handleLocationFlow(autoRequest: true);
   }
 
-  Future<void> _handleLocationFlow() async {
+  Future<void> _handleLocationFlow({bool autoRequest = false}) async {
     // Prevent multiple simultaneous location requests
     if (_isLoading && _selectedLocation != null) return;
     
@@ -59,6 +60,10 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       setState(() => _statusMessage = 'Checking GPS status...');
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
+        if (autoRequest) {
+          _useDefaultLocation('Location services are disabled.');
+          return;
+        }
         await _showGpsDialog();
         // Check again after dialog
         serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -69,10 +74,14 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       }
 
       // 2. Check Location Permission
-      setState(() => _statusMessage = 'Requesting Location Permission...');
+      setState(() => _statusMessage = 'Checking Location Permission...');
       LocationPermission permission = await Geolocator.checkPermission();
       
       if (permission == LocationPermission.denied) {
+        if (autoRequest) {
+          _useDefaultLocation('Location permission was denied.');
+          return;
+        }
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           _useDefaultLocation('Location permission denied.');
@@ -81,6 +90,10 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       }
 
       if (permission == LocationPermission.deniedForever) {
+        if (autoRequest) {
+          _useDefaultLocation('Location permission permanently denied.');
+          return;
+        }
         await _showSettingsDialog();
         _useDefaultLocation('Permission permanently denied.');
         return;

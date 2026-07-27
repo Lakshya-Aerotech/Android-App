@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/status_chip.dart';
+import '../../../shared/enums/booking_status.dart';
+import '../../auth/viewmodel/auth_viewmodel.dart';
 import '../models/booking_model.dart';
 
-class BookingHistoryCard extends StatelessWidget {
+class BookingHistoryCard extends ConsumerWidget {
   final BookingModel booking;
   final VoidCallback onTap;
 
@@ -17,7 +20,7 @@ class BookingHistoryCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -94,18 +97,44 @@ class BookingHistoryCard extends StatelessWidget {
                 ],
               ),
             ],
-            if (booking.assignedPilotName != null) ...[
+            if (booking.assignedPilotId != null) ...[
               const SizedBox(height: 4),
               Row(
                 children: [
                   const Icon(Icons.person_outline, size: 14, color: AppColors.accent),
                   const SizedBox(width: 4),
                   Text(
-                    'Pilot: ${booking.assignedPilotName}',
+                    'Pilot: ${booking.assignedPilotName ?? 'N/A'}',
                     style: AppTextStyles.bodySmall.copyWith(color: AppColors.accent, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
+              if (booking.status != BookingStatus.pending && booking.status != BookingStatus.cancelled) ...[
+                const SizedBox(height: 4),
+                ref.watch(userDetailsProvider(booking.assignedPilotId!)).when(
+                  data: (pilot) => Row(
+                    children: [
+                      const Icon(Icons.phone_outlined, size: 14, color: AppColors.accent),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Pilot Contact: ${pilot?.phoneNumber ?? 'N/A'}',
+                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.accent, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  loading: () => Row(
+                    children: [
+                      const Icon(Icons.phone_outlined, size: 14, color: AppColors.accent),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Pilot Contact: Loading...',
+                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.accent),
+                      ),
+                    ],
+                  ),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+              ],
             ],
             const Divider(height: 24),
             Row(

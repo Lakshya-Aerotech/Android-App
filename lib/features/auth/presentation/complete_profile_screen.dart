@@ -52,6 +52,27 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
         );
   }
 
+  Future<bool> _showLeaveConfirmationDialog(BuildContext context) async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Leave Registration?'),
+        content: const Text('Are you sure you want to leave? Your entered information will not be saved.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Stay'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Leave'),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(authViewModelProvider);
@@ -70,20 +91,30 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
       }
     });
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(
-          'Complete Profile',
-          style: AppTextStyles.titleLarge.copyWith(color: AppColors.primary),
-        ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldLeave = await _showLeaveConfirmationDialog(context);
+        if (shouldLeave && context.mounted) {
+          await ref.read(authViewModelProvider.notifier).cancelFarmerRegistration();
+          if (context.mounted) context.go('/login');
+        }
+      },
+      child: Scaffold(
         backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.primary),
-          onPressed: () => context.pop(),
+        appBar: AppBar(
+          title: Text(
+            'Complete Profile',
+            style: AppTextStyles.titleLarge.copyWith(color: AppColors.primary),
+          ),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.primary),
+            onPressed: () => Navigator.maybePop(context),
+          ),
         ),
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: AppSizes.screenPadding),
         child: Column(
@@ -170,6 +201,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }
