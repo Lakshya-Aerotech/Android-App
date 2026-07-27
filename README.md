@@ -4,168 +4,136 @@ Lakshya Smartguard systems is a comprehensive agriculture drone service platform
 
 ## Project Overview
 
-Lakshya Smartguard Systems is a comprehensive agriculture drone service platform designed to modernize farming operations through precision agriculture.
+Lakshya Smartguard Systems is an enterprise-grade platform designed to modernize farming operations. It manages the complete service lifecycle, including user onboarding, farm registration, booking creation, pilot assignment, mission progress tracking, automated financial reconciliation, and real-time alerts.
 
-The platform enables farmers and retailers to seamlessly book drone-based agricultural services such as pesticide spraying and crop monitoring. It manages the complete service lifecycle, including user onboarding, farm registration, booking creation, pilot assignment, mission progress tracking, payment confirmation, notifications, and analytics.
-
-The application follows a modular MVVM architecture built with Flutter and Firebase, supported by a Node.js backend for workflow automation and real-time alerts.
+The system utilizes a hybrid cloud architecture, combining the real-time capabilities of **Firebase** with a dedicated **Node.js/TypeScript backend** for secure payment orchestration and workflow automation.
 
 ### Target Users
-*   **Farmers**: Primary consumers who register their farms and book drone services.
-*   **Retailers**: Regional partners who manage multiple farmers and facilitate service bookings.
-*   **Pilots (Internal & External)**: Certified drone operators who execute the requested services.
-*   **Operations**: Staff responsible for scheduling, resource allocation, and job monitoring.
-*   **Admins**: Platform administrators who manage users, approvals, incentives, and system-wide analytics.
+*   **Farmers**: Register farms and book precision drone services.
+*   **Retailers**: Facilitate bookings for farmers using promotional coupons.
+*   **Pilots (Internal & External)**: Execute missions and manage field operations.
+*   **Operations**: Manage resource allocation (Pilots/Drones) and monitor active missions.
+*   **Admins**: System governance, financial confirmation, and business analytics.
 
 ---
 
 ## Tech Stack
 
-### Frontend
-*   **Flutter**: Framework for building cross-platform applications.
-*   **Dart**: Programming language used for development.
+### Frontend & Mobile
+*   **Flutter**: Cross-platform framework for iOS and Android.
+*   **Riverpod**: Declarative state management and dependency injection.
+*   **GoRouter**: Modular routing with role-based access control.
+*   **WebView Flutter**: Secure integration for payment gateway interfaces.
 
 ### Backend & Infrastructure
-- **Firebase Authentication**: Secure user management (Email/Password).
-- **Cloud Firestore**: NoSQL document database for real-time data storage.
-- **Firebase Storage**: Hosting for user documents and profile photographs.
-- **Firebase Cloud Messaging (FCM)**: Push notifications for job updates and approvals.
-- **Node.js + Express Backend**: Dedicated service for workflow automation and secure operations.
-
-### Architecture & State Management
-*   **MVVM (Model-View-ViewModel)**: Separation of UI logic from business logic.
-*   **Repository Pattern**: Abstracted data layer for Firebase interactions.
-*   **Riverpod**: Declarative state management and dependency injection.
-*   **GoRouter**: Declarative routing with support for deep links and role-based redirects.
+- **Firebase Authentication**: Multi-role secure user management.
+- **Cloud Firestore**: NoSQL real-time database with atomic transaction support.
+- **Firebase Storage**: Secure hosting for pilot certificates and service proofs.
+- **Node.js + Express (TypeScript)**: Enterprise backend for payment processing and sensitive business logic.
+- **PhonePe Payment Gateway**: Integrated digital payment solution.
 
 ### Maps & Navigation
-*   **Flutter Map**: Open-source map widget for Flutter.
-*   **OpenStreetMap (OSM)**: Base layer for farm location and mapping.
-*   **Geolocator**: Real-time GPS location services.
-*   **Maps Launcher**: External navigation trigger for third-party map applications.
+*   **Flutter Map & OpenStreetMap (OSM)**: Base layer for farm mapping and GPS coordinates.
+*   **Geolocator**: Real-time position tracking for pilots.
+
+---
+
+## System Architecture
+
+The application follows a modular **MVVM (Model-View-ViewModel)** architecture on the frontend, communicating with a distributed backend layer.
+
+### Enterprise Payment & Sync Flow
+1.  **Initiation**: Flutter App requests a payment session from the Node.js backend.
+2.  **Orchestration**: Backend generates a unique `merchantTransactionId`, creates a pending record in Firestore, and signs the request with a **SHA-256 HMAC signature (X-VERIFY)** for PhonePe.
+3.  **Execution**: User completes the transaction via a secure WebView using UPI, Cards, or NetBanking.
+4.  **Reconciliation**: PhonePe sends an asynchronous **Webhook** to the Node.js backend.
+5.  **Atomic Sync**: The backend executes a Firestore `db.runTransaction` to update both the `payments` and `bookings` collections simultaneously, ensuring the "Source of Truth" is always consistent.
+6.  **Real-time UI**: Flutter listeners (Riverpod) detect the Firestore change and automatically transition the user to the Success/Failure screens.
+
+---
+
+## Key Modules & Features
+
+### 💳 Payment Gateway & Financials
+Integrated **PhonePe PG** with support for real-time reconciliation. Includes:
+*   **HMAC Signature Security**: Prevents request tampering.
+*   **Atomic Transactions**: Zero inconsistent data states between payments and bookings.
+*   **Idempotency Guards**: Prevents duplicate processing of webhooks.
+*   **Development Mock Mode**: Full end-to-end testing without live gateway keys.
+
+### 💰 Wallet & Incentives
+A comprehensive earnings ledger for Pilots and Copilots:
+*   **Dynamic Rates**: Acreage-based incentive calculation via global system settings.
+*   **Transaction History**: Detailed audit trail of earnings and "Incentive Paid" events.
+*   **Admin Controls**: One-click balance settlement and manual payment recording.
+
+### 🔔 Real-time Notifications
+Centralized notification hub delivering alerts for:
+*   Booking approvals and Pilot assignments.
+*   Mission updates (En Route, Arrived, Started, Completed).
+*   Payment and Deposit confirmations.
+
+### 🚁 Pilot Operations
+Specialized interface for mission execution, including:
+*   Integrated OSM Navigation.
+*   Retailer Coupon Verification logic.
+*   Cash collection and office deposit reporting.
 
 ---
 
 ## Project Structure
 
 ```text
-lib/
-├── app/          # App-wide configuration and global entry points.
-├── core/         # Cross-cutting concerns and infrastructure.
-│   ├── constants/    # Fixed values like sizes, spacing, and keys.
-│   ├── theme/        # App styling (colors, typography, decorations).
-│   ├── routes/       # GoRouter configuration and role-based redirection.
-│   ├── services/     # Utility services (File upload, Logging).
-│   ├── localization/ # Multi-language support (English/Telugu).
-│   ├── notifications/# Real-time notification management.
-│   └── widgets/      # Shared UI components (Buttons, TextFields).
-├── features/     # Domain-specific modules (Feature-based).
-│   ├── auth/         # Login, Registration (Farmer/Retailer/Pilot).
-│   ├── farm/         # Farm creation and management.
-│   ├── booking/      # Service booking and tracking.
-│   ├── pilot_jobs/   # Mission execution and job details.
-│   ├── admin/        # Platform management and analytics.
-│   ├── retailer/     # Retailer-specific farmer management.
-│   └── wallet/       # Earnings tracking and salary management.
-├── shared/       # Reusable components across multiple features.
-│   ├── models/       # Common data structures (User, Activity).
-│   ├── repositories/ # Shared data access logic.
-│   └── enums/        # Global enumerations (UserRole, BookingStatus).
-└── main.dart     # Application entry point.
+├── lib/               # Flutter Application
+│   ├── app/           # App-wide config & entry points
+│   ├── core/          # Infrastructure (Routes, Theme, Services)
+│   │   └── notifications/ # Notification orchestration
+│   ├── features/      # Domain-specific modules
+│   │   ├── auth/      # Login & Approval Workflows
+│   │   ├── admin/     # Governance & Analytics
+│   │   ├── booking/   # Lifecycle Engine
+│   │   ├── pilot/     # Job execution & Dashboard
+│   │   ├── retailer/  # Farmer & Coupon management
+│   │   └── wallet/    # Earnings & Incentives
+│   └── shared/        # Common Models, Enums, and Repositories
+└── backend/           # Node.js Enterprise Service
+    ├── src/
+    │   ├── controllers/ # HTTP Request Handling
+    │   ├── phonepe/     # Gateway Logic & Checksum Utilities
+    │   ├── firebase/    # Admin SDK & Atomic Transactions
+    │   └── middleware/  # Security & Log Tracing
 ```
-
----
-
-## Key Modules & Features
-
-### Authentication Module
-Handles multi-role authentication. Includes role-based redirection, registration approval workflows for retailers and external pilots, and session persistence.
-
-### Booking & Farm Module
-Enables farmers and retailers to register farms with precise GPS coordinates using OSM. Supports a full booking lifecycle from request to approval, assignment, and completion.
-
-### Wallet Module (Earnings Ledger)
-A comprehensive system for Pilots and Copilots to track service-based incentives. It calculates earnings dynamically based on acreage and provides a detailed transaction history of earnings and salary payments.
-
-### Notification System
-A real-time in-app notification center that alerts users about critical events such as booking approvals, pilot assignments, mission progress (En Route, Arrived, Started, Completed), and payment confirmations. Supports push notifications via FCM.
-
-### Pilot Module
-Specialized interface for operators to accept assignments, navigate to farm locations, record mission telemetry, upload proof of service, and verify retailer coupons.
-
-### Admin Module
-Provides platform-wide oversight, including employee management, retailer/pilot approvals, incentive configuration, coupon management, and business analytics.
-
----
-
-## User Roles
-
-| Role | Responsibility | Key Actions |
-| :--- | :--- | :--- |
-| **Admin** | System Governance | Approve Users, Manage Employees, Configure Rates, View Analytics |
-| **Operations** | Resource Management | Approve Bookings, Assign Pilots, Monitor Active Missions |
-| **Farmer** | Service Consumer | Create Farms, Book Services, Confirm Completion |
-| **Retailer** | Regional Facilitator | Manage Farmers, Book Services with Coupons |
-| **Pilot** | Service Executor | Accepting Jobs, Navigation, Mission Completion, Cash Collection |
-| **External Pilot** | Freelance Operator | Register, Await Approval, Execute Jobs |
-
----
-
-## Database Structure (Firestore)
-
-### Users Collection
-Stores profile data, roles, account status, wallet balances, and performance statistics.
-
-### Bookings Collection
-Stores job metadata, assigned resources, status history, payment status, and mission results.
-
-### Wallet Transactions
-Ledger entries for pilot/copilot incentives and salary payments.
-
-### Salary Payments
-Records of historical salary payments made to employees outside the application.
-
-### System Settings
-Global configuration for incentive rates (e.g., `pilotRatePerAcre`, `copilotRatePerAcre`).
-
-### Activity Logs
-Centralized tracking of system-wide events for the Admin dashboard.
 
 ---
 
 ## Setup Guide
 
 ### Prerequisites
-*   Flutter SDK (v3.12.0 or higher)
-*   Android Studio / VS Code
-*   Firebase Project access
+*   Flutter SDK (v3.12.0+)
+*   Node.js (v18.0+) & npm
+*   Firebase Project Credentials
 
 ### Installation
-1.  Clone the repository.
-2.  Run `flutter pub get` to install dependencies.
-3.  Configure Firebase:
-    *   Place `google-services.json` in `android/app/`.
-    *   Place `GoogleService-Info.plist` in `ios/Runner/`.
-4.  Run `flutter run` to launch the application.
+1.  **Backend Setup**:
+    ```bash
+    cd backend
+    npm install
+    # Configure .env with Firebase and PhonePe keys
+    npm run dev
+    ```
+2.  **Mobile Setup**:
+    ```bash
+    flutter pub get
+    # For Android testing with local backend
+    flutter run --dart-define=PAYMENT_BASE_URL=http://10.0.2.2:3000/api/payment
+    ```
 
 ---
 
-## Security
-*   **Authentication**: Managed by Firebase Auth with role-based validation.
-*   **Access Control**: Firestore Rules restrict data access based on user UID and role.
-*   **Approval Gate**: Retailer and External Pilot roles are locked until Admin verification.
-
----
-
-## Known Limitations
-- Real-time drone telemetry is planned for a future release.
-- Integrated payment gateway (PhonePe) is under development.
-
-## Future Enhancements
-*   Advanced Analytics for Farmers (Yield Prediction).
-*   Offline Map Support for remote areas.
-*   AI-powered crop health insights.
-*   Full digital payment gateway integration.
+## Security & Reliability
+*   **Data Integrity**: Read-Before-Write Firestore transactions ensure payments are never lost.
+*   **API Security**: Rate limiting and UUID-based request tracing on all endpoints.
+*   **Gateway Security**: Industry-standard SHA-256 HMAC checksums for all external communications.
 
 ---
 
