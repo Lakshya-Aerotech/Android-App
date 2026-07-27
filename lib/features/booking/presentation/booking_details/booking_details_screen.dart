@@ -249,8 +249,9 @@ class BookingDetailsScreen extends ConsumerWidget {
   }
 
   Widget _buildPaymentSummaryCard(BuildContext context, WidgetRef ref, BookingModel b, UserModel? user) {
+    final bool isConfirmed = b.status == BookingStatus.farmerConfirmed || b.status == BookingStatus.closed;
     final showPayNow = user != null &&
-        (user.role == UserRole.farmer || user.role == UserRole.retailer) &&
+        (user.role == UserRole.retailer || (user.role == UserRole.farmer && isConfirmed)) &&
         b.paymentStatus?.toUpperCase() != 'SUCCESS' &&
         (b.payableAmount ?? 0) > 0;
 

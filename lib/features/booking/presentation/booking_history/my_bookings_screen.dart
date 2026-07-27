@@ -10,6 +10,7 @@ import '../../../../shared/enums/booking_status.dart';
 import '../../models/booking_model.dart';
 import '../../viewmodels/booking_viewmodel.dart';
 import '../../widgets/booking_history_card.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class MyBookingsScreen extends ConsumerStatefulWidget {
   final bool retailerMode;
@@ -38,41 +39,38 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
-      body: Column(
-        children: [
-          DashboardHeader(
-            userName: widget.retailerMode ? 'Retailer' : 'Farmer',
-            subtitle: widget.retailerMode
-                ? 'Track farmer service bookings.'
-                : 'Track your drone service bookings.',
-          ),
-          Expanded(
-            child: SingleChildScrollView(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => widget.retailerMode
+            ? context.push('/retailer/select-farmer')
+            : context.push('/book-service'),
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: Text(
+          context.tr(widget.retailerMode ? 'Book Service' : 'New Booking'),
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DashboardHeader(
+              userName: context.tr(widget.retailerMode ? 'Retailer' : 'Farmer'),
+              subtitle: context.tr(widget.retailerMode
+                  ? 'Track farmer service bookings.'
+                  : 'Track your drone service bookings.'),
+            ),
+            Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        widget.retailerMode ? 'Booking History' : 'My Bookings',
-                        style: AppTextStyles.headlineLarge.copyWith(
-                          color: AppColors.textDark,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => widget.retailerMode
-                            ? context.push('/retailer/select-farmer')
-                            : context.push('/book-service'),
-                        icon: const Icon(
-                          Icons.add_circle,
-                          color: AppColors.accent,
-                          size: 32,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    context.tr(widget.retailerMode ? 'Booking History' : 'My Bookings'),
+                    style: AppTextStyles.headlineLarge.copyWith(
+                      color: AppColors.textDark,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -91,11 +89,11 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
                             onChanged: (value) => setState(
                               () => _searchQuery = value.toLowerCase(),
                             ),
-                            decoration: const InputDecoration(
-                              hintText: 'Search farm or ID...',
-                              prefixIcon: Icon(Icons.search, size: 20),
+                            decoration: InputDecoration(
+                              hintText: context.tr('Search farm or ID...'),
+                              prefixIcon: const Icon(Icons.search, size: 20),
                               border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
+                              contentPadding: const EdgeInsets.symmetric(
                                 vertical: 14,
                               ),
                             ),
@@ -130,12 +128,12 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
                       final filtered = _applyFilters(bookings);
 
                       if (filtered.isEmpty) {
-                        return const Center(
+                        return Center(
                           child: Padding(
-                            padding: EdgeInsets.only(top: 40),
+                            padding: const EdgeInsets.only(top: 40),
                             child: EmptyState(
-                              title: 'No bookings found.',
-                              message: 'Try adjusting your search or filters.',
+                              title: context.tr('No bookings found.'),
+                              message: context.tr('Try adjusting your search or filters.'),
                               icon: Icons.assignment_outlined,
                             ),
                           ),
@@ -156,8 +154,8 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -174,11 +172,12 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
     if (_selectedFilter == null) return filtered;
 
     switch (_selectedFilter) {
+      case 'Pending':
+        return filtered.where((b) => b.status == BookingStatus.pending).toList();
       case 'Upcoming':
         return filtered
             .where(
               (b) => [
-                BookingStatus.pending,
                 BookingStatus.reviewed,
                 BookingStatus.pilotAssigned,
                 BookingStatus.accepted,
@@ -311,7 +310,7 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Text(
-        title,
+        context.tr(title),
         style: AppTextStyles.titleMedium.copyWith(
           fontWeight: FontWeight.bold,
           color: AppColors.textSecondary,
@@ -322,6 +321,7 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
 
   void _showFilterDialog() {
     final filters = [
+      'Pending',
       'Upcoming',
       'Active',
       'Completed',
@@ -346,7 +346,7 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Filter & Sort',
+                    context.tr('Filter & Sort'),
                     style: AppTextStyles.titleLarge.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -358,7 +358,7 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
                     children: filters.map((filter) {
                       final isSelected = _selectedFilter == filter;
                       return ChoiceChip(
-                        label: Text(filter),
+                        label: Text(context.tr(filter)),
                         selected: isSelected,
                         selectedColor: AppColors.accent,
                         labelStyle: TextStyle(
@@ -377,7 +377,7 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
                   ),
                   const SizedBox(height: 32),
                   PrimaryButton(
-                    text: 'Clear Filters',
+                    text: context.tr('Clear Filters'),
                     onPressed: () {
                       setState(() => _selectedFilter = null);
                       Navigator.pop(context);

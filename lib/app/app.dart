@@ -20,14 +20,27 @@ class MyApp extends ConsumerWidget {
     NotificationService.setRouter(router);
     
     // Ensure user is synced if already available
-    if (user != null && NotificationService.currentUser == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        NotificationService.syncUser(user);
-      });
+    if (user != null) {
+      if (NotificationService.currentUser == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          NotificationService.syncUser(user);
+        });
+      }
+      if (user.preferredLanguage != null && locale?.languageCode != user.preferredLanguage) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(localeViewModelProvider.notifier).setLocale(Locale(user.preferredLanguage!));
+        });
+      }
     }
 
     ref.listen(userModelProvider, (_, next) {
       NotificationService.syncUser(next);
+      if (next != null && next.preferredLanguage != null) {
+        final currentLocale = ref.read(localeViewModelProvider);
+        if (currentLocale?.languageCode != next.preferredLanguage) {
+          ref.read(localeViewModelProvider.notifier).setLocale(Locale(next.preferredLanguage!));
+        }
+      }
     });
 
     return MaterialApp.router(

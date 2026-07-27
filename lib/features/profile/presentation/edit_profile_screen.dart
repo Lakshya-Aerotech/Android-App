@@ -18,6 +18,7 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
+  late TextEditingController _emailController;
   late TextEditingController _villageController;
   late TextEditingController _districtController;
   late TextEditingController _stateController;
@@ -29,6 +30,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final user = ref.read(userModelProvider);
     _nameController = TextEditingController(text: user?.name);
     _phoneController = TextEditingController(text: user?.phoneNumber);
+    _emailController = TextEditingController(text: user?.email);
     _villageController = TextEditingController(text: user?.village);
     _districtController = TextEditingController(text: user?.district);
     _stateController = TextEditingController(text: user?.state);
@@ -39,6 +41,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
     _villageController.dispose();
     _districtController.dispose();
     _stateController.dispose();
@@ -48,6 +51,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   void _onSave() async {
     await ref.read(authViewModelProvider.notifier).updateProfile(
       name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
       phoneNumber: _phoneController.text.trim(),
       village: _villageController.text.trim(),
       district: _districtController.text.trim(),
@@ -113,21 +117,22 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
               const SizedBox(height: 16),
             ] else ...[
-              // For employees, show but don't edit these
               CustomTextField(
                 label: 'Email',
-                hintText: '',
-                controller: TextEditingController(text: user?.email),
-                enabled: false,
+                hintText: 'Enter email',
+                controller: _emailController,
+                enabled: user?.role == UserRole.retailer,
               ),
               const SizedBox(height: 16),
-              CustomTextField(
-                label: 'Role',
-                hintText: '',
-                controller: TextEditingController(text: user?.role.value.toUpperCase()),
-                enabled: false,
-              ),
-              const SizedBox(height: 16),
+              if (user?.role != UserRole.retailer) ...[
+                CustomTextField(
+                  label: 'Role',
+                  hintText: '',
+                  controller: TextEditingController(text: user?.role.value.toUpperCase()),
+                  enabled: false,
+                ),
+                const SizedBox(height: 16),
+              ],
             ],
             Text(
               'Preferred Language',

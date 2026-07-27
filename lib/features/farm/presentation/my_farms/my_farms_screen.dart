@@ -10,6 +10,7 @@ import '../../../../shared/components/dashboard_header.dart';
 import '../../viewmodels/farm_viewmodel.dart';
 import '../../widgets/detailed_farm_card.dart';
 import '../../models/farm_model.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class MyFarmsScreen extends ConsumerStatefulWidget {
   const MyFarmsScreen({super.key});
@@ -39,15 +40,15 @@ class _MyFarmsScreenState extends ConsumerState<MyFarmsScreen> {
         onPressed: () => context.push('/add-farm'),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Add Farm', style: TextStyle(color: Colors.white)),
+        label: Text(context.tr('Add Farm'), style: const TextStyle(color: Colors.white)),
       ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DashboardHeader(
-              userName: 'Farmer',
-              subtitle: 'Manage all your registered farms.',
+              userName: context.tr('Farmer'),
+              subtitle: context.tr('Manage all your registered farms.'),
             ),
             Padding(
               padding: const EdgeInsets.all(AppSizes.screenPadding),
@@ -55,7 +56,7 @@ class _MyFarmsScreenState extends ConsumerState<MyFarmsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'My Farms',
+                    context.tr('My Farms'),
                     style: AppTextStyles.headlineLarge.copyWith(
                       color: AppColors.textDark,
                       fontWeight: FontWeight.bold,
@@ -72,10 +73,10 @@ class _MyFarmsScreenState extends ConsumerState<MyFarmsScreen> {
                           onChanged:
                               (value) =>
                                   setState(() => _searchQuery = value.toLowerCase()),
-                          decoration: const InputDecoration(
-                            hintText: 'Search by name, village...',
-                            prefixIcon: Icon(Icons.search, size: 20),
-                            contentPadding: EdgeInsets.symmetric(vertical: 12),
+                          decoration: InputDecoration(
+                            hintText: context.tr('Search by name, village...'),
+                            prefixIcon: const Icon(Icons.search, size: 20),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
                             fillColor: Colors.white,
                           ),
                         ),
@@ -183,21 +184,22 @@ class _MyFarmsScreenState extends ConsumerState<MyFarmsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Filter Farms',
+                context.tr('Filter Farms'),
                 style: AppTextStyles.titleLarge.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 24),
-              Text('By Crop Type', style: AppTextStyles.labelLarge),
+              Text(context.tr('By Crop Type'), style: AppTextStyles.labelLarge),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
+                runSpacing: 8,
                 children:
-                    ['Cotton', 'Paddy', 'Chilli', 'Maize', 'Soya'].map((crop) {
+                    ['Cotton', 'Paddy', 'Chilli', 'Maize', 'Soya', 'Other'].map((crop) {
                       final isSelected = _selectedCrop == crop;
                       return ChoiceChip(
-                        label: Text(crop),
+                        label: Text(context.tr(crop)),
                         selected: isSelected,
                         onSelected: (selected) {
                           setState(() => _selectedCrop = selected ? crop : null);
@@ -212,7 +214,7 @@ class _MyFarmsScreenState extends ConsumerState<MyFarmsScreen> {
                   setState(() => _selectedCrop = null);
                   Navigator.pop(context);
                 },
-                child: const Text('Clear Filters'),
+                child: Text(context.tr('Clear Filters')),
               ),
               const SizedBox(height: 16),
             ],

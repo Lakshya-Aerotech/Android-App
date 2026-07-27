@@ -91,7 +91,7 @@ class _RetailerFarmerFormScreenState
         );
     if (!mounted) return;
     if (farmer != null) {
-      context.pushReplacement('/retailer/farmer-details', extra: farmer);
+      context.pop();
     }
   }
 

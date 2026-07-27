@@ -360,10 +360,34 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
     switch (job.status) {
       case BookingStatus.pilotAssigned:
       case BookingStatus.enRoute:
-        return PrimaryButton(
-          text: 'Arrived At Farm',
-          onPressed: () => notifier.markArrived(job.docId!),
-          isLoading: isLoading,
+        final timeParts = job.preferredTime.split(':');
+        final hour = timeParts.isNotEmpty ? (int.tryParse(timeParts[0]) ?? 0) : 0;
+        final minute = timeParts.length > 1 ? (int.tryParse(timeParts[1]) ?? 0) : 0;
+        final scheduledDateTime = DateTime(
+          job.bookingDate.year,
+          job.bookingDate.month,
+          job.bookingDate.day,
+          hour,
+          minute,
+        );
+        final canMarkArrived = DateTime.now().isAfter(scheduledDateTime);
+
+        return Column(
+          children: [
+            PrimaryButton(
+              text: 'Arrived At Farm',
+              onPressed: canMarkArrived ? () => notifier.markArrived(job.docId!) : null,
+              isLoading: isLoading,
+            ),
+            if (!canMarkArrived) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Arrived At Farm will be enabled at the scheduled time: ${DateFormat('dd MMM yyyy').format(job.bookingDate)} at ${job.preferredTime}',
+                style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
         );
       case BookingStatus.arrived:
         final needsVerification = job.hasCoupon && !job.couponVerified;
