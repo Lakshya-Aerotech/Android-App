@@ -109,25 +109,16 @@ export class UserListenerService {
   }
 
   /**
-   * Helper method to broadcast a notification to all admins.
+   * Helper method to send a notification to the admin team.
    */
   private static async notifyAdmins(title: string, body: string, type: string): Promise<void> {
     try {
-      const adminUsers = await admin.firestore().collection('users').where('role', '==', 'admin').get();
-      const promises: Promise<any>[] = [];
-      adminUsers.forEach((doc: any) => {
-        promises.push(
-          NotificationService.sendNotification({
-            recipientUid: doc.data().uid || doc.id,
-            title,
-            body,
-            type,
-          }).catch((err) =>
-            console.error(`[UserListenerService] Failed to send admin notification to ${doc.id}:`, err)
-          )
-        );
+      await NotificationService.sendNotification({
+        recipientRole: 'admin',
+        title,
+        body,
+        type,
       });
-      await Promise.all(promises);
     } catch (error) {
       console.error('[UserListenerService] Error notifying admin team:', error);
     }

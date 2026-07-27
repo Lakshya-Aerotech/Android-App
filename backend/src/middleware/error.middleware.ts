@@ -9,21 +9,12 @@ import { NotificationService } from '../services/notification.service';
  */
 async function notifyAdminsOfSystemError(errorMsg: string): Promise<void> {
   try {
-    const adminUsers = await admin.firestore().collection('users').where('role', '==', 'admin').get();
-    const promises: Promise<any>[] = [];
-    adminUsers.forEach((doc: any) => {
-      promises.push(
-        NotificationService.sendNotification({
-          recipientUid: doc.data().uid || doc.id,
-          title: 'System Error Alert',
-          body: `A system exception has occurred: ${errorMsg}`,
-          type: 'SYSTEM_ERROR',
-        }).catch((err) =>
-          Logger.error(`[System Error Helper] Failed to send admin notification to ${doc.id}`, { error: err })
-        )
-      );
+    await NotificationService.sendNotification({
+      recipientRole: 'admin',
+      title: 'System Error Alert',
+      body: `A system exception has occurred: ${errorMsg}`,
+      type: 'SYSTEM_ERROR',
     });
-    await Promise.all(promises);
   } catch (error) {
     Logger.error('[System Error Helper] Error notifying admin team', { error });
   }

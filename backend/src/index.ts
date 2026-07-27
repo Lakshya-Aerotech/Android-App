@@ -47,19 +47,21 @@ app.use('/api/payment', paymentRoutes);
  */
 app.post('/api/send-notification', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { recipientUid, title, body, type, bookingId, additionalData } = req.body;
+    const { recipientUid, recipientRole, priority, title, body, type, bookingId, additionalData } = req.body;
 
-    // Validate required parameters
-    if (!recipientUid || !title || !body || !type) {
+    // Validate required parameters (need either recipientUid or recipientRole)
+    if ((!recipientUid && !recipientRole) || !title || !body || !type) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        error: 'Missing required fields: recipientUid, title, body, and type are required.',
+        error: 'Missing required fields: recipientUid or recipientRole, title, body, and type are required.',
         requestId: req.id,
       });
     }
 
     const result = await NotificationService.sendNotification({
       recipientUid,
+      recipientRole,
+      priority,
       title,
       body,
       type,

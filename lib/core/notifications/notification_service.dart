@@ -304,17 +304,31 @@ class NotificationService {
     // Use a small offset to account for server/client time drift
     final startTime = DateTime.now().subtract(const Duration(seconds: 5));
 
-    _userNotificationSub = _firestore
+    Query<Map<String, dynamic>> query = _firestore
         .collection('notifications')
-        .where('createdAt', isGreaterThan: Timestamp.fromDate(startTime))
-        .where(
-          Filter.or(
-            Filter('recipientUid', isEqualTo: user.uid),
-            Filter('recipientRole', isEqualTo: user.role.value),
-          ),
-        )
-        .snapshots()
-        .listen(
+        .where('createdAt', isGreaterThan: Timestamp.fromDate(startTime));
+
+    if (user.role == UserRole.admin) {
+      query = query.where(
+        Filter.or(
+          Filter('recipientRole', isEqualTo: 'admin'),
+          Filter('priority', isEqualTo: 'admin'),
+          Filter('recipientUid', isEqualTo: user.uid),
+        ),
+      );
+    } else if (user.role == UserRole.operations) {
+      query = query.where(
+        Filter.or(
+          Filter('recipientRole', isEqualTo: 'operations'),
+          Filter('recipientUid', isEqualTo: user.uid),
+        ),
+      );
+    } else {
+      // Farmers, Pilots, Retailers
+      query = query.where('recipientUid', isEqualTo: user.uid);
+    }
+
+    _userNotificationSub = query.snapshots().listen(
       (snapshot) {
         for (final change in snapshot.docChanges) {
           if (change.type != DocumentChangeType.added) continue;

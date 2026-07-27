@@ -370,13 +370,6 @@ export class WorkflowListenerService {
                     'PAYMENT_SUCCESSFUL',
                     bookingId
                   );
-                  // Notify Admins
-                  await this.notifyAdmins(
-                    'Payment Successful',
-                    `Payment of ₹${data.payableAmount || '0'} for booking (${bookingId}) has been successfully processed.`,
-                    'PAYMENT_SUCCESSFUL',
-                    bookingId
-                  );
                 }
 
                 // Payment Failed (paymentStatus transitions to Failed or Deposit Rejected)
@@ -458,52 +451,34 @@ export class WorkflowListenerService {
   }
 
   /**
-   * Helper method to broadcast a notification to all operations staff.
+   * Helper method to send a notification to the operations team.
    */
   private static async notifyOperations(title: string, body: string, type: string, bookingId: string): Promise<void> {
     try {
-      const opsUsers = await admin.firestore().collection('users').where('role', '==', 'operations').get();
-      const promises: Promise<any>[] = [];
-      opsUsers.forEach((doc: any) => {
-        promises.push(
-          NotificationService.sendNotification({
-            recipientUid: doc.data().uid || doc.id,
-            title,
-            body,
-            type,
-            bookingId,
-          }).catch((err) =>
-            console.error(`[WorkflowListenerService] Failed to send ops notification to ${doc.id}:`, err)
-          )
-        );
+      await NotificationService.sendNotification({
+        recipientRole: 'operations',
+        title,
+        body,
+        type,
+        bookingId,
       });
-      await Promise.all(promises);
     } catch (error: any) {
       console.error('[WorkflowListenerService] Error notifying operations team:', error);
     }
   }
 
   /**
-   * Helper method to broadcast a notification to all admins.
+   * Helper method to send a notification to the admin team.
    */
   private static async notifyAdmins(title: string, body: string, type: string, bookingId?: string): Promise<void> {
     try {
-      const adminUsers = await admin.firestore().collection('users').where('role', '==', 'admin').get();
-      const promises: Promise<any>[] = [];
-      adminUsers.forEach((doc: any) => {
-        promises.push(
-          NotificationService.sendNotification({
-            recipientUid: doc.data().uid || doc.id,
-            title,
-            body,
-            type,
-            bookingId,
-          }).catch((err) =>
-            console.error(`[WorkflowListenerService] Failed to send admin notification to ${doc.id}:`, err)
-          )
-        );
+      await NotificationService.sendNotification({
+        recipientRole: 'admin',
+        title,
+        body,
+        type,
+        bookingId,
       });
-      await Promise.all(promises);
     } catch (error) {
       console.error('[WorkflowListenerService] Error notifying admin team:', error);
     }

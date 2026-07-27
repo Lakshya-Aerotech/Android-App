@@ -88,24 +88,37 @@ class NotificationRepository {
     String uid,
     UserRole role,
   ) {
-    return _firestore
-        .collection('notifications')
-        .where(
-          Filter.or(
-            Filter('recipientUid', isEqualTo: uid),
-            Filter('recipientRole', isEqualTo: role.value),
-          ),
-        )
-        .snapshots()
-        .map((snapshot) {
-          final notifications = snapshot.docs
-              .map((doc) => NotificationModel.fromMap(doc.data(), doc.id))
-              .toList();
+    Query<Map<String, dynamic>> query = _firestore.collection('notifications');
 
-          // Sort in memory to avoid complex composite indexes
-          notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          return notifications;
-        });
+    if (role == UserRole.admin) {
+      query = query.where(
+        Filter.or(
+          Filter('recipientRole', isEqualTo: 'admin'),
+          Filter('priority', isEqualTo: 'admin'),
+          Filter('recipientUid', isEqualTo: uid),
+        ),
+      );
+    } else if (role == UserRole.operations) {
+      query = query.where(
+        Filter.or(
+          Filter('recipientRole', isEqualTo: 'operations'),
+          Filter('recipientUid', isEqualTo: uid),
+        ),
+      );
+    } else {
+      // Farmers, Pilots, Retailers (strictly targeted)
+      query = query.where('recipientUid', isEqualTo: uid);
+    }
+
+    return query.snapshots().map((snapshot) {
+      final notifications = snapshot.docs
+          .map((doc) => NotificationModel.fromMap(doc.data(), doc.id))
+          .toList();
+
+      // Sort in memory to avoid complex composite indexes
+      notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return notifications;
+    });
   }
 
   Future<void> markAsRead(String notificationId) async {
@@ -118,28 +131,31 @@ class NotificationRepository {
   Future<void> markAllAsRead(String uid, UserRole role) async {
     final batch = _firestore.batch();
     
-    // Fetch user-specific unread notifications
-    final userSnapshots = await _firestore
+    Query<Map<String, dynamic>> query = _firestore
         .collection('notifications')
-        .where('recipientUid', isEqualTo: uid)
-        .where('read', isEqualTo: false)
-        .get();
+        .where('read', isEqualTo: false);
 
-    for (final doc in userSnapshots.docs) {
-      batch.update(doc.reference, {
-        'read': true,
-        'isRead': true,
-      });
+    if (role == UserRole.admin) {
+      query = query.where(
+        Filter.or(
+          Filter('recipientRole', isEqualTo: 'admin'),
+          Filter('priority', isEqualTo: 'admin'),
+          Filter('recipientUid', isEqualTo: uid),
+        ),
+      );
+    } else if (role == UserRole.operations) {
+      query = query.where(
+        Filter.or(
+          Filter('recipientRole', isEqualTo: 'operations'),
+          Filter('recipientUid', isEqualTo: uid),
+        ),
+      );
+    } else {
+      query = query.where('recipientUid', isEqualTo: uid);
     }
 
-    // Fetch role-specific unread notifications
-    final roleSnapshots = await _firestore
-        .collection('notifications')
-        .where('recipientRole', isEqualTo: role.value)
-        .where('read', isEqualTo: false)
-        .get();
-
-    for (final doc in roleSnapshots.docs) {
+    final snapshots = await query.get();
+    for (final doc in snapshots.docs) {
       batch.update(doc.reference, {
         'read': true,
         'isRead': true,

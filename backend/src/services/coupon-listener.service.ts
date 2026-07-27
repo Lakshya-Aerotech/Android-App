@@ -139,6 +139,18 @@ export class CouponListenerService {
               console.error(`[CouponListenerService] Failed to send expiration notice to ${retailerId}:`, err)
             );
           });
+
+          // Also notify Admins of the expiring coupon
+          NotificationService.sendNotification({
+            recipientRole: 'admin',
+            title: 'Coupon Expiring Soon',
+            body: `The coupon (${couponCode}) assigned to retailers will expire soon on ${data.validUntil.toDate().toLocaleDateString()}.`,
+            type: 'COUPON_EXPIRING_SOON',
+            priority: 'admin',
+            additionalData: { couponCode },
+          }).catch((err) =>
+            console.error(`[CouponListenerService] Failed to send expiration notice to admins:`, err)
+          );
         }
       });
     } catch (error) {
