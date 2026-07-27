@@ -419,7 +419,9 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
       'cashDeposited': true,
       'cashDepositedBy': pilotId,
       'cashDepositedAt': FieldValue.serverTimestamp(),
-      'paymentStatus': 'Awaiting Admin Confirmation',
+      'paymentStatus': 'SUCCESS',
+      'paymentVerifiedByAdmin': true,
+      'status': BookingStatus.closed.toFirestore(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
 

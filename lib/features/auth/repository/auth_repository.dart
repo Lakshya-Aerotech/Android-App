@@ -180,6 +180,17 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> updateProfile(String docId, Map<String, dynamic> data) async {
+    if (data.containsKey('email')) {
+      try {
+        final firebaseUser = FirebaseAuth.instance.currentUser;
+        if (firebaseUser != null && firebaseUser.email != data['email']) {
+          await firebaseUser.updateEmail(data['email']);
+        }
+      } catch (e) {
+        print('Error updating auth email: $e');
+      }
+    }
+
     await _firestore.collection('users').doc(docId).update({
       ...data,
       'updatedAt': FieldValue.serverTimestamp(),

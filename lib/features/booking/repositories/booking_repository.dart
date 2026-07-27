@@ -337,7 +337,7 @@ class BookingRepositoryImpl implements BookingRepository {
     double? discountAmount,
     String? pilotId,
   }) async {
-    final status = method == 'Cash' ? 'Cash Collected by Pilot' : 'Pending Online Verification';
+    final status = method == 'Cash' ? 'Cash Collected by Pilot' : 'SUCCESS';
     final updates = <String, dynamic>{
       'paymentMethod': method,
       'paymentStatus': status,
@@ -347,6 +347,11 @@ class BookingRepositoryImpl implements BookingRepository {
       'paymentRequestedAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
+
+    if (method == 'UPI') {
+      updates['paymentVerifiedByAdmin'] = true;
+      updates['status'] = BookingStatus.closed.toFirestore();
+    }
 
     if (method == 'Cash' && pilotId != null) {
       updates['cashCollected'] = true;

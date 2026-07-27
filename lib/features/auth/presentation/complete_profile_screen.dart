@@ -18,7 +18,6 @@ class CompleteProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
-  final _nameController = TextEditingController();
   final _villageController = TextEditingController();
   final _districtController = TextEditingController();
   final _stateController = TextEditingController();
@@ -26,7 +25,6 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
 
   @override
   void dispose() {
-    _nameController.dispose();
     _villageController.dispose();
     _districtController.dispose();
     _stateController.dispose();
@@ -34,8 +32,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
   }
 
   void _onSave() {
-    if (_nameController.text.isEmpty ||
-        _villageController.text.isEmpty ||
+    if (_villageController.text.isEmpty ||
         _districtController.text.isEmpty ||
         _stateController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -44,8 +41,10 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
       return;
     }
 
+    final user = ref.read(userModelProvider);
+
     ref.read(authViewModelProvider.notifier).completeProfile(
-          name: _nameController.text.trim(),
+          name: user?.name ?? '',
           village: _villageController.text.trim(),
           district: _districtController.text.trim(),
           stateName: _stateController.text.trim(),
@@ -106,12 +105,6 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
               hintText: '',
               controller: TextEditingController(text: user?.phoneNumber ?? ''),
               enabled: false,
-            ),
-            const SizedBox(height: 16),
-            CustomTextField(
-              label: 'Full Name',
-              hintText: 'Enter your name',
-              controller: _nameController,
             ),
             const SizedBox(height: 16),
             CustomTextField(

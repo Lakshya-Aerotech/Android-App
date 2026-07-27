@@ -384,6 +384,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
 
   Future<void> updateProfile({
     String? name,
+    String? email,
     String? phoneNumber,
     String? village,
     String? district,
@@ -397,6 +398,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
     try {
       final Map<String, dynamic> updates = {};
       if (name != null) updates['name'] = name;
+      if (email != null) updates['email'] = email;
       if (phoneNumber != null) updates['phoneNumber'] = phoneNumber;
       if (village != null) updates['village'] = village;
       if (district != null) updates['district'] = district;

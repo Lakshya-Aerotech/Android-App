@@ -169,11 +169,12 @@ class ProfileScreen extends ConsumerWidget {
                   );
                 },
               ),
-            _ProfileMenuItem(
-              icon: Icons.info_outline,
-              title: context.tr('App Information'),
-              onTap: () {},
-            ),
+            if (user.role != UserRole.farmer)
+              _ProfileMenuItem(
+                icon: Icons.info_outline,
+                title: context.tr('App Information'),
+                onTap: () {},
+              ),
 
             AppSpacing.verticalXl,
             PrimaryButton(

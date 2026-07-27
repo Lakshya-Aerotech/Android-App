@@ -266,7 +266,7 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: ['Cotton', 'Paddy', 'Chilli', 'Maize', 'Soya'].map((c) {
+                    children: ['Cotton', 'Paddy', 'Chilli', 'Maize', 'Soya', 'Other'].map((c) {
                       return ChoiceChip(
                         label: Text(c),
                         selected: _selectedCrop == c,

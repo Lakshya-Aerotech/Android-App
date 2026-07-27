@@ -566,147 +566,149 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          const SectionHeader(title: 'Apply Coupon'),
-          const SizedBox(height: 12),
-          if (_appliedCoupon == null) ...[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _couponController,
-                    decoration: InputDecoration(
-                      hintText: 'Enter Coupon Code',
-                      errorText: _couponError,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+          if (user?.role != UserRole.farmer) ...[
+            const SizedBox(height: 24),
+            const SectionHeader(title: 'Apply Coupon'),
+            const SizedBox(height: 12),
+            if (_appliedCoupon == null) ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _couponController,
+                      decoration: InputDecoration(
+                        hintText: 'Enter Coupon Code',
+                        errorText: _couponError,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton(
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: () {
+                      final coupons = couponsAsync.maybeWhen(
+                        data: (list) => list,
+                        orElse: () => <CouponModel>[],
+                      );
+                      _applyCoupon(coupons, user);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      minimumSize: const Size(80, 48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Apply',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  icon: const Icon(Icons.list_alt, size: 18),
+                  label: const Text('Select from Available Coupons'),
                   onPressed: () {
                     final coupons = couponsAsync.maybeWhen(
                       data: (list) => list,
                       orElse: () => <CouponModel>[],
                     );
-                    _applyCoupon(coupons, user);
+                    final eligibleCoupons = coupons.where((c) {
+                      final isExpired = DateTime.now().isAfter(c.validUntil);
+                      final isNotYetValid = DateTime.now().isBefore(c.validFrom);
+                      final hasUsageLeft = c.remainingUsage > 0;
+                      final couponRegion = c.applicableRegion.trim().toLowerCase();
+                      final farmState = (_selectedFarm?.state ?? '').trim().toLowerCase();
+                      final regionMatch = couponRegion.isEmpty ||
+                          couponRegion == 'all' ||
+                          couponRegion == 'global' ||
+                          couponRegion == 'any' ||
+                          couponRegion == farmState;
+                      final serviceMatch =
+                          c.eligibleService.trim().toLowerCase() ==
+                              _selectedService.trim().toLowerCase();
+                      
+                      final retailerMatch = c.assignedRetailerIds.isEmpty ||
+                          (user != null &&
+                              (c.assignedRetailerIds.any((id) => id.trim() == user.uid?.trim()) ||
+                               c.assignedRetailerIds.any((id) => id.trim() == user.docId?.trim())));
+
+                      return c.isActive &&
+                          !isExpired &&
+                          !isNotYetValid &&
+                          hasUsageLeft &&
+                          regionMatch &&
+                          serviceMatch &&
+                          retailerMatch;
+                    }).toList();
+
+                    _showCouponsBottomSheet(context, eligibleCoupons, user);
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    minimumSize: const Size(80, 48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Apply',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                icon: const Icon(Icons.list_alt, size: 18),
-                label: const Text('Select from Available Coupons'),
-                onPressed: () {
-                  final coupons = couponsAsync.maybeWhen(
-                    data: (list) => list,
-                    orElse: () => <CouponModel>[],
-                  );
-                  final eligibleCoupons = coupons.where((c) {
-                    final isExpired = DateTime.now().isAfter(c.validUntil);
-                    final isNotYetValid = DateTime.now().isBefore(c.validFrom);
-                    final hasUsageLeft = c.remainingUsage > 0;
-                    final couponRegion = c.applicableRegion.trim().toLowerCase();
-                    final farmState = (_selectedFarm?.state ?? '').trim().toLowerCase();
-                    final regionMatch = couponRegion.isEmpty ||
-                        couponRegion == 'all' ||
-                        couponRegion == 'global' ||
-                        couponRegion == 'any' ||
-                        couponRegion == farmState;
-                    final serviceMatch =
-                        c.eligibleService.trim().toLowerCase() ==
-                            _selectedService.trim().toLowerCase();
-                    
-                    final retailerMatch = c.assignedRetailerIds.isEmpty ||
-                        (user != null &&
-                            (c.assignedRetailerIds.any((id) => id.trim() == user.uid?.trim()) ||
-                             c.assignedRetailerIds.any((id) => id.trim() == user.docId?.trim())));
-
-                    return c.isActive &&
-                        !isExpired &&
-                        !isNotYetValid &&
-                        hasUsageLeft &&
-                        regionMatch &&
-                        serviceMatch &&
-                        retailerMatch;
-                  }).toList();
-
-                  _showCouponsBottomSheet(context, eligibleCoupons, user);
-                },
-              ),
-            ),
-          ] else ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppColors.success.withValues(alpha: 0.3),
                 ),
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: AppColors.success),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _appliedCoupon!.couponCode,
-                          style: AppTextStyles.labelLarge.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          _appliedCoupon!.discountType ==
-                                  CouponDiscountType.percentage
-                              ? 'Saved ${_appliedCoupon!.discountValue.toStringAsFixed(0)}%'
-                              : 'Saved Rs. ${_appliedCoupon!.discountValue.toStringAsFixed(0)}',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.success,
-                          ),
-                        ),
-                      ],
-                    ),
+            ] else ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.success.withValues(alpha: 0.3),
                   ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.cancel_outlined,
-                      color: AppColors.error,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: AppColors.success),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _appliedCoupon!.couponCode,
+                            style: AppTextStyles.labelLarge.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            _appliedCoupon!.discountType ==
+                                    CouponDiscountType.percentage
+                                ? 'Saved ${_appliedCoupon!.discountValue.toStringAsFixed(0)}%'
+                                : 'Saved Rs. ${_appliedCoupon!.discountValue.toStringAsFixed(0)}',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.success,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _appliedCoupon = null;
-                        _couponController.clear();
-                      });
-                    },
-                  ),
-                ],
+                    IconButton(
+                      icon: const Icon(
+                        Icons.cancel_outlined,
+                        color: AppColors.error,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _appliedCoupon = null;
+                          _couponController.clear();
+                        });
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ],
           const SizedBox(height: 24),
         ],

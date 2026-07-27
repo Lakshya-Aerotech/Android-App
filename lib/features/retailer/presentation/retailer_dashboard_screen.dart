@@ -150,11 +150,6 @@ class _RetailerHomeContent extends ConsumerWidget {
                       onTap: () => context.push('/retailer/farmers'),
                     ),
                     _ActionTile(
-                      title: 'Search Farmer',
-                      icon: Icons.search,
-                      onTap: () => context.push('/retailer/farmers'),
-                    ),
-                    _ActionTile(
                       title: 'Book Service',
                       icon: Icons.add_circle_outline,
                       onTap: () => context.push('/retailer/select-farmer'),
@@ -163,11 +158,6 @@ class _RetailerHomeContent extends ConsumerWidget {
                       title: 'Booking History',
                       icon: Icons.history,
                       onTap: () => context.push('/retailer/bookings'),
-                    ),
-                    _ActionTile(
-                      title: 'Payment Status',
-                      icon: Icons.payments_outlined,
-                      onTap: () => context.push('/retailer/payment-status'),
                     ),
                     _ActionTile(
                       title: 'My Coupons',

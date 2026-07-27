@@ -78,6 +78,22 @@ class BookingHistoryCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (booking.farmerName != null && booking.farmerName!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.person_pin_outlined, size: 14, color: AppColors.textSecondary),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'Farmer: ${booking.farmerName}',
+                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             if (booking.assignedPilotName != null) ...[
               const SizedBox(height: 4),
               Row(

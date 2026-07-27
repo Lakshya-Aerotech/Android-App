@@ -32,7 +32,6 @@ class _RetailerRegistrationScreenState
   final _addressController = TextEditingController();
   final _stateController = TextEditingController();
   final _districtController = TextEditingController();
-  final _mandalController = TextEditingController();
   final _villageController = TextEditingController();
   LatLng? _selectedLocation;
 
@@ -48,7 +47,6 @@ class _RetailerRegistrationScreenState
     _addressController.dispose();
     _stateController.dispose();
     _districtController.dispose();
-    _mandalController.dispose();
     _villageController.dispose();
     super.dispose();
   }
@@ -91,7 +89,7 @@ class _RetailerRegistrationScreenState
           shopAddress: _addressController.text.trim(),
           stateName: _stateController.text.trim(),
           district: _districtController.text.trim(),
-          mandal: _mandalController.text.trim(),
+          mandal: '',
           village: _villageController.text.trim(),
           latitude: _selectedLocation!.latitude,
           longitude: _selectedLocation!.longitude,
@@ -184,8 +182,6 @@ class _RetailerRegistrationScreenState
               _requiredField('State *', _stateController),
               AppSpacing.verticalMd,
               _requiredField('District *', _districtController),
-              AppSpacing.verticalMd,
-              _requiredField('Mandal *', _mandalController),
               AppSpacing.verticalMd,
               _requiredField('Village *', _villageController),
               AppSpacing.verticalLg,
