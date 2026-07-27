@@ -106,15 +106,35 @@ class BookingDetailsScreen extends ConsumerWidget {
             icon: Icons.crop_free,
           ),
 
-          if (b.assignedPilotName != null) ...[
+          if (b.assignedPilotId != null) ...[
             const SizedBox(height: 24),
             Text('Assigned Resources', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             BookingSummaryCard(
-              label: 'Pilot',
-              value: b.assignedPilotName!,
+              label: 'Pilot Name',
+              value: b.assignedPilotName ?? 'N/A',
               icon: Icons.person_add_alt_1_outlined,
             ),
+            if (b.status != BookingStatus.pending && b.status != BookingStatus.cancelled) ...[
+              const SizedBox(height: 12),
+              ref.watch(userDetailsProvider(b.assignedPilotId!)).when(
+                data: (pilot) => BookingSummaryCard(
+                  label: 'Pilot Contact',
+                  value: pilot?.phoneNumber ?? 'N/A',
+                  icon: Icons.phone_outlined,
+                ),
+                loading: () => const BookingSummaryCard(
+                  label: 'Pilot Contact',
+                  value: 'Loading...',
+                  icon: Icons.phone_outlined,
+                ),
+                error: (_, __) => const BookingSummaryCard(
+                  label: 'Pilot Contact',
+                  value: 'Error loading contact',
+                  icon: Icons.phone_outlined,
+                ),
+              ),
+            ],
           ],
 
           const SizedBox(height: 24),

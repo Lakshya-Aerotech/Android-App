@@ -418,6 +418,30 @@ class AuthViewModel extends StateNotifier<AuthState> {
     }
   }
 
+
+
+  Future<void> cancelFarmerRegistration() async {
+    final user = _ref.read(userModelProvider);
+    state = state.copyWith(status: AuthStatus.loading);
+    try {
+      if (user != null && user.docId != null) {
+        await _repository.deleteUserDocument(user.docId!);
+        final firebaseUser = FirebaseAuth.instance.currentUser;
+        if (firebaseUser != null) {
+          await firebaseUser.delete();
+        }
+      }
+      await _repository.logout();
+      _ref.read(userModelProvider.notifier).state = null;
+      state = state.copyWith(status: AuthStatus.unauthenticated);
+    } catch (e) {
+      await _repository.logout();
+      _ref.read(userModelProvider.notifier).state = null;
+      state = state.copyWith(status: AuthStatus.unauthenticated);
+      print('Error canceling registration: $e');
+    }
+  }
+
   String _getAuthErrorMessage(FirebaseAuthException e) {
     switch (e.code) {
       case 'invalid-email':
@@ -447,4 +471,9 @@ class AuthViewModel extends StateNotifier<AuthState> {
 final authViewModelProvider = StateNotifierProvider<AuthViewModel, AuthState>((ref) {
   final repository = ref.watch(authRepositoryProvider);
   return AuthViewModel(repository, ref);
+});
+
+final userDetailsProvider = FutureProvider.family<UserModel?, String>((ref, uid) async {
+  final repository = ref.watch(authRepositoryProvider);
+  return repository.getUserData(uid);
 });
