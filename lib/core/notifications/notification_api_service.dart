@@ -11,7 +11,7 @@ class NotificationApiService {
 
   static const String _paymentBaseUrl = String.fromEnvironment(
     'PAYMENT_BASE_URL',
-    defaultValue: 'http://192.168.1.4:3000/api/payment',
+    defaultValue: 'http://192.168.1.11:3000/api/payment',
   );
 
   String get _baseUrl {
