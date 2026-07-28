@@ -15,6 +15,7 @@ import '../../widgets/booking_timeline.dart';
 import '../../widgets/mission_summary_card.dart';
 import '../../widgets/rating_card.dart';
 import '../../widgets/issue_report_dialog.dart';
+import '../../../../shared/widgets/live_tracking_map.dart';
 import '../../../auth/models/user_model.dart';
 import '../../../auth/viewmodel/auth_viewmodel.dart';
 
@@ -62,6 +63,13 @@ class BookingDetailsScreen extends ConsumerWidget {
           if (b.status == BookingStatus.completed) ...[
              _buildPostServiceActions(context, ref, b),
              const SizedBox(height: 24),
+          ],
+
+          if ([BookingStatus.enRoute, BookingStatus.arrived, BookingStatus.inProgress].contains(b.status)) ...[
+            Text('Live Tracking', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            LiveTrackingMap(booking: b),
+            const SizedBox(height: 24),
           ],
 
           if (b.status == BookingStatus.farmerConfirmed || b.status == BookingStatus.closed) ...[

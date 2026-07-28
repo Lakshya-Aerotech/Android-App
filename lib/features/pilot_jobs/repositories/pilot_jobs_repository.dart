@@ -31,6 +31,7 @@ abstract class PilotJobsRepository {
   Future<void> verifyCoupon(String docId, String pilotId);
   Future<void> collectCash(String docId, String pilotId);
   Future<void> markCashDeposited(String docId, String pilotId);
+  Future<void> startNavigation(String docId, StatusHistoryEntry historyEntry);
 }
 
 class PilotJobsRepositoryImpl implements PilotJobsRepository {
@@ -446,6 +447,11 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
         type: 'CASH_DEPOSITED',
       );
     }
+  }
+
+  @override
+  Future<void> startNavigation(String docId, StatusHistoryEntry historyEntry) async {
+    await updateJobStatus(docId, BookingStatus.enRoute, historyEntry);
   }
 
   Future<BookingModel?> _bookingSnapshot(String bookingDocId) async {

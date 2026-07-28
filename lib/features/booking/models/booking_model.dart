@@ -65,6 +65,46 @@ class StatusHistoryEntry {
   }
 }
 
+class LiveLocation {
+  final double latitude;
+  final double longitude;
+  final double? accuracy;
+  final double? speed;
+  final double? heading;
+  final DateTime updatedAt;
+
+  LiveLocation({
+    required this.latitude,
+    required this.longitude,
+    this.accuracy,
+    this.speed,
+    this.heading,
+    required this.updatedAt,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'latitude': latitude,
+      'longitude': longitude,
+      'accuracy': accuracy,
+      'speed': speed,
+      'heading': heading,
+      'updatedAt': Timestamp.fromDate(updatedAt),
+    };
+  }
+
+  factory LiveLocation.fromMap(Map<String, dynamic> map) {
+    return LiveLocation(
+      latitude: (map['latitude'] as num).toDouble(),
+      longitude: (map['longitude'] as num).toDouble(),
+      accuracy: (map['accuracy'] as num?)?.toDouble(),
+      speed: (map['speed'] as num?)?.toDouble(),
+      heading: (map['heading'] as num?)?.toDouble(),
+      updatedAt: (map['updatedAt'] as Timestamp).toDate(),
+    );
+  }
+}
+
 class BookingModel {
   final String? docId;
   final String bookingId;
@@ -155,6 +195,9 @@ class BookingModel {
   final DateTime? issueReportedAt;
   final DateTime? confirmedAt;
 
+  // Live Tracking
+  final LiveLocation? liveLocation;
+
   // Status History Audit Trail
   final List<StatusHistoryEntry> statusHistory;
 
@@ -239,6 +282,7 @@ class BookingModel {
     this.issueDescription,
     this.issueReportedAt,
     this.confirmedAt,
+    this.liveLocation,
     this.statusHistory = const [],
     required this.createdAt,
     required this.updatedAt,
@@ -320,6 +364,7 @@ class BookingModel {
       'issueDescription': issueDescription,
       'issueReportedAt': issueReportedAt != null ? Timestamp.fromDate(issueReportedAt!) : null,
       'confirmedAt': confirmedAt != null ? Timestamp.fromDate(confirmedAt!) : null,
+      'liveLocation': liveLocation?.toMap(),
       'statusHistory': statusHistory.map((e) => e.toMap()).toList(),
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
@@ -404,6 +449,7 @@ class BookingModel {
       issueDescription: map['issueDescription'],
       issueReportedAt: (map['issueReportedAt'] as Timestamp?)?.toDate(),
       confirmedAt: (map['confirmedAt'] as Timestamp?)?.toDate(),
+      liveLocation: map['liveLocation'] != null ? LiveLocation.fromMap(map['liveLocation']) : null,
       statusHistory: (map['statusHistory'] as List? ?? [])
           .map((e) => StatusHistoryEntry.fromMap(e as Map<String, dynamic>))
           .toList(),
@@ -487,6 +533,7 @@ class BookingModel {
     String? issueDescription,
     DateTime? issueReportedAt,
     DateTime? confirmedAt,
+    LiveLocation? liveLocation,
     List<StatusHistoryEntry>? statusHistory,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -566,6 +613,7 @@ class BookingModel {
       issueDescription: issueDescription ?? this.issueDescription,
       issueReportedAt: issueReportedAt ?? this.issueReportedAt,
       confirmedAt: confirmedAt ?? this.confirmedAt,
+      liveLocation: liveLocation ?? this.liveLocation,
       statusHistory: statusHistory ?? this.statusHistory,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

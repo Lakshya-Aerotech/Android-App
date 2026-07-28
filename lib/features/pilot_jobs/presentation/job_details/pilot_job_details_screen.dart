@@ -13,6 +13,7 @@ import '../../../../shared/enums/booking_status.dart';
 import '../../../booking/models/booking_model.dart';
 import '../../../auth/viewmodel/auth_viewmodel.dart';
 import '../../viewmodels/pilot_jobs_viewmodel.dart';
+import '../../../../core/services/location_tracking_service.dart';
 import '../../../operations/widgets/full_booking_timeline.dart';
 import '../../../../core/widgets/confirmation_dialog.dart';
 
@@ -359,34 +360,44 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
 
     switch (job.status) {
       case BookingStatus.pilotAssigned:
-      case BookingStatus.enRoute:
-        final timeParts = job.preferredTime.split(':');
-        final hour = timeParts.isNotEmpty ? (int.tryParse(timeParts[0]) ?? 0) : 0;
-        final minute = timeParts.length > 1 ? (int.tryParse(timeParts[1]) ?? 0) : 0;
-        final scheduledDateTime = DateTime(
-          job.bookingDate.year,
-          job.bookingDate.month,
-          job.bookingDate.day,
-          hour,
-          minute,
+        return PrimaryButton(
+          text: 'Start Navigation',
+          icon: const Icon(Icons.navigation_outlined, color: Colors.white),
+          onPressed: () async {
+            final permission = await ref.read(locationTrackingServiceProvider).handlePermission();
+            if (permission) {
+              await notifier.startNavigation(job.docId!);
+              if (context.mounted) {
+                context.push('/pilot/navigation', extra: job);
+              }
+            } else {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Location permission is required for navigation.')),
+                );
+              }
+            }
+          },
+          isLoading: isLoading,
         );
-        final canMarkArrived = DateTime.now().isAfter(scheduledDateTime);
-
+      case BookingStatus.enRoute:
         return Column(
           children: [
             PrimaryButton(
-              text: 'Arrived At Farm',
-              onPressed: canMarkArrived ? () => notifier.markArrived(job.docId!) : null,
+              text: 'Continue Navigation',
+              icon: const Icon(Icons.navigation_outlined, color: Colors.white),
+              onPressed: () => context.push('/pilot/navigation', extra: job),
               isLoading: isLoading,
             ),
-            if (!canMarkArrived) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Arrived At Farm will be enabled at the scheduled time: ${DateFormat('dd MMM yyyy').format(job.bookingDate)} at ${job.preferredTime}',
-                style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () => notifier.markArrived(job.docId!),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-            ],
+              child: const Text('Arrived At Farm'),
+            ),
           ],
         );
       case BookingStatus.arrived:

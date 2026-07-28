@@ -58,6 +58,8 @@ import 'package:lakshya_aerotech/features/admin/presentation/earnings/pilot_earn
 import 'package:lakshya_aerotech/features/admin/presentation/earnings/pilot_earning_details_screen.dart';
 import 'package:lakshya_aerotech/features/admin/presentation/settings/system_settings_screen.dart';
 
+import 'package:lakshya_aerotech/features/pilot_jobs/presentation/job_details/pilot_navigation_screen.dart';
+
 final routerProvider = Provider<GoRouter>((ref) {
   final user = ref.watch(userModelProvider);
   final isInitializing = ref.watch(isAuthInitializingProvider);
@@ -308,6 +310,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'wallet',
             builder: (context, state) => const PilotWalletScreen(),
+          ),
+          GoRoute(
+            path: 'navigation',
+            builder: (context, state) {
+              final job = state.extra as BookingModel;
+              return PilotNavigationScreen(job: job);
+            },
           ),
         ],
       ),

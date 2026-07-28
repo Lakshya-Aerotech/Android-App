@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lakshya_aerotech/core/services/location_tracking_service.dart';
 import '../../auth/models/user_model.dart';
 import '../../auth/viewmodel/auth_viewmodel.dart';
 import '../../booking/models/booking_model.dart';
@@ -100,6 +101,17 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
   PilotJobsViewModel(this._repository, this._ref)
     : super(const AsyncData(null));
 
+  void _startStatusListener(String docId) {
+    _ref.listen(pilotJobDetailsProvider(docId), (previous, next) {
+      next.whenData((job) {
+        if ([BookingStatus.completed, BookingStatus.cancelled, BookingStatus.closed]
+            .contains(job.status)) {
+          _ref.read(locationTrackingServiceProvider).stopTracking();
+        }
+      });
+    });
+  }
+
   Future<void> startNavigation(String docId) async {
     state = const AsyncLoading();
     final user = _ref.read(userModelProvider);
@@ -111,11 +123,14 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
         timestamp: DateTime.now(),
         remarks: 'Pilot started navigation to farm.',
       );
-      await _repository.updateJobStatus(
-        docId,
-        BookingStatus.enRoute,
-        historyEntry,
-      );
+      await _repository.startNavigation(docId, historyEntry);
+      
+      // Start real-time tracking
+      _ref.read(locationTrackingServiceProvider).startTracking(docId);
+      
+      // Monitor status to stop tracking if cancelled or completed elsewhere
+      _startStatusListener(docId);
+
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -214,6 +229,10 @@ class PilotJobsViewModel extends StateNotifier<AsyncValue<void>> {
         completionData: completionData,
         historyEntry: historyEntry,
       );
+
+      // Stop tracking when mission is complete
+      _ref.read(locationTrackingServiceProvider).stopTracking();
+
       state = const AsyncData(null);
     } catch (e, st) {
       debugPrint('Error completing mission: $e');

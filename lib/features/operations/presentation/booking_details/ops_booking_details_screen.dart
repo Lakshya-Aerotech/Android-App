@@ -10,10 +10,12 @@ import 'package:lakshya_aerotech/core/theme/app_text_styles.dart';
 import 'package:lakshya_aerotech/core/widgets/primary_button.dart';
 import 'package:lakshya_aerotech/core/widgets/status_chip.dart';
 import 'package:lakshya_aerotech/features/booking/models/booking_model.dart';
+import 'package:lakshya_aerotech/features/booking/viewmodels/booking_viewmodel.dart';
 import 'package:lakshya_aerotech/features/operations/models/operations_models.dart';
 import 'package:lakshya_aerotech/features/operations/viewmodels/operations_viewmodel.dart';
 import 'package:lakshya_aerotech/features/operations/widgets/full_booking_timeline.dart';
 import 'package:lakshya_aerotech/shared/enums/booking_status.dart';
+import 'package:lakshya_aerotech/shared/widgets/live_tracking_map.dart';
 
 class OpsBookingDetailsScreen extends ConsumerStatefulWidget {
   final BookingModel booking;
@@ -126,7 +128,7 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
 
   @override
   Widget build(BuildContext context) {
-    final hydratedBookingAsync = ref.watch(hydratedBookingProvider(widget.booking));
+    final bookingAsync = ref.watch(singleBookingStreamProvider(widget.booking.docId!));
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
@@ -137,8 +139,11 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
         elevation: 0,
         centerTitle: true,
       ),
-      body: hydratedBookingAsync.when(
-        data: (booking) => _buildContent(context, booking),
+      body: bookingAsync.when(
+        data: (booking) {
+          if (booking == null) return const Center(child: Text('Booking not found'));
+          return _buildContent(context, booking);
+        },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error loading details: $e')),
       ),
@@ -175,7 +180,10 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
                 
                 if (booking.latitude != null && booking.longitude != null) ...[
                   const SizedBox(height: 12),
-                  _buildMapPreview(booking.latitude!, booking.longitude!),
+                  if ([BookingStatus.enRoute, BookingStatus.arrived, BookingStatus.inProgress].contains(booking.status))
+                    LiveTrackingMap(booking: booking)
+                  else
+                    _buildMapPreview(booking.latitude!, booking.longitude!),
                 ],
 
                 const SizedBox(height: 24),
