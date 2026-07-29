@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/status_chip.dart';
@@ -44,24 +45,20 @@ class BookingHistoryCard extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Text(
-                    booking.bookingId,
-                    style: AppTextStyles.labelSmall.copyWith(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.1,
-                      color: AppColors.primary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                Text(
+                  booking.bookingId,
+                  style: AppTextStyles.labelSmall.copyWith(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.1,
+                    color: AppColors.primary,
                   ),
                 ),
-                const SizedBox(width: 8),
                 StatusChip.fromStatus(booking.status),
               ],
             ),
             const SizedBox(height: 12),
             Text(
-              booking.serviceType,
+              context.tr(booking.serviceType),
               style: AppTextStyles.titleMedium.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
@@ -89,7 +86,7 @@ class BookingHistoryCard extends ConsumerWidget {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      'Farmer: ${booking.farmerName}',
+                      '${context.tr('Farmer: ')}${booking.farmerName}',
                       style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -104,7 +101,7 @@ class BookingHistoryCard extends ConsumerWidget {
                   const Icon(Icons.person_outline, size: 14, color: AppColors.accent),
                   const SizedBox(width: 4),
                   Text(
-                    'Pilot: ${booking.assignedPilotName ?? 'N/A'}',
+                    '${context.tr('Pilot: ')}${booking.assignedPilotName ?? context.tr('N/A')}',
                     style: AppTextStyles.bodySmall.copyWith(color: AppColors.accent, fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -117,7 +114,7 @@ class BookingHistoryCard extends ConsumerWidget {
                       const Icon(Icons.phone_outlined, size: 14, color: AppColors.accent),
                       const SizedBox(width: 4),
                       Text(
-                        'Pilot Contact: ${pilot?.phoneNumber ?? 'N/A'}',
+                        '${context.tr('Pilot Contact: ')}${pilot?.phoneNumber ?? context.tr('N/A')}',
                         style: AppTextStyles.bodySmall.copyWith(color: AppColors.accent, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -127,7 +124,7 @@ class BookingHistoryCard extends ConsumerWidget {
                       const Icon(Icons.phone_outlined, size: 14, color: AppColors.accent),
                       const SizedBox(width: 4),
                       Text(
-                        'Pilot Contact: Loading...',
+                        '${context.tr('Pilot Contact: ')}${context.tr('Loading...')}',
                         style: AppTextStyles.bodySmall.copyWith(color: AppColors.accent),
                       ),
                     ],

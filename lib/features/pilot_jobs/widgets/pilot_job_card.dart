@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/status_chip.dart';
@@ -58,7 +59,7 @@ class PilotJobCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Farmer: ${job.farmerName ?? 'N/A'}',
+                      '${context.tr('Farmer: ')}${job.farmerName ?? context.tr('N/A')}',
                       style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -68,7 +69,7 @@ class PilotJobCard extends StatelessWidget {
             ),
             const Divider(height: 24),
             Text(
-              job.serviceType,
+              context.tr(job.serviceType),
               style: AppTextStyles.titleMedium.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
@@ -81,7 +82,7 @@ class PilotJobCard extends StatelessWidget {
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    '${job.farmName} (${job.village ?? 'N/A'}, ${job.district ?? 'N/A'})',
+                    '${job.farmName} (${job.village ?? context.tr('N/A')}, ${job.district ?? context.tr('N/A')})',
                     style: AppTextStyles.bodySmall,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -106,7 +107,7 @@ class PilotJobCard extends StatelessWidget {
                   const Icon(Icons.money, color: Colors.orange, size: 16),
                   const SizedBox(width: 6),
                   Text(
-                    'Requires Cash Collection: ₹${job.payableAmount?.toStringAsFixed(2) ?? '0.00'}',
+                    '${context.tr('Requires Cash Collection')}: ₹${job.payableAmount?.toStringAsFixed(2) ?? '0.00'}',
                     style: AppTextStyles.bodySmall.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.orange.shade800,
@@ -121,7 +122,7 @@ class PilotJobCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Payment: ${job.paymentStatus}',
+                    '${context.tr('Payment')}: ${context.tr(job.paymentStatus!)}',
                     style: AppTextStyles.bodySmall.copyWith(
                       fontWeight: FontWeight.bold,
                       color: AppColors.primary,

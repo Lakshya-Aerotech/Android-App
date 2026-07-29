@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lakshya_aerotech/core/constants/app_radius.dart';
+import 'package:lakshya_aerotech/core/localization/app_localizations.dart';
 import 'package:lakshya_aerotech/core/theme/app_colors.dart';
 import 'package:lakshya_aerotech/core/theme/app_text_styles.dart';
 import 'package:lakshya_aerotech/core/widgets/status_chip.dart';
@@ -56,7 +57,7 @@ class OpsBookingCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Farmer: ${booking.farmerName ?? 'Not Provided'}',
+                        '${context.tr('Farmer: ')}${booking.farmerName ?? context.tr('Not Provided')}',
                         style: AppTextStyles.bodySmall.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
@@ -76,7 +77,7 @@ class OpsBookingCard extends StatelessWidget {
             ),
             const Divider(height: 24),
             Text(
-              booking.serviceType,
+              context.tr(booking.serviceType),
               style: AppTextStyles.titleMedium.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
@@ -89,7 +90,7 @@ class OpsBookingCard extends StatelessWidget {
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    '${booking.farmName} (${booking.village ?? 'N/A'}, ${booking.district ?? 'N/A'})',
+                    '${booking.farmName} (${booking.village ?? context.tr('N/A')}, ${booking.district ?? context.tr('N/A')})',
                     style: AppTextStyles.bodySmall,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -104,7 +105,7 @@ class OpsBookingCard extends StatelessWidget {
                 const SizedBox(width: 16),
                 _buildInfoItem(Icons.access_time_outlined, booking.preferredTime),
                 const SizedBox(width: 16),
-                _buildInfoItem(Icons.crop_free, '${booking.estimatedArea} Ac'),
+                _buildInfoItem(Icons.crop_free, '${booking.estimatedArea} ${context.tr('Ac')}'),
                 const Spacer(),
                 const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
               ],
@@ -129,7 +130,7 @@ class OpsBookingCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  'Note: ${booking.remarks}',
+                  '${context.tr('Note: ')}${booking.remarks}',
                   style: AppTextStyles.bodySmall.copyWith(fontStyle: FontStyle.italic, fontSize: 10),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

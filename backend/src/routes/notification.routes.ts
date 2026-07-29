@@ -112,8 +112,8 @@ router.post('/send', requireAuth, requireRole(['operations', 'admin']), async (r
     };
     await customNotificationRef.set(customNotificationData);
 
-    // 5. Send notifications in chunked batches of 500
-    const chunkSize = 500;
+    // 5. Send notifications in chunked batches of 30 (Firestore IN query limit is 30)
+    const chunkSize = 30;
     let totalSent = 0;
     let totalFailed = 0;
 

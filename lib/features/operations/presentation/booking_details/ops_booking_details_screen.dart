@@ -9,6 +9,7 @@ import 'package:lakshya_aerotech/core/theme/app_colors.dart';
 import 'package:lakshya_aerotech/core/theme/app_text_styles.dart';
 import 'package:lakshya_aerotech/core/widgets/primary_button.dart';
 import 'package:lakshya_aerotech/core/widgets/status_chip.dart';
+import 'package:lakshya_aerotech/core/localization/app_localizations.dart';
 import 'package:lakshya_aerotech/features/booking/models/booking_model.dart';
 import 'package:lakshya_aerotech/features/booking/viewmodels/booking_viewmodel.dart';
 import 'package:lakshya_aerotech/features/operations/models/operations_models.dart';
@@ -133,7 +134,7 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       appBar: AppBar(
-        title: const Text('Booking Details'),
+        title: Text(context.tr('Booking Details')),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.primary,
         elevation: 0,
@@ -141,11 +142,11 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
       ),
       body: bookingAsync.when(
         data: (booking) {
-          if (booking == null) return const Center(child: Text('Booking not found'));
+          if (booking == null) return Center(child: Text(context.tr('Booking not found')));
           return _buildContent(context, booking);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error loading details: $e')),
+        error: (e, _) => Center(child: Text('${context.tr('Error loading details')}: $e')),
       ),
     );
   }
@@ -174,7 +175,7 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
                   items: [
                     {'label': 'Farm Name', 'value': booking.farmName, 'icon': Icons.landscape_outlined},
                     {'label': 'Village', 'value': booking.village ?? 'N/A', 'icon': Icons.home_work_outlined},
-                    {'label': 'Area', 'value': '${booking.estimatedArea} Acres', 'icon': Icons.crop_free},
+                    {'label': 'Area', 'value': '${booking.estimatedArea} ${context.tr('Acres')}', 'icon': Icons.crop_free},
                   ],
                 ),
                 
@@ -376,7 +377,7 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Booking ID', style: AppTextStyles.bodySmall),
+                Text(context.tr('Booking ID'), style: AppTextStyles.bodySmall),
                 Text(booking.bookingId, style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
               ],
             ),
@@ -389,7 +390,7 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
   }
 
   Widget _buildSectionTitle(String title) {
-    return Padding(padding: const EdgeInsets.only(bottom: 12.0), child: Text(title, style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold, color: AppColors.textDark)));
+    return Padding(padding: const EdgeInsets.only(bottom: 12.0), child: Text(context.tr(title), style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold, color: AppColors.textDark)));
   }
 
   Widget _buildInfoCard({required List<Map<String, dynamic>> items}) {
@@ -407,8 +408,8 @@ class _OpsBookingDetailsScreenState extends ConsumerState<OpsBookingDetailsScree
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item['label'] as String, style: AppTextStyles.bodySmall.copyWith(fontSize: 10)),
-                    Text(item['value'] as String, style: AppTextStyles.labelLarge),
+                    Text(context.tr(item['label'] as String), style: AppTextStyles.bodySmall.copyWith(fontSize: 10)),
+                    Text(context.tr(item['value'] as String), style: AppTextStyles.labelLarge),
                   ],
                 ),
               ),

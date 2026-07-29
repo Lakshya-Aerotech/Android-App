@@ -23,7 +23,7 @@ class OperationsDashboardScreen extends ConsumerWidget {
     final statsAsync = ref.watch(dashboardStatsStreamProvider);
     final recentBookingsAsync = ref.watch(recentBookingsStreamProvider);
 
-    final today = DateFormat('EEEE, d MMMM').format(DateTime.now());
+    final today = DateFormat('EEEE, d MMMM', Localizations.localeOf(context).languageCode).format(DateTime.now());
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
@@ -51,7 +51,7 @@ class OperationsDashboardScreen extends ConsumerWidget {
                         final double itemWidth = (width - 16) / 2;
                         final double textScale =
                             MediaQuery.textScalerOf(context).scale(1.0);
-                        final double minItemHeight = 110.0 * textScale;
+                        final double minItemHeight = 125.0 * textScale;
                         final double ratio = itemWidth / minItemHeight;
 
                         return GridView.builder(

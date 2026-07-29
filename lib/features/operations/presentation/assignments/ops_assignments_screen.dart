@@ -9,6 +9,7 @@ import 'package:lakshya_aerotech/core/theme/app_colors.dart';
 import 'package:lakshya_aerotech/core/theme/app_text_styles.dart';
 import 'package:lakshya_aerotech/core/widgets/empty_state.dart';
 import 'package:lakshya_aerotech/core/widgets/primary_button.dart';
+import 'package:lakshya_aerotech/core/localization/app_localizations.dart';
 import 'package:lakshya_aerotech/features/booking/models/booking_model.dart';
 import 'package:lakshya_aerotech/features/operations/viewmodels/operations_viewmodel.dart';
 
@@ -22,7 +23,7 @@ class OpsAssignmentsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       appBar: AppBar(
-        title: const Text('Assign Pilot'),
+        title: Text(context.tr('Assign Pilot')),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -31,9 +32,9 @@ class OpsAssignmentsScreen extends ConsumerWidget {
       body: bookingsAsync.when(
         data: (bookings) {
           if (bookings.isEmpty) {
-            return const EmptyState(
-              title: 'No bookings awaiting assignment',
-              message: 'Approved bookings will appear here automatically.',
+            return EmptyState(
+              title: context.tr('No bookings awaiting assignment'),
+              message: context.tr('Approved bookings will appear here automatically.'),
               icon: Icons.assignment_turned_in_outlined,
             );
           }
@@ -53,9 +54,9 @@ class OpsAssignmentsScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const EmptyState(
-          title: 'Unable to load assignments',
-          message: 'Check your connection and try again.',
+        error: (_, __) => EmptyState(
+          title: context.tr('Unable to load assignments'),
+          message: context.tr('Check your connection and try again.'),
           icon: Icons.wifi_off_outlined,
         ),
       ),
@@ -148,7 +149,7 @@ class _BookingCardContent extends StatelessWidget {
               ),
               _InfoChip(
                 icon: Icons.crop_square_outlined,
-                label: '${booking.estimatedArea.toStringAsFixed(1)} acres',
+                label: '${booking.estimatedArea.toStringAsFixed(1)} ${context.tr('acres')}',
               ),
             ],
           ),
@@ -182,7 +183,7 @@ class _InfoChip extends StatelessWidget {
           const SizedBox(width: 6),
           Flexible(
             child: Text(
-              label.isEmpty ? 'Not provided' : label,
+              label.isEmpty ? context.tr('Not provided') : context.tr(label),
               overflow: TextOverflow.ellipsis,
               style: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.textPrimary,
@@ -209,7 +210,7 @@ class _StatusPill extends StatelessWidget {
         borderRadius: AppRadius.radiusSm,
       ),
       child: Text(
-        label,
+        context.tr(label),
         style: AppTextStyles.labelSmall.copyWith(color: AppColors.info),
       ),
     );

@@ -73,7 +73,7 @@ export class PaymentController {
         paymentMode: PaymentMode.CASHFREE,
       });
 
-      const rawHost = req.headers.host || '192.168.0.232:3000';
+      const rawHost = req.headers.host || '192.168.1.3:3000';
       const host = rawHost.replace(/^https?:\/\//i, '');
       const dynamicReturnUrl = `http://${host}/api/payment/redirect?order_id={order_id}`;
 

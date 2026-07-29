@@ -9,6 +9,7 @@ import 'package:lakshya_aerotech/core/theme/app_colors.dart';
 import 'package:lakshya_aerotech/core/theme/app_text_styles.dart';
 import 'package:lakshya_aerotech/core/widgets/empty_state.dart';
 import 'package:lakshya_aerotech/core/widgets/primary_button.dart';
+import 'package:lakshya_aerotech/core/localization/app_localizations.dart';
 import 'package:lakshya_aerotech/features/booking/models/booking_model.dart';
 import 'package:lakshya_aerotech/features/operations/models/operations_models.dart';
 import 'package:lakshya_aerotech/features/operations/viewmodels/operations_viewmodel.dart';
@@ -42,7 +43,7 @@ class _OpsAssignBookingScreenState
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       appBar: AppBar(
-        title: const Text('Assign Pilot'),
+        title: Text(context.tr('Assign Pilot')),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -78,9 +79,9 @@ class _OpsAssignBookingScreenState
           pilotsAsync.when(
             data: (pilots) {
               if (pilots.isEmpty) {
-                return const EmptyState(
-                  title: 'No available pilots',
-                  message: 'Active available pilots will appear here.',
+                return EmptyState(
+                  title: context.tr('No available pilots'),
+                  message: context.tr('Active available pilots will appear here.'),
                   icon: Icons.person_off_outlined,
                 );
               }
@@ -100,9 +101,9 @@ class _OpsAssignBookingScreenState
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => const EmptyState(
-              title: 'Unable to load pilots',
-              message: 'Check your connection and try again.',
+            error: (_, __) => EmptyState(
+              title: context.tr('Unable to load pilots'),
+              message: context.tr('Check your connection and try again.'),
               icon: Icons.wifi_off_outlined,
             ),
           ),
@@ -117,9 +118,9 @@ class _OpsAssignBookingScreenState
           pilotsAsync.when(
             data: (pilots) {
               if (pilots.isEmpty) {
-                return const EmptyState(
-                  title: 'No available copilots',
-                  message: 'Active available pilots will appear here.',
+                return EmptyState(
+                  title: context.tr('No available copilots'),
+                  message: context.tr('Active available pilots will appear here.'),
                   icon: Icons.person_off_outlined,
                 );
               }
@@ -174,8 +175,8 @@ class _OpsAssignBookingScreenState
 
     if (copilot != null && copilot.uid == pilot.uid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pilot and Copilot must be different employees.'),
+        SnackBar(
+          content: Text(context.tr('Pilot and Copilot must be different employees.')),
           backgroundColor: AppColors.error,
         ),
       );
@@ -185,25 +186,25 @@ class _OpsAssignBookingScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Assignment'),
+        title: Text(context.tr('Confirm Assignment')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _DialogLine(label: 'Booking', value: widget.booking.bookingId),
-            _DialogLine(label: 'Pilot', value: pilot.name),
+            _DialogLine(label: context.tr('Booking'), value: widget.booking.bookingId),
+            _DialogLine(label: context.tr('Pilot'), value: pilot.name),
             if (copilot != null)
-              _DialogLine(label: 'Copilot', value: copilot.name),
+              _DialogLine(label: context.tr('Copilot'), value: copilot.name),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr('Cancel')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirm'),
+            child: Text(context.tr('Confirm')),
           ),
         ],
       ),
@@ -226,8 +227,8 @@ class _OpsAssignBookingScreenState
     if (!mounted) return;
     if (error == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pilot assigned successfully'),
+        SnackBar(
+          content: Text(context.tr('Pilot assigned successfully')),
           backgroundColor: AppColors.success,
         ),
       );
@@ -270,7 +271,7 @@ class _BookingSummary extends StatelessWidget {
           ),
           AppSpacing.verticalSm,
           Text(
-            '${booking.farmerName ?? 'Farmer'} - ${booking.serviceType}',
+            '${booking.farmerName ?? context.tr('Farmer')} - ${context.tr(booking.serviceType)}',
             style: AppTextStyles.bodyMedium.copyWith(
               color: AppColors.textInverted,
             ),
@@ -351,7 +352,7 @@ class _PilotCard extends StatelessWidget {
                     ),
                     AppSpacing.verticalXs,
                     Text(
-                      pilot.role == 'externalPilot' ? 'External Pilot' : 'Internal Pilot',
+                      pilot.role == 'externalPilot' ? context.tr('External Pilot') : context.tr('Internal Pilot'),
                       style: AppTextStyles.labelSmall.copyWith(
                         color: pilot.role == 'externalPilot' ? Colors.orange : Colors.blue,
                         fontWeight: FontWeight.bold,
@@ -364,8 +365,8 @@ class _PilotCard extends StatelessWidget {
                     AppSpacing.verticalXs,
                     Text(
                       pilot.currentWorkload == null
-                          ? 'Available'
-                          : 'Available - ${pilot.currentWorkload} active jobs',
+                          ? context.tr('Available')
+                          : '${context.tr('Available')} - ${pilot.currentWorkload} ${context.tr('active jobs')}',
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.success,
                       ),
@@ -403,7 +404,7 @@ class _CopilotPlaceholder extends StatelessWidget {
           AppSpacing.horizontalMd,
           Expanded(
             child: Text(
-              selectedCopilot?.name ?? 'Select Copilot',
+              selectedCopilot?.name ?? context.tr('Select Copilot'),
               style: AppTextStyles.bodyLarge.copyWith(
                 fontWeight: selectedCopilot == null
                     ? FontWeight.normal
@@ -415,7 +416,7 @@ class _CopilotPlaceholder extends StatelessWidget {
             ),
           ),
           if (onClear != null)
-            TextButton(onPressed: onClear, child: const Text('Clear')),
+            TextButton(onPressed: onClear, child: Text(context.tr('Clear'))),
         ],
       ),
     );
@@ -461,7 +462,7 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      title,
+      context.tr(title),
       style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold),
     );
   }
@@ -477,7 +478,7 @@ class _DialogLine extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Text('$label: $value', style: AppTextStyles.bodyMedium),
+      child: Text('${context.tr(label)}: ${context.tr(value)}', style: AppTextStyles.bodyMedium),
     );
   }
 }

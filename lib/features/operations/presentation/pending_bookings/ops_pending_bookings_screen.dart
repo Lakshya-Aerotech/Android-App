@@ -45,8 +45,8 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DashboardHeader(
-              userName: 'Operations',
-              subtitle: 'Manage and review bookings.',
+              userName: context.tr('Operations'),
+              subtitle: context.tr('Manage and review bookings.'),
             ),
             Padding(
               padding: const EdgeInsets.all(AppSizes.screenPadding),
@@ -221,29 +221,29 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Filter & Sort', style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold)),
+                  Text(context.tr('Filter & Sort'), style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 24),
                   
-                  Text('Status', style: AppTextStyles.labelLarge),
+                  Text(context.tr('Status'), style: AppTextStyles.labelLarge),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _statusChip(setModalState, 'Pending', BookingStatus.pending),
-                      _statusChip(setModalState, 'Reviewed', BookingStatus.reviewed),
-                      _statusChip(setModalState, 'Assigned', BookingStatus.pilotAssigned),
-                      _statusChip(setModalState, 'Completed', BookingStatus.completed),
+                      _statusChip(setModalState, context.tr('Pending'), BookingStatus.pending),
+                      _statusChip(setModalState, context.tr('Reviewed'), BookingStatus.reviewed),
+                      _statusChip(setModalState, context.tr('Assigned'), BookingStatus.pilotAssigned),
+                      _statusChip(setModalState, context.tr('Completed'), BookingStatus.completed),
                     ],
                   ),
 
                   const SizedBox(height: 24),
-                  Text('Sort By', style: AppTextStyles.labelLarge),
+                  Text(context.tr('Sort By'), style: AppTextStyles.labelLarge),
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       ChoiceChip(
-                        label: const Text('Newest First'),
+                        label: Text(context.tr('Newest First')),
                         selected: _isNewestFirst,
                         onSelected: (v) {
                           setModalState(() => _isNewestFirst = true);
@@ -252,7 +252,7 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                       ),
                       const SizedBox(width: 8),
                       ChoiceChip(
-                        label: const Text('Oldest First'),
+                        label: Text(context.tr('Oldest First')),
                         selected: !_isNewestFirst,
                         onSelected: (v) {
                           setModalState(() => _isNewestFirst = false);
@@ -263,14 +263,14 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                   ),
                   
                   const SizedBox(height: 24),
-                  Text('Crop Type', style: AppTextStyles.labelLarge),
+                  Text(context.tr('Crop Type'), style: AppTextStyles.labelLarge),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: ['Cotton', 'Paddy', 'Chilli', 'Maize', 'Soya', 'Other'].map((c) {
                       return ChoiceChip(
-                        label: Text(c),
+                        label: Text(context.tr(c)),
                         selected: _selectedCrop == c,
                         onSelected: (selected) {
                           setModalState(() => _selectedCrop = selected ? c : null);
@@ -294,7 +294,7 @@ class _OpsPendingBookingsScreenState extends ConsumerState<OpsPendingBookingsScr
                         setState(() {});
                         Navigator.pop(context);
                       },
-                      child: const Text('Reset All'),
+                      child: Text(context.tr('Reset All')),
                     ),
                   ),
                   const SizedBox(height: 16),

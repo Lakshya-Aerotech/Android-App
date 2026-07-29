@@ -27,6 +27,23 @@ class ProfileScreen extends ConsumerWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    String getRoleDisplayName(UserRole role) {
+      switch (role) {
+        case UserRole.farmer:
+          return context.tr('Farmer');
+        case UserRole.pilot:
+          return context.tr('Pilot');
+        case UserRole.operations:
+          return context.tr('Operations Member');
+        case UserRole.admin:
+          return context.tr('Admin');
+        case UserRole.externalPilot:
+          return context.tr('External Pilot');
+        case UserRole.retailer:
+          return context.tr('Retailer');
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(context.tr('Profile')),
@@ -100,7 +117,7 @@ class ProfileScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      user.role.value.toUpperCase(),
+                      getRoleDisplayName(user.role),
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
