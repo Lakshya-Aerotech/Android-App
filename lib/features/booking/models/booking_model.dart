@@ -146,8 +146,9 @@ class BookingModel {
   final double? originalAmount;
   final double? discountAmount;
   final double? payableAmount;
-  final String? paymentMethod;
-  final String? paymentStatus;
+  final String? paymentTiming; // PAY_NOW | PAY_AFTER_SERVICE
+  final String? paymentMethod; // UPI | CASH
+  final String? paymentStatus; // PENDING | PAYMENT_PENDING | PAID | FAILED
   final DateTime? paymentRequestedAt;
   final String? paymentId;
   final String? merchantTransactionId;
@@ -240,6 +241,7 @@ class BookingModel {
     this.originalAmount,
     this.discountAmount,
     this.payableAmount,
+    this.paymentTiming,
     this.paymentMethod,
     this.paymentStatus,
     this.paymentRequestedAt,
@@ -321,6 +323,7 @@ class BookingModel {
       'originalAmount': originalAmount,
       'discountAmount': discountAmount,
       'payableAmount': payableAmount,
+      'paymentTiming': paymentTiming,
       'paymentMethod': paymentMethod,
       'paymentStatus': paymentStatus,
       'paymentRequestedAt': paymentRequestedAt != null ? Timestamp.fromDate(paymentRequestedAt!) : null,
@@ -405,6 +408,7 @@ class BookingModel {
       originalAmount: (map['originalAmount'] as num?)?.toDouble(),
       discountAmount: (map['discountAmount'] as num?)?.toDouble() ?? (map['couponDiscountAmount'] as num?)?.toDouble(),
       payableAmount: (map['payableAmount'] as num?)?.toDouble() ?? (map['finalAmount'] as num?)?.toDouble(),
+      paymentTiming: map['paymentTiming'],
       paymentMethod: map['paymentMethod'],
       paymentStatus: map['paymentStatus'],
       paymentRequestedAt: (map['paymentRequestedAt'] as Timestamp?)?.toDate(),
@@ -491,6 +495,7 @@ class BookingModel {
     double? originalAmount,
     double? discountAmount,
     double? payableAmount,
+    String? paymentTiming,
     String? paymentMethod,
     String? paymentStatus,
     DateTime? paymentRequestedAt,
@@ -571,6 +576,7 @@ class BookingModel {
       originalAmount: originalAmount ?? this.originalAmount,
       discountAmount: discountAmount ?? this.discountAmount,
       payableAmount: payableAmount ?? this.payableAmount,
+      paymentTiming: paymentTiming ?? this.paymentTiming,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       paymentRequestedAt: paymentRequestedAt ?? this.paymentRequestedAt,

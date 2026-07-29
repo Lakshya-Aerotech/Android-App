@@ -113,7 +113,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Review the summary below before proceeding to the secure PhonePe gateway.',
+              'Review the summary below before proceeding to the secure Cashfree gateway.',
               style: AppTextStyles.bodySmall,
             ),
             const SizedBox(height: 24),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 enum BookingStatus {
+  paymentPending,
   pending,
   reviewed,
   pilotAssigned,
@@ -19,6 +20,8 @@ enum BookingStatus {
   /// Returns a user-friendly display name
   String get displayName {
     switch (this) {
+      case BookingStatus.paymentPending:
+        return 'Payment Pending';
       case BookingStatus.pending:
         return 'Pending';
       case BookingStatus.reviewed:
@@ -49,6 +52,8 @@ enum BookingStatus {
   /// Returns the color associated with this status
   Color get color {
     switch (this) {
+      case BookingStatus.paymentPending:
+        return Colors.amber.shade700;
       case BookingStatus.pending:
         return Colors.orange;
       case BookingStatus.reviewed:
@@ -79,6 +84,8 @@ enum BookingStatus {
   /// Returns the icon associated with this status
   IconData get icon {
     switch (this) {
+      case BookingStatus.paymentPending:
+        return Icons.payment;
       case BookingStatus.pending:
         return Icons.pending_actions;
       case BookingStatus.reviewed:

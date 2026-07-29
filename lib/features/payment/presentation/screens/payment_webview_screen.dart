@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../booking/models/booking_model.dart';
@@ -55,7 +54,7 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
   void _checkUrlCompletion(String url) {
     try {
       final uri = Uri.parse(url);
-      if (uri.queryParameters.containsKey('status')) {
+      if (uri.path.contains('/api/payment/redirect') || uri.queryParameters.containsKey('status')) {
         final status = uri.queryParameters['status']?.toUpperCase();
         if (status == 'SUCCESS') {
           _navigateToSuccess();
@@ -68,15 +67,12 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
 
   void _navigateToSuccess() {
     if (!mounted) return;
-    context.go('/payment-success', extra: {
-      'booking': widget.booking,
-      'transactionId': widget.booking.merchantTransactionId ?? 'N/A',
-    });
+    Navigator.pop(context, true);
   }
 
   void _navigateToFailure() {
     if (!mounted) return;
-    context.go('/payment-failed', extra: widget.booking);
+    Navigator.pop(context, false);
   }
 
   Future<void> _handleBackPress() async {
@@ -85,45 +81,44 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Cancel Payment?'),
         content: const Text(
-          'Are you sure you want to leave the payment page? If you have paid, please wait a moment for confirmation.',
+          'Are you sure you want to leave the payment page? You can try paying again or switch payment timing on the booking screen.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Go Back to Payment'),
+            child: const Text('Stay on Payment'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Cancel & Exit', style: TextStyle(color: Colors.red)),
+            child: const Text('Cancel Payment & Exit', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
 
     if (shouldExit == true && mounted) {
-      context.go('/payment-failed', extra: widget.booking);
+      Navigator.pop(context, false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<BookingModel?>>(
-      singleBookingStreamProvider(widget.booking.docId!),
-      (previous, next) {
-        if (next is AsyncData && next.value != null) {
-          final liveBooking = next.value!;
-          final paymentStatus = liveBooking.paymentStatus?.toUpperCase();
-          if (paymentStatus == 'SUCCESS') {
-            context.go('/payment-success', extra: {
-              'booking': liveBooking,
-              'transactionId': liveBooking.merchantTransactionId ?? liveBooking.transactionId ?? 'N/A',
-            });
-          } else if (paymentStatus == 'FAILED' || paymentStatus == 'CANCELLED') {
-            context.go('/payment-failed', extra: liveBooking);
+    if (widget.booking.docId != null) {
+      ref.listen<AsyncValue<BookingModel?>>(
+        singleBookingStreamProvider(widget.booking.docId!),
+        (previous, next) {
+          if (next is AsyncData && next.value != null) {
+            final liveBooking = next.value!;
+            final paymentStatus = liveBooking.paymentStatus?.toUpperCase();
+            if (paymentStatus == 'SUCCESS' || paymentStatus == 'PAID') {
+              _navigateToSuccess();
+            } else if (paymentStatus == 'FAILED' || paymentStatus == 'CANCELLED') {
+              _navigateToFailure();
+            }
           }
-        }
-      },
-    );
+        },
+      );
+    }
 
     return PopScope(
       canPop: false,
@@ -170,7 +165,7 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
                     children: [
                       CircularProgressIndicator(color: AppColors.primary),
                       SizedBox(height: 16),
-                      Text('Loading PhonePe Gateway...'),
+                      Text('Loading Cashfree Gateway...'),
                     ],
                   ),
                 ),

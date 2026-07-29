@@ -1,18 +1,23 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load environment variables from .env file
+dotenv.config();
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), 'backend/.env') });
 
 export interface EnvConfig {
   port: number;
   nodeEnv: string;
-  phonePe: {
-    merchantId: string;
-    saltKey: string;
-    saltIndex: string;
+  cashfree: {
+    appId: string;
+    secretKey: string;
+    webhookSecret: string;
+    apiVersion: string;
     baseUrl: string;
-    callbackUrl: string;
+    returnUrl: string;
+    environment: string;
     timeout: number;
   };
   firebase: {
@@ -29,13 +34,15 @@ const getEnvVar = (key: string, defaultValue: string = ''): string => {
 export const config: EnvConfig = {
   port: parseInt(getEnvVar('PORT', '3000'), 10),
   nodeEnv: getEnvVar('NODE_ENV', 'development'),
-  phonePe: {
-    merchantId: getEnvVar('PHONEPE_MERCHANT_ID'),
-    saltKey: getEnvVar('PHONEPE_SALT_KEY'),
-    saltIndex: getEnvVar('PHONEPE_SALT_INDEX', '1'),
-    baseUrl: getEnvVar('PHONEPE_BASE_URL'),
-    callbackUrl: getEnvVar('PHONEPE_CALLBACK_URL'),
-    timeout: parseInt(getEnvVar('PHONEPE_TIMEOUT', '10000'), 10),
+  cashfree: {
+    appId: getEnvVar('CASHFREE_APP_ID', 'TEST_APP_ID'),
+    secretKey: getEnvVar('CASHFREE_SECRET_KEY', 'TEST_SECRET_KEY'),
+    webhookSecret: getEnvVar('CASHFREE_WEBHOOK_SECRET', ''),
+    apiVersion: getEnvVar('CASHFREE_API_VERSION', '2023-08-01'),
+    baseUrl: getEnvVar('CASHFREE_BASE_URL', 'https://sandbox.cashfree.com/pg'),
+    returnUrl: getEnvVar('CASHFREE_RETURN_URL', 'http://localhost:3000/api/payment/redirect'),
+    environment: getEnvVar('CASHFREE_ENV', 'SANDBOX'),
+    timeout: parseInt(getEnvVar('CASHFREE_TIMEOUT', '10000'), 10),
   },
   firebase: {
     projectId: getEnvVar('FIREBASE_PROJECT_ID'),
@@ -50,10 +57,8 @@ export const config: EnvConfig = {
 function validateStartupEnv(cfg: EnvConfig): void {
   if (cfg.nodeEnv === 'production') {
     const missing: string[] = [];
-    if (!cfg.phonePe.merchantId) missing.push('PHONEPE_MERCHANT_ID');
-    if (!cfg.phonePe.saltKey) missing.push('PHONEPE_SALT_KEY');
-    if (!cfg.phonePe.baseUrl) missing.push('PHONEPE_BASE_URL');
-    if (!cfg.phonePe.callbackUrl) missing.push('PHONEPE_CALLBACK_URL');
+    if (!cfg.cashfree.appId || cfg.cashfree.appId === 'TEST_APP_ID') missing.push('CASHFREE_APP_ID');
+    if (!cfg.cashfree.secretKey || cfg.cashfree.secretKey === 'TEST_SECRET_KEY') missing.push('CASHFREE_SECRET_KEY');
 
     if (missing.length > 0) {
       throw new Error(

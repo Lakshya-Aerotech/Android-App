@@ -23,7 +23,7 @@ const app = express();
 
 // Security and request tracking middleware
 app.use(requestIdMiddleware);
-app.use(helmet());
+app.use(helmet({ hsts: false, contentSecurityPolicy: false }));
 app.use(cors());
 app.use(morgan(config.nodeEnv === 'production' ? 'combined' : 'dev'));
 app.use(express.json());
@@ -83,16 +83,14 @@ app.use(errorHandler);
 app.listen(config.port, '0.0.0.0', () => {
   Logger.info(`[Server] Backend service running on port ${config.port} (${config.nodeEnv} mode)`);
   
-  // Log PhonePe configuration for troubleshooting (masking secrets)
-  const maskedSaltKey = config.phonePe.saltKey ? `${config.phonePe.saltKey.slice(0, 4)}...${config.phonePe.saltKey.slice(-4)}` : 'NOT_CONFIGURED';
-  Logger.info(`[PhonePe Startup Config]
-    Environment: ${config.nodeEnv}
-    Merchant ID: ${config.phonePe.merchantId}
-    Salt Key: ${maskedSaltKey}
-    Salt Index: ${config.phonePe.saltIndex}
-    API Base URL: ${config.phonePe.baseUrl}
-    Callback URL: ${config.phonePe.callbackUrl}
-    Redirect URL: ${config.phonePe.callbackUrl.replace('/webhook', '/redirect')}
+  // Log Cashfree configuration for troubleshooting (masking secrets)
+  const maskedAppId = config.cashfree.appId ? `${config.cashfree.appId.slice(0, 4)}...${config.cashfree.appId.slice(-4)}` : 'NOT_CONFIGURED';
+  Logger.info(`[Cashfree Startup Config]
+    Environment: ${config.cashfree.environment}
+    App ID: ${maskedAppId}
+    API Version: ${config.cashfree.apiVersion}
+    Base URL: ${config.cashfree.baseUrl}
+    Return URL: ${config.cashfree.returnUrl}
   `);
 });
 

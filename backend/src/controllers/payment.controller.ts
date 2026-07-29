@@ -1,29 +1,28 @@
 import { Request, Response, NextFunction } from 'express';
+import { FieldValue } from 'firebase-admin/firestore';
+import { db } from '../firebase';
 import { HTTP_STATUS } from '../config/constants';
-import { phonePeConfig } from '../phonepe/phonepe.config';
+import { cashfreeConfig } from '../cashfree/cashfree.config';
+import { CashfreeService } from '../cashfree/cashfree.service';
 import { PaymentService } from '../services/payment.service';
-import { PhonePeService } from '../phonepe/phonepe.service';
 import { PaymentValidator } from '../validators/payment.validator';
-import { PaymentStatus } from '../models/payment.model';
-import {
-  PhonePePayRequestPayload,
-  PhonePePaymentInstrumentType,
-  PhonePeDecodedWebhookResponse,
-} from '../phonepe/phonepe.types';
+import { PaymentStatus, PaymentGateway, PaymentMode } from '../models/payment.model';
+import { AuthenticatedRequest } from '../middleware/auth.middleware';
+import { CashfreeCreateOrderPayload } from '../cashfree/cashfree.types';
 
 /**
- * Maps PhonePe gateway response codes / payment state to internal PaymentStatus enum.
+ * Maps Cashfree gateway status to internal PaymentStatus enum.
  */
-function mapPhonePeStateToPaymentStatus(codeOrState?: string): PaymentStatus {
-  if (!codeOrState) return PaymentStatus.FAILED;
-  const upper = codeOrState.toUpperCase();
-  if (upper === 'PAYMENT_SUCCESS' || upper === 'COMPLETED' || upper === 'SUCCESS') {
+function mapCashfreeStateToPaymentStatus(state?: string): PaymentStatus {
+  if (!state) return PaymentStatus.FAILED;
+  const upper = state.toUpperCase();
+  if (upper === 'PAID' || upper === 'SUCCESS' || upper === 'COMPLETED') {
     return PaymentStatus.SUCCESS;
   }
-  if (upper === 'PAYMENT_PENDING' || upper === 'PENDING') {
+  if (upper === 'ACTIVE' || upper === 'PENDING') {
     return PaymentStatus.PENDING;
   }
-  if (upper === 'PAYMENT_DECLINED' || upper === 'CANCELLED' || upper === 'PAYMENT_CANCELLED') {
+  if (upper === 'USER_DROPPED' || upper === 'CANCELLED') {
     return PaymentStatus.CANCELLED;
   }
   return PaymentStatus.FAILED;
@@ -31,14 +30,24 @@ function mapPhonePeStateToPaymentStatus(codeOrState?: string): PaymentStatus {
 
 export class PaymentController {
   /**
-   * POST /api/payment/create
-   * Initiates a new payment transaction with PhonePe PG.
+   * POST /api/payment/create-order (or /api/payment/create)
+   * Creates a Cashfree payment order and pending Firestore payment document.
    */
   static async createPayment(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const { bookingId, userId, amount, mobileNumber } = req.body;
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.uid || req.body.userId;
+      const { bookingId, amount, mobileNumber, customerEmail, customerName } = req.body;
 
-      // 1. Validate incoming request payload
+      if (!userId) {
+        return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+          success: false,
+          message: 'Unauthorized: User authentication required.',
+          data: null,
+        });
+      }
+
+      // 1. Validate basic input payload
       const validation = PaymentValidator.validateCreatePayment({ bookingId, userId, amount });
       if (!validation.isValid) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -48,53 +57,79 @@ export class PaymentController {
         });
       }
 
-      // 2. Create Pending Payment document via PaymentService
+      // 2. Security Validation: Verify booking ownership and calculate exact amount from Firestore
+      const { calculatedAmount } = await PaymentService.validateAndCalculateBookingAmount(
+        bookingId,
+        userId,
+        amount
+      );
+
+      // 3. Create Pending Payment document in Firestore
       const pendingPayment = await PaymentService.createPendingPayment({
         bookingId,
         userId,
-        amount,
+        amount: calculatedAmount,
+        gateway: PaymentGateway.CASHFREE,
+        paymentMode: PaymentMode.CASHFREE,
       });
 
-      // 3. Prepare PhonePe API Pay Request Payload (Amount in paise)
-      const phonePePayload: PhonePePayRequestPayload = {
-        merchantId: phonePeConfig.merchantId,
-        merchantTransactionId: pendingPayment.merchantTransactionId,
-        merchantUserId: userId,
-        amount: Math.round(amount * 100),
-        redirectUrl: `${phonePeConfig.callbackUrl.replace('/webhook', '/redirect')}?merchantTransactionId=${pendingPayment.merchantTransactionId}`,
-        redirectMode: 'REDIRECT',
-        callbackUrl: phonePeConfig.callbackUrl,
-        mobileNumber: mobileNumber || '9999999999',
-        paymentInstrument: {
-          type: PhonePePaymentInstrumentType.PAY_PAGE,
+      const rawHost = req.headers.host || '192.168.0.232:3000';
+      const host = rawHost.replace(/^https?:\/\//i, '');
+      const dynamicReturnUrl = `http://${host}/api/payment/redirect?order_id={order_id}`;
+
+      // 4. Prepare Cashfree Create Order Payload
+      const orderPayload: CashfreeCreateOrderPayload = {
+        order_id: pendingPayment.merchantTransactionId,
+        order_amount: calculatedAmount,
+        order_currency: 'INR',
+        customer_details: {
+          customer_id: userId.replace(/[^a-zA-Z0-9_-]/g, '_'),
+          customer_phone: (mobileNumber || '9999999999').replace(/[^0-9]/g, '').slice(-10) || '9999999999',
+          customer_email: customerEmail || `${userId.toLowerCase()}@lakshya.app`,
+          customer_name: customerName || authReq.user?.name || 'Valued Customer',
         },
+        order_meta: {
+          return_url: dynamicReturnUrl,
+        },
+        order_note: `Lakshya Aerotech Drone Spraying Booking ${bookingId}`,
       };
 
-      // 4. Initiate PhonePe gateway transaction
-      const phonePeResponse = await PhonePeService.initiatePayTransaction(phonePePayload);
+      // 5. Initiate Cashfree gateway order
+      const cfOrder = await CashfreeService.createOrder(orderPayload);
 
-      // 5. Extract payment URL and redirect info
-      const redirectInfo = phonePeResponse.data?.instrumentResponse?.redirectInfo;
-      const paymentUrl = redirectInfo?.url || phonePeResponse.data?.instrumentResponse?.intentUrl || '';
+      // 6. Construct Cashfree Payment URL via Official Cashfree JS SDK v3 Runner
+      let paymentUrl = `http://${host}/api/payment/cashfree-checkout?session_id=${cfOrder.payment_session_id}&env=${cashfreeConfig.environment}`;
 
-      // 6. Return standardized JSON response
+      if (
+        cashfreeConfig.appId === 'TEST_APP_ID' ||
+        cashfreeConfig.secretKey === 'TEST_SECRET_KEY' ||
+        !cashfreeConfig.appId ||
+        cfOrder.payment_session_id.startsWith('session_mock_')
+      ) {
+        paymentUrl = `http://${host}/api/payment/mock-checkout?order_id=${pendingPayment.merchantTransactionId}&amount=${calculatedAmount}`;
+      }
+
+      // 7. Return standardized JSON response with payment_session_id for Flutter SDK / Webview
       return res.status(HTTP_STATUS.OK).json({
         success: true,
-        message: 'Payment initiated successfully.',
+        message: 'Cashfree order created successfully.',
         data: {
           success: true,
+          payment_session_id: cfOrder.payment_session_id,
+          order_id: pendingPayment.merchantTransactionId,
           merchantTransactionId: pendingPayment.merchantTransactionId,
+          cf_order_id: cfOrder.cf_order_id,
           paymentUrl,
-          paymentToken: paymentUrl,
           status: PaymentStatus.PENDING,
+          environment: cashfreeConfig.environment,
         },
       });
     } catch (error: any) {
       if (error.response?.data) {
-        console.error('[PaymentController] PhonePe API Error Response:', error.response.data);
+        console.error('[PaymentController] Cashfree API Error Response:', error.response.data);
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
-          message: error.response.data.message || error.response.data.code || 'PhonePe gateway request failed.',
+          message: error.response.data.message || error.response.data.code || 'Cashfree gateway request failed.',
           data: error.response.data,
           requestId: req.id,
         });
@@ -104,15 +139,16 @@ export class PaymentController {
   }
 
   /**
-   * GET /api/payment/status/:merchantTransactionId
-   * Queries PhonePe API for status of a transaction and reconciles with Firestore if pending.
+   * GET /api/payment/status/:orderId
+   * POST /api/payment/verify
+   * Queries Cashfree API for status of an order and reconciles with Firestore.
    */
   static async checkStatus(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const { merchantTransactionId } = req.params;
+      const orderId = req.params.orderId || req.params.merchantTransactionId || req.body.orderId || req.body.order_id;
 
-      // 1. Validate transaction ID parameter
-      const validation = PaymentValidator.validateMerchantTransactionId(merchantTransactionId);
+      // 1. Validate order ID parameter
+      const validation = PaymentValidator.validateMerchantTransactionId(orderId);
       if (!validation.isValid) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
@@ -121,26 +157,22 @@ export class PaymentController {
         });
       }
 
-      // 2. Query PhonePe API for current status
-      const statusResponse = await PhonePeService.checkTransactionStatus(
-        phonePeConfig.merchantId,
-        merchantTransactionId
-      );
+      // 2. Query Cashfree API for current order status
+      const cfOrder = await CashfreeService.getOrderStatus(orderId);
 
       // 3. Reconciliation check against Firestore state
-      const localPayment = await PaymentService.getPaymentByMerchantTransactionId(merchantTransactionId);
+      const localPayment = await PaymentService.getPaymentByMerchantTransactionId(orderId);
       if (localPayment && localPayment.status === PaymentStatus.PENDING) {
-        const gatewayState = statusResponse.data?.paymentState || statusResponse.code;
-        const mappedStatus = mapPhonePeStateToPaymentStatus(gatewayState);
+        const mappedStatus = mapCashfreeStateToPaymentStatus(cfOrder.order_status);
 
         if (mappedStatus !== PaymentStatus.PENDING) {
-          console.log(`[PaymentReconciliation] Synchronizing Firestore for ${merchantTransactionId}. Gateway status: ${mappedStatus}`);
+          console.log(`[PaymentReconciliation] Synchronizing Firestore for Order ${orderId}. Gateway status: ${mappedStatus}`);
           await PaymentService.processPaymentResult(
-            merchantTransactionId,
+            orderId,
             mappedStatus,
-            statusResponse.data?.transactionId || null,
-            statusResponse.data as unknown as Record<string, unknown>,
-            statusResponse.data?.responseCodeDescription || statusResponse.message || null
+            cfOrder.cf_order_id || null,
+            cfOrder as unknown as Record<string, unknown>,
+            cfOrder.order_status !== 'PAID' ? `Order status: ${cfOrder.order_status}` : null
           );
         }
       }
@@ -148,8 +180,14 @@ export class PaymentController {
       // 4. Return gateway response
       return res.status(HTTP_STATUS.OK).json({
         success: true,
-        message: 'Transaction status retrieved successfully.',
-        data: statusResponse,
+        message: 'Cashfree order status retrieved successfully.',
+        data: {
+          order_id: cfOrder.order_id,
+          cf_order_id: cfOrder.cf_order_id,
+          order_status: cfOrder.order_status,
+          order_amount: cfOrder.order_amount,
+          status: mapCashfreeStateToPaymentStatus(cfOrder.order_status),
+        },
       });
     } catch (error: any) {
       next(error);
@@ -158,68 +196,60 @@ export class PaymentController {
 
   /**
    * POST /api/payment/webhook
-   * Receives incoming webhook notification from PhonePe PG, verifies signature,
+   * Receives incoming webhook notifications from Cashfree PG, verifies signature,
    * updates Firestore payment document and booking payment fields atomically.
    */
   static async handleWebhook(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      console.log('[PhonePeWebhook] Webhook callback received from PhonePe');
+      console.log('[CashfreeWebhook] Webhook callback received from Cashfree');
 
-      const receivedXVerify = (req.headers['x-verify'] as string) || '';
-      const base64ResponseBody = req.body.response || '';
+      const signature = (req.headers['x-webhook-signature'] as string) || (req.headers['x-verify'] as string) || '';
+      const timestamp = (req.headers['x-webhook-timestamp'] as string) || '';
+      const rawBody = JSON.stringify(req.body);
 
-      if (!base64ResponseBody || !receivedXVerify) {
-        console.warn('[PhonePeWebhook] Missing payload or X-VERIFY header');
-        return res.status(HTTP_STATUS.BAD_REQUEST).json({
-          success: false,
-          message: 'Missing required webhook response payload or X-VERIFY header.',
-          data: null,
-        });
-      }
-
-      // 1. Verify PhonePe webhook signature
-      const isValidSignature = PhonePeService.verifyWebhookSignature(base64ResponseBody, receivedXVerify);
+      // 1. Verify Cashfree webhook signature
+      const isValidSignature = CashfreeService.verifyWebhookSignature(rawBody, timestamp, signature);
       if (!isValidSignature) {
-        console.error('[PhonePeWebhook] Webhook signature verification failed');
+        console.error('[CashfreeWebhook] Webhook signature verification failed');
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
-          message: 'Invalid webhook signature verification failed.',
+          message: 'Invalid webhook signature.',
           data: null,
         });
       }
 
-      console.log('[PhonePeWebhook] Webhook signature verified successfully');
+      console.log('[CashfreeWebhook] Webhook signature verified successfully');
 
-      // 2. Decode payload
-      const decodedPayload = PhonePeService.decodeWebhookPayload<PhonePeDecodedWebhookResponse>(base64ResponseBody);
-      const merchantTxnId = decodedPayload.data?.merchantTransactionId;
-      const gatewayTxnId = decodedPayload.data?.transactionId || null;
-      const responseCode = decodedPayload.code || decodedPayload.data?.responseCode;
-      const mappedStatus = mapPhonePeStateToPaymentStatus(responseCode);
+      // 2. Extract order payload from webhook
+      const webhookPayload = req.body;
+      const orderId = webhookPayload.data?.order?.order_id || webhookPayload.order_id;
+      const cfPaymentId = webhookPayload.data?.payment?.cf_payment_id || webhookPayload.cf_payment_id || null;
+      const paymentStatusStr = webhookPayload.data?.payment?.payment_status || webhookPayload.txStatus || webhookPayload.data?.order?.order_status;
+      const mappedStatus = mapCashfreeStateToPaymentStatus(paymentStatusStr);
 
-      if (!merchantTxnId) {
-        console.error('[PhonePeWebhook] Decoded payload missing merchantTransactionId');
+      if (!orderId) {
+        console.error('[CashfreeWebhook] Payload missing order_id');
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
-          message: 'Decoded webhook payload missing merchantTransactionId.',
+          message: 'Webhook payload missing order_id.',
           data: null,
         });
       }
 
       // 3. Check if payment exists in Firestore
-      const existingPayment = await PaymentService.getPaymentByMerchantTransactionId(merchantTxnId);
+      const existingPayment = await PaymentService.getPaymentByMerchantTransactionId(orderId);
       if (!existingPayment) {
-        console.warn(`[PhonePeWebhook] Payment record not found in system for merchantTxnId ${merchantTxnId}`);
+        console.warn(`[CashfreeWebhook] Payment record not found in system for order ${orderId}`);
         return res.status(HTTP_STATUS.NOT_FOUND).json({
           success: false,
-          message: `Payment transaction '${merchantTxnId}' not found in system.`,
+          message: `Payment transaction '${orderId}' not found in system.`,
           data: null,
         });
       }
 
       // 4. Idempotency Check: If payment is already SUCCESS, return HTTP 200 immediately
       if (existingPayment.status === PaymentStatus.SUCCESS) {
-        console.log(`[PhonePeWebhook] Idempotent response: Payment ${merchantTxnId} is already SUCCESS.`);
+        console.log(`[CashfreeWebhook] Idempotent response: Payment ${orderId} is already in SUCCESS state.`);
         return res.status(HTTP_STATUS.OK).json({
           success: true,
           message: 'Webhook processed (Already in SUCCESS state).',
@@ -229,17 +259,17 @@ export class PaymentController {
 
       // 5. Process atomic update for Payment and Booking documents in Firestore
       const result = await PaymentService.processPaymentResult(
-        merchantTxnId,
+        orderId,
         mappedStatus,
-        gatewayTxnId,
-        decodedPayload.data as unknown as Record<string, unknown>,
-        decodedPayload.message || decodedPayload.data?.responseCodeDescription || null
+        cfPaymentId,
+        webhookPayload as Record<string, unknown>,
+        mappedStatus !== PaymentStatus.SUCCESS ? `Cashfree status: ${paymentStatusStr}` : null
       );
 
       if (result?.alreadyProcessed) {
-        console.log(`[PhonePeWebhook] Duplicate webhook callback skipped for ${merchantTxnId}`);
+        console.log(`[CashfreeWebhook] Duplicate webhook callback skipped for ${orderId}`);
       } else {
-        console.log(`[PhonePeWebhook] Successfully updated Payment and Booking for ${merchantTxnId} to status ${mappedStatus}`);
+        console.log(`[CashfreeWebhook] Successfully updated Payment and Booking for ${orderId} to status ${mappedStatus}`);
       }
 
       // 6. Return HTTP 200
@@ -255,18 +285,33 @@ export class PaymentController {
 
   /**
    * GET/POST /api/payment/redirect
-   * Handles browser redirect from PhonePe check-out page. Renders a clean success/failure webpage
-   * which is captured by the Flutter app's webview to transition screens.
+   * Handles browser return redirect from Cashfree checkout page.
    */
   static async handleRedirect(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const status = (req.query.status as string) || (req.body.status as string) || '';
-      const code = (req.query.code as string) || (req.body.code as string) || '';
-      const merchantTransactionId = (req.query.merchantTransactionId as string) || (req.body.merchantTransactionId as string) || (req.query.transactionId as string) || (req.body.transactionId as string) || '';
+      const orderId = (req.query.order_id as string) || (req.query.merchantTransactionId as string) || '';
 
-      console.log(`[PhonePeRedirect] Redirect hit. Transaction: ${merchantTransactionId}, Status: ${status}, Code: ${code}`);
+      console.log(`[CashfreeRedirect] Redirect hit for Order ID: ${orderId}`);
 
-      const isSuccess = status.toUpperCase() === 'SUCCESS' || code.toUpperCase() === 'PAYMENT_SUCCESS';
+      let isSuccess = false;
+      if (orderId) {
+        try {
+          const cfOrder = await CashfreeService.getOrderStatus(orderId);
+          isSuccess = cfOrder.order_status === 'PAID';
+          if (isSuccess) {
+            console.log(`[CashfreeRedirect] Order ${orderId} is PAID. Updating Firestore status to SUCCESS and booking status to pending...`);
+            await PaymentService.processPaymentResult(
+              orderId,
+              PaymentStatus.SUCCESS,
+              cfOrder.cf_order_id ? String(cfOrder.cf_order_id) : `CF_${Date.now()}`,
+              { gateway: 'CASHFREE', raw: cfOrder }
+            );
+          }
+        } catch (e) {
+          console.error(`[CashfreeRedirect] Error processing payment result for ${orderId}:`, e);
+          isSuccess = false;
+        }
+      }
 
       res.setHeader('Content-Type', 'text/html');
       return res.status(HTTP_STATUS.OK).send(`
@@ -274,7 +319,7 @@ export class PaymentController {
         <html>
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Payment Status</title>
+          <title>Cashfree Payment Status</title>
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; padding: 40px 20px; background-color: #f7f9fa; margin: 0; display: flex; align-items: center; justify-content: center; height: 80vh; }
             .card { max-width: 420px; width: 100%; background: white; padding: 40px 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); box-sizing: border-box; }
@@ -304,20 +349,305 @@ export class PaymentController {
                 </svg>
               `}
             </div>
-            <h1>Payment ${isSuccess ? 'Successful' : 'Failed'}</h1>
-            <p>${isSuccess ? 'Your payment has been successfully processed.' : 'Something went wrong during your payment transaction.'}</p>
+            <h1>Payment ${isSuccess ? 'Successful' : 'Processing / Pending'}</h1>
+            <p>${isSuccess ? 'Your payment has been successfully processed by Cashfree.' : 'Your payment status is being verified.'}</p>
             
-            ${merchantTransactionId ? `
+            ${orderId ? `
               <div class="details">
                 <div class="details-row">
-                  <span class="details-label">Transaction ID:</span>
-                  <span class="details-value">${merchantTransactionId}</span>
+                  <span class="details-label">Order ID:</span>
+                  <span class="details-value">${orderId}</span>
                 </div>
               </div>
             ` : ''}
 
-            <p style="font-size: 13px; color: #8792a2; margin: 24px 0 0 0;">You can close this screen or wait to return to the app.</p>
+            <p style="font-size: 13px; color: #8792a2; margin: 24px 0 0 0;">You can close this window to return to the app.</p>
           </div>
+        </body>
+        </html>
+      `);
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/payment/confirm-cash
+   * Authenticated Admin / Operations endpoint to confirm cash payment collection for a booking.
+   */
+  static async confirmCashPayment(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userRole = authReq.user?.role;
+      const operatorUid = authReq.user?.uid || 'UNKNOWN_OPERATOR';
+
+      if (userRole !== 'admin' && userRole !== 'operations') {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: 'Forbidden: Only Administrator or Operations roles can confirm cash payments.',
+          data: null,
+        });
+      }
+
+      const { bookingId, remarks } = req.body;
+      if (!bookingId) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: 'Booking ID is required.',
+          data: null,
+        });
+      }
+
+      const bookingRef = db.collection('bookings').doc(bookingId);
+      
+      const result = await db.runTransaction(async (transaction) => {
+        const bookingDoc = await transaction.get(bookingRef);
+        if (!bookingDoc.exists) {
+          throw new Error(`Booking '${bookingId}' not found.`);
+        }
+
+        const bookingData = bookingDoc.data() || {};
+        if (bookingData.paymentStatus === PaymentStatus.SUCCESS || bookingData.paymentStatus === 'PAID') {
+          return { alreadyPaid: true, bookingData };
+        }
+
+        const now = FieldValue.serverTimestamp();
+        const paymentDocRef = db.collection('payments').doc();
+        const paymentId = paymentDocRef.id;
+        const merchantTransactionId = `CASH_${Date.now()}_${bookingId}`;
+        const amount = bookingData.payableAmount || bookingData.totalPrice || bookingData.amount || 0;
+
+        // 1. Create Payment Document for Cash Transaction
+        transaction.set(paymentDocRef, {
+          paymentId,
+          bookingId,
+          userId: bookingData.farmerUid || bookingData.userId || '',
+          merchantTransactionId,
+          transactionId: `CASH_TXN_${Date.now()}`,
+          amount,
+          currency: 'INR',
+          status: PaymentStatus.SUCCESS,
+          paymentMode: PaymentMode.CASH,
+          gateway: PaymentGateway.CASHFREE,
+          gatewayResponse: { confirmedBy: operatorUid, remarks: remarks || 'Cash collected by staff' },
+          createdAt: now,
+          updatedAt: now,
+          completedAt: now,
+          failureReason: null,
+          metadata: { cashCollectedBy: operatorUid },
+        });
+
+        // 2. Update Booking Document
+        transaction.update(bookingRef, {
+          paymentStatus: PaymentStatus.SUCCESS,
+          paymentMethod: PaymentMode.CASH,
+          paymentId,
+          cashCollected: true,
+          cashCollectedBy: operatorUid,
+          cashCollectedAt: now,
+          paymentCompletedAt: now,
+          updatedAt: now,
+        });
+
+        return { alreadyPaid: false, amount };
+      });
+
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: result.alreadyPaid ? 'Cash payment already confirmed.' : 'Cash payment confirmed successfully.',
+        data: result,
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/payment/mock-checkout
+   * Interactive Cashfree Payment Gateway Simulator for local development & mock testing.
+   */
+  static async handleMockCheckout(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+    try {
+      const orderId = (req.query.order_id as string) || '';
+      const amount = (req.query.amount as string) || '500';
+
+      const action = (req.query.action as string) || '';
+      if (action === 'success' && orderId) {
+        await PaymentService.processPaymentResult(
+          orderId,
+          PaymentStatus.SUCCESS,
+          `CF_MOCK_PAY_${Date.now()}`,
+          { gateway: 'CASHFREE_MOCK', mode: 'UPI' }
+        );
+        res.setHeader('Content-Type', 'text/html');
+        return res.status(HTTP_STATUS.OK).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Cashfree Payment Success</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; padding: 40px 20px; background-color: #e8f5e9; margin: 0; display: flex; align-items: center; justify-content: center; height: 80vh; }
+              .card { max-width: 420px; width: 100%; background: white; padding: 40px 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); box-sizing: border-box; }
+              .icon-circle { width: 72px; height: 72px; border-radius: 50%; background-color: #e8f5e9; color: #4caf50; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto; }
+              h1 { font-size: 24px; color: #1a1f36; margin: 0 0 12px 0; }
+              p { color: #4f566b; line-height: 24px; margin-bottom: 24px; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <div class="icon-circle">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <h1>Payment Successful</h1>
+              <p>Your payment of ₹${amount} was successfully verified by Cashfree Gateway.</p>
+            </div>
+            <script>
+              setTimeout(() => {
+                window.location.href = "/api/payment/redirect?status=SUCCESS&order_id=${orderId}";
+              }, 1200);
+            </script>
+          </body>
+          </html>
+        `);
+      } else if (action === 'cancel' && orderId) {
+        await PaymentService.processPaymentResult(
+          orderId,
+          PaymentStatus.CANCELLED,
+          null,
+          { gateway: 'CASHFREE_MOCK', mode: 'CANCELLED' },
+          'User cancelled payment'
+        );
+        res.setHeader('Content-Type', 'text/html');
+        return res.status(HTTP_STATUS.OK).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Cashfree Payment Cancelled</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; padding: 40px 20px; background-color: #ffebee; margin: 0; display: flex; align-items: center; justify-content: center; height: 80vh; }
+              .card { max-width: 420px; width: 100%; background: white; padding: 40px 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); box-sizing: border-box; }
+              .icon-circle { width: 72px; height: 72px; border-radius: 50%; background-color: #ffebee; color: #f44336; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto; }
+              h1 { font-size: 24px; color: #1a1f36; margin: 0 0 12px 0; }
+              p { color: #4f566b; line-height: 24px; margin-bottom: 24px; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <div class="icon-circle">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </div>
+              <h1>Payment Cancelled</h1>
+              <p>Payment transaction was cancelled by user.</p>
+            </div>
+            <script>
+              setTimeout(() => {
+                window.location.href = "/api/payment/redirect?status=CANCELLED&order_id=${orderId}";
+              }, 1200);
+            </script>
+          </body>
+          </html>
+        `);
+      }
+
+      res.setHeader('Content-Type', 'text/html');
+      return res.status(HTTP_STATUS.OK).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Cashfree Gateway Simulator</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 24px 16px; background-color: #f4f6f8; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 90vh; }
+            .card { max-width: 400px; width: 100%; background: white; padding: 32px 24px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); box-sizing: border-box; text-align: center; }
+            .logo-badge { background: #7b2cbf; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; display: inline-block; margin-bottom: 20px; }
+            h2 { margin: 0 0 8px 0; color: #1a1f36; font-size: 22px; }
+            .amount { font-size: 32px; font-weight: 800; color: #101828; margin: 16px 0 24px 0; }
+            .btn { display: block; width: 100%; padding: 16px; margin-bottom: 12px; border-radius: 12px; font-size: 16px; font-weight: 700; text-decoration: none; border: none; cursor: pointer; box-sizing: border-box; }
+            .btn-success { background-color: #00c853; color: white; }
+            .btn-cancel { background-color: #f44336; color: white; }
+            .info-box { background: #f8f9fa; padding: 12px; border-radius: 8px; font-size: 13px; color: #666; margin-bottom: 20px; border: 1px solid #e0e0e0; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="logo-badge">Cashfree Payments (Dev Sandbox)</div>
+            <h2>Drone Spraying Booking</h2>
+            <div class="amount">₹${amount}</div>
+            
+            <div class="info-box">
+              <strong>Order ID:</strong> ${orderId}
+            </div>
+
+            <a href="/api/payment/mock-checkout?order_id=${orderId}&amount=${amount}&action=success" class="btn btn-success">
+              ✓ SIMULATE SUCCESSFUL PAYMENT (UPI)
+            </a>
+            
+            <a href="/api/payment/mock-checkout?order_id=${orderId}&amount=${amount}&action=cancel" class="btn btn-cancel">
+              ✕ CANCEL / FAIL PAYMENT
+            </a>
+          </div>
+        </body>
+        </html>
+      `);
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/payment/cashfree-checkout
+   * Official Cashfree Web Checkout SDK v3 Runner for mobile WebViews & browsers.
+   */
+  static async handleCashfreeCheckout(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+    try {
+      const sessionId = (req.query.session_id as string) || '';
+      const env = (req.query.env as string)?.toUpperCase() === 'PRODUCTION' ? 'production' : 'sandbox';
+
+      res.setHeader('Content-Type', 'text/html');
+      return res.status(HTTP_STATUS.OK).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Cashfree Secure Checkout</title>
+          <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+          <style>
+            body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f8f9fa; display: flex; align-items: center; justify-content: center; height: 100vh; }
+            .loading-box { text-align: center; background: white; padding: 32px 24px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); max-width: 320px; width: 90%; }
+            .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #7b2cbf; border-radius: 50%; width: 36px; height: 36px; animation: spin 1s linear infinite; margin: 0 auto 16px auto; }
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            h3 { margin: 0 0 8px 0; color: #1a1f36; font-size: 18px; }
+            p { margin: 0; color: #697386; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="loading-box">
+            <div class="spinner"></div>
+            <h3>Connecting to Cashfree</h3>
+            <p>Loading secure payment checkout...</p>
+          </div>
+          <script>
+            document.addEventListener("DOMContentLoaded", function() {
+              try {
+                const cashfree = Cashfree({
+                  mode: "${env}"
+                });
+                cashfree.checkout({
+                  paymentSessionId: "${sessionId}",
+                  redirectTarget: "_self"
+                });
+              } catch (e) {
+                console.error("Cashfree SDK Initialization Error:", e);
+              }
+            });
+          </script>
         </body>
         </html>
       `);

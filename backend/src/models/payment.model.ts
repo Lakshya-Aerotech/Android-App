@@ -9,13 +9,17 @@ export enum PaymentStatus {
 }
 
 export enum PaymentMode {
+  CASHFREE = 'CASHFREE',
   PHONEPE = 'PHONEPE',
   UPI = 'UPI',
+  CARD = 'CARD',
+  NET_BANKING = 'NET_BANKING',
   CASH = 'CASH',
   UNKNOWN = 'UNKNOWN',
 }
 
 export enum PaymentGateway {
+  CASHFREE = 'CASHFREE',
   PHONEPE = 'PHONEPE',
 }
 
@@ -23,8 +27,8 @@ export interface PaymentDocument {
   paymentId: string;
   bookingId: string;
   userId: string;
-  merchantTransactionId: string;
-  transactionId: string | null;
+  merchantTransactionId: string; // Also acts as orderId for Cashfree compatibility
+  transactionId: string | null;  // Stores cf_payment_id
   amount: number;
   currency: string;
   status: PaymentStatus;

@@ -72,7 +72,10 @@ export class WorkflowListenerService {
                 });
 
                 // Service Booking Request Created & Requires Approval
-                if (newStatus === 'pending') {
+                const isUnpaidPayNow = (data.paymentTiming === 'PAY_NOW' || newStatus === 'payment_pending') && 
+                  newPaymentStatus !== 'Paid' && newPaymentStatus !== 'SUCCESS';
+
+                if (newStatus === 'pending' && !isUnpaidPayNow) {
                   // Notify Operations
                   await this.notifyOperations(
                     'Service Booking Request Created',

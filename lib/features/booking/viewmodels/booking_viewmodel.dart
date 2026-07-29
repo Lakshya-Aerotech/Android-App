@@ -47,7 +47,7 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
 
   BookingViewModel(this._repository, this._ref) : super(const AsyncData(null));
 
-  Future<void> createBooking({
+  Future<BookingModel?> createBooking({
     required String farmId,
     required String farmName,
     required String cropType,
@@ -70,12 +70,15 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
     double? originalAmount,
     double? discountAmount,
     double? payableAmount,
+    String? paymentTiming = 'PAY_NOW',
+    String? paymentMethod = 'UPI',
+    String? paymentStatus = 'PENDING',
   }) async {
     state = const AsyncLoading();
     final user = _ref.read(userModelProvider);
     if (user == null || user.uid == null) {
       state = AsyncError('User not authenticated', StackTrace.current);
-      return;
+      return null;
     }
 
     final bookingId = _generateBookingId();
@@ -106,7 +109,7 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
       bookingDate: bookingDate,
       preferredTime: preferredTime,
       estimatedArea: estimatedArea,
-      status: BookingStatus.pending,
+      status: paymentTiming == 'PAY_NOW' ? BookingStatus.paymentPending : BookingStatus.pending,
       remarks: remarks,
       couponId: couponId,
       couponCode: couponCode,
@@ -115,15 +118,21 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
       originalAmount: originalAmount,
       discountAmount: discountAmount,
       payableAmount: payableAmount,
+      paymentTiming: paymentTiming,
+      paymentMethod: paymentMethod,
+      paymentStatus: paymentStatus,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
 
     try {
-      await _repository.createBooking(booking);
+      final docId = await _repository.createBooking(booking);
+      final createdBooking = booking.copyWith(docId: docId);
       state = AsyncData(bookingId);
+      return createdBooking;
     } catch (e, st) {
       state = AsyncError(e, st);
+      return null;
     }
   }
 

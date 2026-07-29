@@ -16,6 +16,8 @@ import '../../widgets/farm_selection_card.dart';
 import '../../widgets/booking_summary_card.dart';
 import '../../../admin/models/coupon_model.dart';
 import '../../../admin/viewmodels/admin_viewmodel.dart';
+import '../../../payment/data/services/payment_api.dart';
+import '../../../payment/presentation/screens/payment_webview_screen.dart';
 
 class BookServiceScreen extends ConsumerStatefulWidget {
   final UserModel? farmerOverride;
@@ -41,6 +43,9 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
   CouponModel? _appliedCoupon;
   String? _couponError;
   final TextEditingController _couponController = TextEditingController();
+
+  String _paymentTiming = 'PAY_NOW'; // 'PAY_NOW' | 'PAY_AFTER_SERVICE'
+  String _paymentMethod = 'UPI'; // 'UPI' | 'CASH'
 
   final List<String> _stepTitles = ['Farm', 'Service', 'Schedule', 'Review'];
 
@@ -121,8 +126,10 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
     }
 
     final double finalAmount = originalAmount - discountAmount;
+    final chosenMethod = _paymentTiming == 'PAY_NOW' ? 'UPI' : _paymentMethod;
+    final initialStatus = _paymentTiming == 'PAY_NOW' ? 'PENDING' : 'PAYMENT_PENDING';
 
-    await ref
+    final createdBooking = await ref
         .read(bookingViewModelProvider.notifier)
         .createBooking(
           farmId: _selectedFarm!.docId!,
@@ -149,7 +156,69 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
           originalAmount: originalAmount,
           discountAmount: discountAmount,
           payableAmount: finalAmount,
+          paymentTiming: _paymentTiming,
+          paymentMethod: chosenMethod,
+          paymentStatus: initialStatus,
         );
+
+    if (createdBooking != null) {
+      if (_paymentTiming == 'PAY_NOW') {
+        try {
+          final paymentApi = ref.read(paymentApiServiceProvider);
+          final paymentResponse = await paymentApi.createPayment(
+            bookingId: createdBooking.docId ?? createdBooking.bookingId,
+            userId: createdBooking.farmerUid,
+            amount: finalAmount,
+            mobileNumber: createdBooking.farmerPhone ?? '9999999999',
+          );
+
+          if (mounted && paymentResponse.paymentUrl.isNotEmpty) {
+            final isPaid = await Navigator.push<bool>(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PaymentWebViewScreen(
+                  booking: createdBooking,
+                  paymentUrl: paymentResponse.paymentUrl,
+                ),
+              ),
+            );
+
+            if (isPaid == true) {
+              if (mounted) {
+                context.go('/booking-success', extra: createdBooking.bookingId);
+              }
+            } else {
+              if (createdBooking.docId != null) {
+                await ref.read(bookingViewModelProvider.notifier).cancelBooking(
+                  createdBooking.docId!,
+                  remarks: 'Payment cancelled by user before completion.',
+                );
+              }
+              if (mounted) {
+                _showError("Payment was not completed. You can try paying again or switch to 'Pay After Service'.");
+              }
+            }
+            return;
+          }
+        } catch (e) {
+          debugPrint('Error initiating Cashfree checkout for Pay Now: $e');
+          if (createdBooking.docId != null) {
+            await ref.read(bookingViewModelProvider.notifier).cancelBooking(
+              createdBooking.docId!,
+              remarks: 'Payment failed during checkout initiation.',
+            );
+          }
+          if (mounted) {
+            _showError('Failed to launch Cashfree Gateway: ${e.toString().replaceAll('Exception: ', '')}');
+          }
+          return;
+        }
+      }
+
+      if (mounted) {
+        context.go('/booking-success', extra: createdBooking.bookingId);
+      }
+    }
   }
 
   @override
@@ -161,9 +230,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
     final bookingState = ref.watch(bookingViewModelProvider);
 
     ref.listen(bookingViewModelProvider, (previous, next) {
-      if (next is AsyncData && next.value != null) {
-        context.go('/booking-success', extra: next.value);
-      } else if (next is AsyncError) {
+      if (next is AsyncError) {
         _showError('Error: ${next.error}');
       }
     });
@@ -566,6 +633,97 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 24),
+          const SectionHeader(title: 'Payment Timing'),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              children: [
+                RadioListTile<String>(
+                  activeColor: AppColors.primary,
+                  title: const Text('Pay Now', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  subtitle: const Text('Pay immediately via Cashfree UPI online', style: TextStyle(fontSize: 12)),
+                  value: 'PAY_NOW',
+                  groupValue: _paymentTiming,
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        _paymentTiming = val;
+                        _paymentMethod = 'UPI';
+                      });
+                    }
+                  },
+                ),
+                const Divider(height: 1),
+                RadioListTile<String>(
+                  activeColor: AppColors.primary,
+                  title: const Text('Pay After Service', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  subtitle: const Text('Pay after pilot completes drone spraying service', style: TextStyle(fontSize: 12)),
+                  value: 'PAY_AFTER_SERVICE',
+                  groupValue: _paymentTiming,
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        _paymentTiming = val;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          if (_paymentTiming == 'PAY_NOW') ...[
+            const SectionHeader(title: 'Payment Method'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.account_balance_wallet, color: AppColors.primary),
+                  SizedBox(width: 12),
+                  Text('UPI (Cashfree Online)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  Spacer(),
+                  Chip(
+                    label: Text('Instant', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                    backgroundColor: Colors.white,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.blue.shade700),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'No payment is required right now. You will choose your preferred payment method (UPI or Cash) after the pilot completes the drone spraying service.',
+                      style: TextStyle(fontSize: 13, color: Colors.blueGrey, height: 1.3),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (user?.role != UserRole.farmer) ...[
             const SizedBox(height: 24),
             const SectionHeader(title: 'Apply Coupon'),
@@ -797,7 +955,9 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
           Expanded(
             flex: 2,
             child: PrimaryButton(
-              text: _currentStep == 3 ? 'Confirm & Book' : 'Next →',
+              text: _currentStep == 3
+                  ? (_paymentTiming == 'PAY_NOW' ? 'Pay Now (Cashfree UPI) →' : 'Confirm & Book')
+                  : 'Next →',
               onPressed: isLoading
                   ? null
                   : (_currentStep == 3 ? _submit : _nextPage),

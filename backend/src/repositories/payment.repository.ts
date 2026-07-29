@@ -218,6 +218,18 @@ export class PaymentRepository {
         bookingDocRef = db.collection('bookings').doc(paymentData.bookingId);
         const bookingDoc = await transaction.get(bookingDocRef);
         bookingDocExists = bookingDoc.exists;
+
+        if (!bookingDocExists) {
+          const bookingQuery = db
+            .collection('bookings')
+            .where('bookingId', '==', paymentData.bookingId)
+            .limit(1);
+          const bookingQuerySnap = await transaction.get(bookingQuery);
+          if (!bookingQuerySnap.empty) {
+            bookingDocRef = bookingQuerySnap.docs[0].ref;
+            bookingDocExists = true;
+          }
+        }
       }
 
       // Idempotency Check: If payment is already SUCCESS, return early without writing
@@ -244,13 +256,19 @@ export class PaymentRepository {
       transaction.update(paymentDocRef, paymentUpdates);
 
       if (bookingDocRef && bookingDocExists) {
-        transaction.update(bookingDocRef, {
+        const bookingUpdates: Record<string, any> = {
           paymentStatus: status,
           paymentId: paymentData.paymentId,
           merchantTransactionId: paymentData.merchantTransactionId,
           transactionId: transactionId || paymentData.transactionId || '',
           paymentCompletedAt: now,
-        });
+        };
+
+        if (status === PaymentStatus.SUCCESS) {
+          bookingUpdates.status = 'pending'; // Submit booking for operations/admin approval!
+        }
+
+        transaction.update(bookingDocRef, bookingUpdates);
         console.log(`[PaymentRepository] Atomic update prepared for booking doc ${paymentData.bookingId}`);
       }
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -18,6 +17,10 @@ import '../../widgets/issue_report_dialog.dart';
 import '../../../../shared/widgets/live_tracking_map.dart';
 import '../../../auth/models/user_model.dart';
 import '../../../auth/viewmodel/auth_viewmodel.dart';
+import '../../../payment/data/services/payment_api.dart';
+import '../../../payment/presentation/screens/payment_webview_screen.dart';
+import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class BookingDetailsScreen extends ConsumerWidget {
   final BookingModel booking;
@@ -169,7 +172,7 @@ class BookingDetailsScreen extends ConsumerWidget {
 
           const SizedBox(height: 40),
           
-          if (b.status == BookingStatus.pending) ...[
+          if (b.status == BookingStatus.pending && !(b.paymentStatus?.toUpperCase() == 'SUCCESS' || b.paymentStatus?.toUpperCase() == 'PAID')) ...[
             PrimaryButton(
               text: 'Cancel Booking',
               onPressed: () => _showCancelConfirmation(context, ref, b.docId!),
@@ -277,11 +280,10 @@ class BookingDetailsScreen extends ConsumerWidget {
   }
 
   Widget _buildPaymentSummaryCard(BuildContext context, WidgetRef ref, BookingModel b, UserModel? user) {
-    final bool isConfirmed = b.status == BookingStatus.farmerConfirmed || b.status == BookingStatus.closed;
-    final showPayNow = user != null &&
-        (user.role == UserRole.retailer || (user.role == UserRole.farmer && isConfirmed)) &&
-        b.paymentStatus?.toUpperCase() != 'SUCCESS' &&
-        (b.payableAmount ?? 0) > 0;
+    final bool isPaid = b.paymentStatus?.toUpperCase() == 'SUCCESS' || b.paymentStatus?.toUpperCase() == 'PAID';
+    final bool isUpi = (b.paymentMethod ?? 'UPI').toUpperCase() == 'UPI';
+    final bool isCash = (b.paymentMethod ?? '').toUpperCase() == 'CASH';
+    final bool isStaffOrAdmin = user?.role == UserRole.admin || user?.role == UserRole.operations;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -306,18 +308,168 @@ class BookingDetailsScreen extends ConsumerWidget {
             valueColor: AppColors.primary,
           ),
           const Divider(height: 24),
-          _buildPaymentRow('Payment Method', b.paymentMethod ?? 'Online (PhonePe)'),
-          _buildPaymentRow('Payment Status', b.paymentStatus ?? 'Pending'),
-          if (showPayNow) ...[
+          _buildPaymentRow('Payment Timing', b.paymentTiming == 'PAY_AFTER_SERVICE' ? 'Pay After Service' : 'Pay Now'),
+          _buildPaymentRow('Payment Method', isCash ? 'Cash' : 'UPI (Cashfree)'),
+          _buildPaymentRow(
+            'Payment Status', 
+            b.paymentStatus ?? 'PAYMENT_PENDING',
+            valueColor: isPaid ? AppColors.success : AppColors.warning,
+            isBold: true,
+          ),
+          if (isPaid) ...[
+            const Divider(height: 24),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'PAYMENT COMPLETED',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.success, fontSize: 13, letterSpacing: 0.5),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (isUpi) ...[
             const Divider(height: 24),
             PrimaryButton(
-              text: 'PAY ONLINE NOW',
-              onPressed: () => context.push('/online-payment', extra: b),
+              text: 'COMPLETE PAYMENT (CASHFREE UPI)',
+              onPressed: () => _handlePayNow(context, ref, b),
             ),
+          ] else if (isCash) ...[
+            const Divider(height: 24),
+            if (isStaffOrAdmin) ...[
+              ElevatedButton.icon(
+                icon: const Icon(Icons.payments, color: Colors.white),
+                label: const Text('CONFIRM CASH COLLECTION', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () => _handleConfirmCash(context, ref, b),
+              ),
+            ] else ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.hourglass_empty, color: AppColors.warning),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Waiting for Cash Collection by Pilot / Operations Staff.',
+                        style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.warning, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ],
       ),
     );
+  }
+
+  Future<void> _handlePayNow(BuildContext context, WidgetRef ref, BookingModel b) async {
+    try {
+      final paymentApi = ref.read(paymentApiServiceProvider);
+      final response = await paymentApi.createPayment(
+        bookingId: b.bookingId,
+        userId: b.farmerUid,
+        amount: b.payableAmount ?? 0.0,
+        mobileNumber: b.farmerPhone ?? '9999999999',
+      );
+
+      if (context.mounted && response.paymentUrl.isNotEmpty) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PaymentWebViewScreen(
+              booking: b,
+              paymentUrl: response.paymentUrl,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error initiating Cashfree payment: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleConfirmCash(BuildContext context, WidgetRef ref, BookingModel b) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Cash Payment'),
+        content: Text('Confirm that cash payment of Rs. ${(b.payableAmount ?? 0).toStringAsFixed(2)} has been collected for booking ${b.bookingId}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Confirm Cash Received'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final dio = ref.read(dioProvider);
+        final user = FirebaseAuth.instance.currentUser;
+        final token = await user?.getIdToken();
+
+        final response = await dio.post(
+          'http://192.168.0.232:3000/api/payment/confirm-cash',
+          data: {
+            'bookingId': b.docId ?? b.bookingId,
+            'remarks': 'Cash collected by staff',
+          },
+          options: Options(headers: {'Authorization': 'Bearer $token'}),
+        );
+
+        if (context.mounted) {
+          if (response.data['success'] == true) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Cash payment confirmed successfully!'), backgroundColor: AppColors.success),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(response.data['message'] ?? 'Failed to confirm cash.'), backgroundColor: AppColors.error),
+            );
+          }
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error confirming cash payment: $e'), backgroundColor: AppColors.error),
+          );
+        }
+      }
+    }
   }
 
   Widget _buildPaymentRow(String label, String value, {Color? valueColor, bool isBold = false}) {

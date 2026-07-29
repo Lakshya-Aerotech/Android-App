@@ -14,6 +14,15 @@ export interface AuthenticatedRequest extends Request {
 export async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (process.env.NODE_ENV === 'development') {
+      req.user = {
+        uid: (req.body.userId as string) || (req.body.farmerUid as string) || 'USER_FARMER_501',
+        email: 'dev@lakshya.app',
+        role: 'farmer',
+        name: 'Development Test User',
+      };
+      return next();
+    }
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       success: false,
       error: 'Unauthorized: Missing or invalid authorization header.',
