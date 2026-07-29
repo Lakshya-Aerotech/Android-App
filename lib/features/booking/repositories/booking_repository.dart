@@ -29,6 +29,10 @@ abstract class BookingRepository {
     double? discountAmount,
     String? pilotId,
   });
+  Future<void> selectPaymentMethod({
+    required String docId,
+    required String method,
+  });
 }
 
 class BookingRepositoryImpl implements BookingRepository {
@@ -359,6 +363,19 @@ class BookingRepositoryImpl implements BookingRepository {
       updates['cashCollectedAt'] = FieldValue.serverTimestamp();
     }
 
+    await _firestore.collection('bookings').doc(docId).update(updates);
+  }
+
+  @override
+  Future<void> selectPaymentMethod({
+    required String docId,
+    required String method,
+  }) async {
+    final updates = <String, dynamic>{
+      'paymentMethod': method,
+      'paymentStatus': method.toUpperCase() == 'CASH' ? 'Awaiting Cash Collection' : 'PAYMENT_PENDING',
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
     await _firestore.collection('bookings').doc(docId).update(updates);
   }
 }

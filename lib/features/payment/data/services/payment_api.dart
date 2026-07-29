@@ -11,7 +11,7 @@ class PaymentApiService {
 
   static const String _defaultBaseUrl = String.fromEnvironment(
     'PAYMENT_BASE_URL',
-    defaultValue: 'http://192.168.0.232:3000/api/payment',
+    defaultValue: 'http://192.168.1.3:3000/api/payment',
   );
 
   String _getHealthUrl(String paymentBaseUrl) {
@@ -137,6 +137,32 @@ class PaymentApiService {
       throw Exception(_handleDioError(e));
     } catch (e) {
       throw Exception('An unexpected error occurred checking payment status: $e');
+    }
+  }
+  Future<Map<String, dynamic>> confirmCashPayment({
+    required String bookingId,
+    required String remarks,
+  }) async {
+    final endpointUrl = '$_defaultBaseUrl/confirm-cash';
+    try {
+      final authOptions = await _getAuthOptions();
+      final response = await _dio.post(
+        endpointUrl,
+        data: {
+          'bookingId': bookingId,
+          'remarks': remarks,
+        },
+        options: authOptions,
+      );
+      
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data;
+      }
+      throw Exception(response.data?['message'] ?? 'Failed to confirm cash payment.');
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    } catch (e) {
+      throw Exception('An unexpected error occurred confirming cash payment: $e');
     }
   }
 

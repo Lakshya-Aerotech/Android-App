@@ -374,12 +374,58 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
 
   @override
   Future<void> collectCash(String docId, String pilotId) async {
-    await _firestore.collection('bookings').doc(docId).update({
-      'cashCollected': true,
-      'cashCollectedBy': pilotId,
-      'cashCollectedAt': FieldValue.serverTimestamp(),
-      'paymentStatus': 'Cash Collected by Pilot',
-      'updatedAt': FieldValue.serverTimestamp(),
+    final bookingRef = _firestore.collection('bookings').doc(docId);
+    
+    await _firestore.runTransaction((transaction) async {
+      final bookingSnapshot = await transaction.get(bookingRef);
+      if (!bookingSnapshot.exists) {
+        throw FirebaseException(
+          plugin: 'cloud_firestore',
+          code: 'not-found',
+          message: 'Booking not found',
+        );
+      }
+      
+      final bookingData = bookingSnapshot.data()!;
+      final double amount = (bookingData['payableAmount'] ?? bookingData['totalPrice'] ?? bookingData['amount'] ?? 0).toDouble();
+      
+      final paymentDocRef = _firestore.collection('payments').doc();
+      final String paymentId = paymentDocRef.id;
+      final String merchantTransactionId = 'CASH_${DateTime.now().millisecondsSinceEpoch}_$docId';
+      
+      transaction.set(paymentDocRef, {
+        'paymentId': paymentId,
+        'bookingId': docId,
+        'userId': bookingData['farmerUid'] ?? bookingData['userId'] ?? '',
+        'merchantTransactionId': merchantTransactionId,
+        'transactionId': 'CASH_TXN_${DateTime.now().millisecondsSinceEpoch}',
+        'amount': amount,
+        'currency': 'INR',
+        'status': 'SUCCESS',
+        'paymentMode': 'CASH',
+        'gateway': 'CASHFREE',
+        'gatewayResponse': {
+          'confirmedBy': pilotId,
+          'remarks': 'Cash collected by pilot',
+        },
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'completedAt': FieldValue.serverTimestamp(),
+        'failureReason': null,
+        'metadata': {
+          'cashCollectedBy': pilotId,
+        },
+      });
+      
+      transaction.update(bookingRef, {
+        'paymentStatus': 'Cash Collected by Pilot',
+        'paymentMethod': 'CASH',
+        'paymentId': paymentId,
+        'cashCollected': true,
+        'cashCollectedBy': pilotId,
+        'cashCollectedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     });
 
     final booking = await _bookingSnapshot(docId);

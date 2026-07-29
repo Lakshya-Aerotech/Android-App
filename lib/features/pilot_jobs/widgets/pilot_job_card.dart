@@ -19,6 +19,9 @@ class PilotJobCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isCash = (job.paymentMethod ?? '').toUpperCase() == 'CASH';
+    final bool cashPending = isCash && !job.cashCollected;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -96,6 +99,22 @@ class PilotJobCard extends StatelessWidget {
                 const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
               ],
             ),
+            if (cashPending) ...[
+              const Divider(height: 16),
+              Row(
+                children: [
+                  const Icon(Icons.money, color: Colors.orange, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Requires Cash Collection: ₹${job.payableAmount?.toStringAsFixed(2) ?? '0.00'}',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange.shade800,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             if (job.status == BookingStatus.completed && job.paymentStatus != null) ...[
               const Divider(height: 16),
               Row(

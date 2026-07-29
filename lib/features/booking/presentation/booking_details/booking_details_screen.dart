@@ -19,8 +19,8 @@ import '../../../auth/models/user_model.dart';
 import '../../../auth/viewmodel/auth_viewmodel.dart';
 import '../../../payment/data/services/payment_api.dart';
 import '../../../payment/presentation/screens/payment_webview_screen.dart';
-import 'package:dio/dio.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
+final selectedPaymentMethodProvider = StateProvider.family<String, String>((ref, bookingId) => 'UPI');
 
 class BookingDetailsScreen extends ConsumerWidget {
   final BookingModel booking;
@@ -55,6 +55,12 @@ class BookingDetailsScreen extends ConsumerWidget {
 
   Widget _buildContent(BuildContext context, WidgetRef ref, BookingModel b) {
     final user = ref.watch(userModelProvider);
+    final bool isPaid = b.paymentStatus?.toUpperCase() == 'SUCCESS' || b.paymentStatus?.toUpperCase() == 'PAID' || b.paymentStatus == 'Cash Collected by Pilot';
+    final bool isReadyForPayment = b.assignedPilotId != null &&
+        b.status != BookingStatus.pending &&
+        b.status != BookingStatus.reviewed &&
+        b.status != BookingStatus.cancelled;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -85,7 +91,7 @@ class BookingDetailsScreen extends ConsumerWidget {
             const SizedBox(height: 24),
           ],
 
-          if (b.paymentMethod != null || (b.payableAmount ?? 0) > 0) ...[
+          if (isPaid || isReadyForPayment) ...[
             Text('Payment Details', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             _buildPaymentSummaryCard(context, ref, b, user),
@@ -280,10 +286,44 @@ class BookingDetailsScreen extends ConsumerWidget {
   }
 
   Widget _buildPaymentSummaryCard(BuildContext context, WidgetRef ref, BookingModel b, UserModel? user) {
-    final bool isPaid = b.paymentStatus?.toUpperCase() == 'SUCCESS' || b.paymentStatus?.toUpperCase() == 'PAID';
-    final bool isUpi = (b.paymentMethod ?? 'UPI').toUpperCase() == 'UPI';
+    final bool isPaid = b.paymentStatus?.toUpperCase() == 'SUCCESS' || b.paymentStatus?.toUpperCase() == 'PAID' || b.paymentStatus == 'Cash Collected by Pilot';
     final bool isCash = (b.paymentMethod ?? '').toUpperCase() == 'CASH';
     final bool isStaffOrAdmin = user?.role == UserRole.admin || user?.role == UserRole.operations;
+
+    final selectedMethod = ref.watch(selectedPaymentMethodProvider(b.docId!));
+    final currentMethod = b.paymentMethod?.toUpperCase() ?? selectedMethod.toUpperCase();
+
+    Widget _buildMethodOption(String title, String methodValue, IconData icon) {
+      final isSelected = currentMethod == methodValue;
+      return InkWell(
+        onTap: () => ref.read(selectedPaymentMethodProvider(b.docId!).notifier).state = methodValue,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary.withValues(alpha: 0.05) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: isSelected ? AppColors.primary : AppColors.textSecondary),
+              const SizedBox(width: 12),
+              Text(title, style: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.bold)),
+              const Spacer(),
+              Radio<String>(
+                value: methodValue,
+                groupValue: currentMethod,
+                onChanged: (val) {
+                  if (val != null) ref.read(selectedPaymentMethodProvider(b.docId!).notifier).state = val;
+                },
+                activeColor: AppColors.primary,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -338,15 +378,9 @@ class BookingDetailsScreen extends ConsumerWidget {
                 ],
               ),
             ),
-          ] else if (isUpi) ...[
+          ] else if (isStaffOrAdmin) ...[
             const Divider(height: 24),
-            PrimaryButton(
-              text: 'COMPLETE PAYMENT (CASHFREE UPI)',
-              onPressed: () => _handlePayNow(context, ref, b),
-            ),
-          ] else if (isCash) ...[
-            const Divider(height: 24),
-            if (isStaffOrAdmin) ...[
+            if (isCash) ...[
               ElevatedButton.icon(
                 icon: const Icon(Icons.payments, color: Colors.white),
                 label: const Text('CONFIRM CASH COLLECTION', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -366,20 +400,66 @@ class BookingDetailsScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
                 ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.hourglass_empty, color: AppColors.warning),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Waiting for Cash Collection by Pilot / Operations Staff.',
-                        style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.warning, fontSize: 13),
-                      ),
-                    ),
-                  ],
+                child: const Text(
+                  'Awaiting Online UPI Payment from the Farmer.',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.warning, fontSize: 12),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ],
+          ] else ...[
+            const Divider(height: 24),
+            Text(
+              'Select Payment Method',
+              style: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            _buildMethodOption('Pay Online (UPI / Card)', 'UPI', Icons.account_balance_wallet_outlined),
+            _buildMethodOption('Pay by Cash', 'CASH', Icons.money_outlined),
+            const SizedBox(height: 16),
+            if (currentMethod == 'UPI')
+              PrimaryButton(
+                text: 'COMPLETE PAYMENT (CASHFREE UPI)',
+                onPressed: () => _handlePayNow(context, ref, b),
+              )
+            else if (currentMethod == 'CASH')
+              if (b.paymentMethod?.toUpperCase() == 'CASH')
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.hourglass_empty, color: AppColors.warning),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Waiting for Cash Collection by Pilot / Operations Staff.',
+                          style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.warning, fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                PrimaryButton(
+                  text: 'CONFIRM PAY BY CASH',
+                  onPressed: () async {
+                    await ref.read(bookingViewModelProvider.notifier).selectPaymentMethod(
+                      docId: b.docId!,
+                      method: 'CASH',
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Cash payment method selected! Awaiting pilot cash collection.'), backgroundColor: AppColors.success),
+                      );
+                    }
+                  },
+                ),
           ],
         ],
       ),
@@ -438,27 +518,20 @@ class BookingDetailsScreen extends ConsumerWidget {
 
     if (confirmed == true) {
       try {
-        final dio = ref.read(dioProvider);
-        final user = FirebaseAuth.instance.currentUser;
-        final token = await user?.getIdToken();
-
-        final response = await dio.post(
-          'http://192.168.0.232:3000/api/payment/confirm-cash',
-          data: {
-            'bookingId': b.docId ?? b.bookingId,
-            'remarks': 'Cash collected by staff',
-          },
-          options: Options(headers: {'Authorization': 'Bearer $token'}),
+        final paymentApi = ref.read(paymentApiServiceProvider);
+        final response = await paymentApi.confirmCashPayment(
+          bookingId: b.docId ?? b.bookingId,
+          remarks: 'Cash collected by staff',
         );
 
         if (context.mounted) {
-          if (response.data['success'] == true) {
+          if (response['success'] == true) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Cash payment confirmed successfully!'), backgroundColor: AppColors.success),
             );
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(response.data['message'] ?? 'Failed to confirm cash.'), backgroundColor: AppColors.error),
+              SnackBar(content: Text(response['message'] ?? 'Failed to confirm cash.'), backgroundColor: AppColors.error),
             );
           }
         }

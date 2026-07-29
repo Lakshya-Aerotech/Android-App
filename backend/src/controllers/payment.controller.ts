@@ -381,10 +381,10 @@ export class PaymentController {
       const userRole = authReq.user?.role;
       const operatorUid = authReq.user?.uid || 'UNKNOWN_OPERATOR';
 
-      if (userRole !== 'admin' && userRole !== 'operations') {
+      if (userRole !== 'admin' && userRole !== 'operations' && userRole !== 'pilot' && userRole !== 'externalPilot') {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
-          message: 'Forbidden: Only Administrator or Operations roles can confirm cash payments.',
+          message: 'Forbidden: Only Administrator, Operations, or Pilot roles can confirm cash payments.',
           data: null,
         });
       }

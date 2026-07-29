@@ -459,7 +459,8 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
     PilotJobsViewModel notifier,
     bool isLoading,
   ) {
-    if (job.paymentMethod == null) {
+    final String? methodUpper = job.paymentMethod?.toUpperCase();
+    if (methodUpper == null) {
       return PrimaryButton(
         text: 'Process Payment',
         icon: const Icon(Icons.payment, color: Colors.white),
@@ -468,7 +469,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
       );
     }
 
-    if (job.paymentMethod == 'Cash') {
+    if (methodUpper == 'CASH') {
       if (!job.cashCollected) {
         return PrimaryButton(
           text: 'Collect Cash',
@@ -515,7 +516,7 @@ class _PilotJobDetailsScreenState extends ConsumerState<PilotJobDetailsScreen> {
       );
     }
 
-    if (job.paymentMethod == 'UPI') {
+    if (methodUpper == 'UPI') {
       return Center(
         child: StatusChip(
           label: job.paymentStatus ?? 'Pending Payment',

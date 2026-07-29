@@ -70,9 +70,9 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
     double? originalAmount,
     double? discountAmount,
     double? payableAmount,
-    String? paymentTiming = 'PAY_NOW',
-    String? paymentMethod = 'UPI',
-    String? paymentStatus = 'PENDING',
+    String? paymentTiming,
+    String? paymentMethod,
+    String? paymentStatus,
   }) async {
     state = const AsyncLoading();
     final user = _ref.read(userModelProvider);
@@ -109,7 +109,7 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
       bookingDate: bookingDate,
       preferredTime: preferredTime,
       estimatedArea: estimatedArea,
-      status: paymentTiming == 'PAY_NOW' ? BookingStatus.paymentPending : BookingStatus.pending,
+      status: BookingStatus.pending,
       remarks: remarks,
       couponId: couponId,
       couponCode: couponCode,
@@ -226,6 +226,19 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
         discountAmount: discountAmount,
         pilotId: pilotId,
       );
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
+  Future<void> selectPaymentMethod({
+    required String docId,
+    required String method,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.selectPaymentMethod(docId: docId, method: method);
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
