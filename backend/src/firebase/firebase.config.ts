@@ -6,7 +6,8 @@ import { config } from '../config/env.config';
  * Ensures Firebase Admin app is initialized exactly once.
  */
 if (admin.apps.length === 0) {
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  if (config.firebase.useApplicationDefaultCredentials ||
+      process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     admin.initializeApp({
       credential: admin.credential.applicationDefault(),
       storageBucket: config.firebase.storageBucket,
