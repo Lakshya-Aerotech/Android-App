@@ -55,4 +55,4 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: flutter build ios --release --no-codesign --dart-define=API_BASE_URL=https://api.example.invalid/api --dart-define=BOOKING_RATE_PER_ACRE=800
+      - run: flutter build ios --simulator --debug --dart-define=API_BASE_URL=https://api.example.invalid/api --dart-define=BOOKING_RATE_PER_ACRE=800

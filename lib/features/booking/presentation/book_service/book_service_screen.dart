@@ -105,7 +105,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
         '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}';
 
     final double area = double.tryParse(_areaController.text) ?? 0.0;
-    const double ratePerAcre = AppConfig.bookingRatePerAcre;
+    final double ratePerAcre = AppConfig.bookingRatePerAcre;
     final double originalAmount = area * ratePerAcre;
 
     double discountAmount = 0.0;
@@ -471,7 +471,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
     final couponsAsync = ref.watch(couponsStreamProvider);
 
     final double area = double.tryParse(_areaController.text) ?? 0.0;
-    const double ratePerAcre = AppConfig.bookingRatePerAcre;
+    final double ratePerAcre = AppConfig.bookingRatePerAcre;
     final double originalAmount = area * ratePerAcre;
 
     double discountAmount = 0.0;

@@ -183,7 +183,7 @@ export class PaymentController {
       );
 
       // 3. Validate the gateway response before reconciling local state.
-      let verifiedStatus = localPayment.status;
+      let verifiedStatus: PaymentStatus = localPayment.status;
       let verifiedTransactionId = localPayment.transactionId;
       const gatewayData = statusResponse.data;
       if (gatewayData?.merchantId !== phonePeConfig.merchantId ||

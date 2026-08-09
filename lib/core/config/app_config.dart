@@ -7,10 +7,20 @@ class AppConfig {
     'API_BASE_URL',
     defaultValue: '',
   );
-  static const double bookingRatePerAcre = double.fromEnvironment(
+  static const String _configuredBookingRatePerAcre = String.fromEnvironment(
     'BOOKING_RATE_PER_ACRE',
-    defaultValue: 800,
+    defaultValue: '800',
   );
+
+  static double get bookingRatePerAcre {
+    final rate = double.tryParse(_configuredBookingRatePerAcre);
+    if (rate == null || !rate.isFinite || rate <= 0) {
+      throw StateError(
+        'BOOKING_RATE_PER_ACRE must be a finite number greater than zero.',
+      );
+    }
+    return rate;
+  }
 
   static String get apiBaseUrl {
     final configured = _configuredApiBaseUrl.trim();
