@@ -18,23 +18,13 @@ class PaymentScreen extends ConsumerStatefulWidget {
 
 class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   String? _selectedMethod;
-  final double _pricePerAcre = 500.0; // Placeholder price
 
   @override
   Widget build(BuildContext context) {
     final b = widget.booking;
-    final originalAmount = b.originalAmount ?? (b.actualAreaCovered ?? b.estimatedArea) * _pricePerAcre;
-    
-    double discount = b.discountAmount ?? 0;
-    if (discount == 0 && b.couponCode != null) {
-      if (b.couponDiscountType == 'percentage') {
-        discount = originalAmount * (b.couponDiscountValue ?? 0) / 100;
-      } else {
-        discount = b.couponDiscountValue ?? 0;
-      }
-    }
-    
-    final payableAmount = b.payableAmount ?? (originalAmount - discount);
+    final originalAmount = b.originalAmount ?? 0;
+    final discount = b.discountAmount ?? 0;
+    final payableAmount = b.payableAmount ?? 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -53,22 +43,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             _buildSummaryCard(originalAmount, discount, payableAmount),
             const SizedBox(height: 32),
             Text(
-              'Select the payment method used by the farmer',
+              'Record cash collection',
               style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
-              'Record how the farmer completed the payment for this service.',
+              'Confirm cash only after you have physically received it.',
               style: AppTextStyles.bodySmall,
             ),
             const SizedBox(height: 16),
-            _buildPaymentOption(
-              title: 'UPI',
-              subtitle: 'Farmer paid using UPI',
-              icon: Icons.account_balance_wallet_outlined,
-              value: 'UPI',
-            ),
-            const SizedBox(height: 12),
             _buildPaymentOption(
               title: 'Cash',
               subtitle: 'Farmer paid in cash',
@@ -78,7 +61,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             const SizedBox(height: 48),
             PrimaryButton(
               text: 'Continue',
-              onPressed: _selectedMethod == null ? null : () => _handlePayment(originalAmount, payableAmount, discount),
+              onPressed: _selectedMethod == null ? null : _handlePayment,
             ),
           ],
         ),
@@ -174,7 +157,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     );
   }
 
-  void _handlePayment(double original, double finalAmt, double discount) async {
+  void _handlePayment() async {
     if (_selectedMethod == 'Cash') {
       final confirmed = await showDialog<bool>(
         context: context,
@@ -202,18 +185,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     await ref.read(bookingViewModelProvider.notifier).requestPayment(
       docId: widget.booking.docId!,
       method: _selectedMethod!,
-      originalAmount: original,
-      finalAmount: finalAmt,
-      discountAmount: discount > 0 ? discount : null,
       pilotId: pilotId,
     );
 
     if (mounted) {
-      if (_selectedMethod == 'UPI') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('UPI payment method recorded successfully.')),
-        );
-      }
       context.pop();
     }
   }

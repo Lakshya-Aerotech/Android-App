@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../shared/enums/booking_status.dart';
-
-const mockFarmerName = 'Rahul';
-
-// TODO: Fetch farmer name from users/{currentUserUid}.name.
 
 class FarmerQuickAction {
   final String label;
@@ -16,20 +11,6 @@ class FarmerQuickAction {
     required this.label,
     required this.icon,
     required this.iconColor,
-  });
-}
-
-class FarmerUpcomingBooking {
-  final String dateTime;
-  final String farmName;
-  final String cropInfo;
-  final BookingStatus status;
-
-  const FarmerUpcomingBooking({
-    required this.dateTime,
-    required this.farmName,
-    required this.cropInfo,
-    required this.status,
   });
 }
 
@@ -55,12 +36,3 @@ const farmerQuickActions = [
     iconColor: AppColors.primary,
   ),
 ];
-
-const mockUpcomingBooking = FarmerUpcomingBooking(
-  dateTime: 'Tomorrow, 10:00 AM',
-  farmName: 'Farm - Green Valley',
-  cropInfo: 'Cotton • 5 Acres',
-  status: BookingStatus.pilotAssigned,
-);
-
-// TODO: Replace mockUpcomingBooking with the farmer's nearest active Firestore booking.

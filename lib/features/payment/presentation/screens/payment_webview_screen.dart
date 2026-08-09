@@ -5,15 +5,18 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../booking/models/booking_model.dart';
 import '../../../booking/viewmodels/booking_viewmodel.dart';
+import '../../data/repositories/payment_repository.dart';
 
 class PaymentWebViewScreen extends ConsumerStatefulWidget {
   final BookingModel booking;
   final String paymentUrl;
+  final String merchantTransactionId;
 
   const PaymentWebViewScreen({
     super.key,
     required this.booking,
     required this.paymentUrl,
+    required this.merchantTransactionId,
   });
 
   @override
@@ -23,6 +26,7 @@ class PaymentWebViewScreen extends ConsumerStatefulWidget {
 class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
   late final WebViewController _webViewController;
   bool _isLoading = true;
+  bool _verificationInProgress = false;
 
   @override
   void initState() {
@@ -55,22 +59,43 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
   void _checkUrlCompletion(String url) {
     try {
       final uri = Uri.parse(url);
-      if (uri.queryParameters.containsKey('status')) {
-        final status = uri.queryParameters['status']?.toUpperCase();
-        if (status == 'SUCCESS') {
-          _navigateToSuccess();
-        } else if (status == 'FAILED' || status == 'CANCELLED') {
-          _navigateToFailure();
-        }
+      if (uri.path.endsWith('/payment/redirect')) {
+        _verifyPaymentWithBackend();
       }
     } catch (_) {}
+  }
+
+  Future<void> _verifyPaymentWithBackend() async {
+    if (_verificationInProgress || !mounted) return;
+    _verificationInProgress = true;
+    final status = await ref
+        .read(paymentRepositoryProvider)
+        .checkPaymentStatus(widget.merchantTransactionId);
+    _verificationInProgress = false;
+    if (!mounted) return;
+
+    switch (status) {
+      case PaymentVerificationStatus.success:
+        _navigateToSuccess();
+        return;
+      case PaymentVerificationStatus.failed:
+        _navigateToFailure();
+        return;
+      case PaymentVerificationStatus.pending:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Payment is still being verified. Please wait.'),
+          ),
+        );
+        return;
+    }
   }
 
   void _navigateToSuccess() {
     if (!mounted) return;
     context.go('/payment-success', extra: {
       'booking': widget.booking,
-      'transactionId': widget.booking.merchantTransactionId ?? 'N/A',
+      'transactionId': widget.merchantTransactionId,
     });
   }
 

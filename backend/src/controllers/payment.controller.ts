@@ -5,6 +5,8 @@ import { PaymentService } from '../services/payment.service';
 import { PhonePeService } from '../phonepe/phonepe.service';
 import { PaymentValidator } from '../validators/payment.validator';
 import { PaymentStatus } from '../models/payment.model';
+import { AuthenticatedRequest } from '../middleware/auth.middleware';
+import { config } from '../config';
 import {
   PhonePePayRequestPayload,
   PhonePePaymentInstrumentType,
@@ -34,48 +36,67 @@ export class PaymentController {
    * POST /api/payment/create
    * Initiates a new payment transaction with PhonePe PG.
    */
-  static async createPayment(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+  static async createPayment(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const { bookingId, userId, amount, mobileNumber } = req.body;
+      const { bookingId } = req.body;
+      const authenticatedUser = req.user!;
 
-      // 1. Validate incoming request payload
-      const validation = PaymentValidator.validateCreatePayment({ bookingId, userId, amount });
-      if (!validation.isValid) {
-        return res.status(HTTP_STATUS.BAD_REQUEST).json({
-          success: false,
-          message: validation.errors.join(' '),
-          data: null,
-        });
-      }
-
-      // 2. Create Pending Payment document via PaymentService
-      const pendingPayment = await PaymentService.createPendingPayment({
+      // Booking ownership and payable amount are validated from Firestore.
+      const authorizedPayment = await PaymentService.createPendingPaymentForBooking(
         bookingId,
-        userId,
-        amount,
-      });
+        authenticatedUser.uid,
+        authenticatedUser.role
+      );
+      const pendingPayment = authorizedPayment.payment;
 
       // 3. Prepare PhonePe API Pay Request Payload (Amount in paise)
       const phonePePayload: PhonePePayRequestPayload = {
         merchantId: phonePeConfig.merchantId,
         merchantTransactionId: pendingPayment.merchantTransactionId,
-        merchantUserId: userId,
-        amount: Math.round(amount * 100),
+        merchantUserId: authenticatedUser.uid,
+        amount: Math.round(authorizedPayment.amount * 100),
         redirectUrl: `${phonePeConfig.callbackUrl.replace('/webhook', '/redirect')}?merchantTransactionId=${pendingPayment.merchantTransactionId}`,
         redirectMode: 'REDIRECT',
         callbackUrl: phonePeConfig.callbackUrl,
-        mobileNumber: mobileNumber || '9999999999',
+        mobileNumber: authorizedPayment.mobileNumber,
         paymentInstrument: {
           type: PhonePePaymentInstrumentType.PAY_PAGE,
         },
       };
 
       // 4. Initiate PhonePe gateway transaction
-      const phonePeResponse = await PhonePeService.initiatePayTransaction(phonePePayload);
+      let phonePeResponse;
+      try {
+        phonePeResponse = await PhonePeService.initiatePayTransaction(phonePePayload);
+      } catch (gatewayError) {
+        await PaymentService.processPaymentResult(
+          pendingPayment.merchantTransactionId,
+          PaymentStatus.FAILED,
+          null,
+          null,
+          'Payment gateway initiation failed.'
+        );
+        throw gatewayError;
+      }
 
       // 5. Extract payment URL and redirect info
       const redirectInfo = phonePeResponse.data?.instrumentResponse?.redirectInfo;
       const paymentUrl = redirectInfo?.url || phonePeResponse.data?.instrumentResponse?.intentUrl || '';
+      if (!paymentUrl) {
+        await PaymentService.processPaymentResult(
+          pendingPayment.merchantTransactionId,
+          PaymentStatus.FAILED,
+          null,
+          null,
+          'Payment gateway did not provide a checkout URL.'
+        );
+        return res.status(HTTP_STATUS.BAD_GATEWAY).json({
+          success: false,
+          message: 'Payment gateway did not provide a checkout URL. Please try again.',
+          data: null,
+          requestId: req.id,
+        });
+      }
 
       // 6. Return standardized JSON response
       return res.status(HTTP_STATUS.OK).json({
@@ -91,11 +112,11 @@ export class PaymentController {
       });
     } catch (error: any) {
       if (error.response?.data) {
-        console.error('[PaymentController] PhonePe API Error Response:', error.response.data);
+        console.error('[PaymentController] PhonePe request failed:', error.response.data.code || error.message);
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
-          message: error.response.data.message || error.response.data.code || 'PhonePe gateway request failed.',
-          data: error.response.data,
+          message: 'Payment gateway request failed. Please try again.',
+          data: null,
           requestId: req.id,
         });
       }
@@ -107,7 +128,7 @@ export class PaymentController {
    * GET /api/payment/status/:merchantTransactionId
    * Queries PhonePe API for status of a transaction and reconciles with Firestore if pending.
    */
-  static async checkStatus(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+  static async checkStatus(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const { merchantTransactionId } = req.params;
 
@@ -121,19 +142,69 @@ export class PaymentController {
         });
       }
 
+      const localPayment = await PaymentService.getPaymentByMerchantTransactionId(merchantTransactionId);
+      if (!localPayment) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          message: 'Payment transaction not found.',
+          data: null,
+        });
+      }
+
+      const mayManagePayment =
+        req.user?.uid === localPayment.userId ||
+        req.user?.role === 'admin' ||
+        req.user?.role === 'operations';
+      if (!mayManagePayment) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: 'You are not allowed to access this payment.',
+          data: null,
+        });
+      }
+
+      if (localPayment.status === PaymentStatus.SUCCESS ||
+          localPayment.status === PaymentStatus.REFUNDED) {
+        return res.status(HTTP_STATUS.OK).json({
+          success: true,
+          message: 'Transaction status retrieved successfully.',
+          data: {
+            merchantTransactionId,
+            paymentState: localPayment.status,
+            transactionId: localPayment.transactionId,
+          },
+        });
+      }
+
       // 2. Query PhonePe API for current status
       const statusResponse = await PhonePeService.checkTransactionStatus(
         phonePeConfig.merchantId,
         merchantTransactionId
       );
 
-      // 3. Reconciliation check against Firestore state
-      const localPayment = await PaymentService.getPaymentByMerchantTransactionId(merchantTransactionId);
-      if (localPayment && localPayment.status === PaymentStatus.PENDING) {
-        const gatewayState = statusResponse.data?.paymentState || statusResponse.code;
-        const mappedStatus = mapPhonePeStateToPaymentStatus(gatewayState);
+      // 3. Validate the gateway response before reconciling local state.
+      let verifiedStatus: PaymentStatus = localPayment.status;
+      let verifiedTransactionId = localPayment.transactionId;
+      const gatewayData = statusResponse.data;
+      if (gatewayData?.merchantId !== phonePeConfig.merchantId ||
+          gatewayData?.merchantTransactionId !== merchantTransactionId ||
+          (!config.paymentMocksEnabled &&
+           Number(gatewayData?.amount) !== Math.round(localPayment.amount * 100))) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: 'Gateway response did not match the payment record.',
+          data: null,
+        });
+      }
 
-        if (mappedStatus !== PaymentStatus.PENDING) {
+      const gatewayState = gatewayData.paymentState || statusResponse.code;
+      const mappedStatus = mapPhonePeStateToPaymentStatus(gatewayState);
+      if (localPayment.status === PaymentStatus.PENDING ||
+          mappedStatus === PaymentStatus.SUCCESS) {
+        verifiedStatus = mappedStatus;
+        verifiedTransactionId = statusResponse.data?.transactionId || null;
+
+        if (mappedStatus !== PaymentStatus.PENDING && mappedStatus !== localPayment.status) {
           console.log(`[PaymentReconciliation] Synchronizing Firestore for ${merchantTransactionId}. Gateway status: ${mappedStatus}`);
           await PaymentService.processPaymentResult(
             merchantTransactionId,
@@ -145,11 +216,15 @@ export class PaymentController {
         }
       }
 
-      // 4. Return gateway response
+      // 4. Return only the normalized fields required by the app.
       return res.status(HTTP_STATUS.OK).json({
         success: true,
         message: 'Transaction status retrieved successfully.',
-        data: statusResponse,
+        data: {
+          merchantTransactionId,
+          paymentState: verifiedStatus,
+          transactionId: verifiedTransactionId,
+        },
       });
     } catch (error: any) {
       next(error);
@@ -217,6 +292,25 @@ export class PaymentController {
         });
       }
 
+      const webhookMerchantId = decodedPayload.data?.merchantId;
+      if (webhookMerchantId !== phonePeConfig.merchantId) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: 'Webhook merchant does not match the configured merchant.',
+          data: null,
+        });
+      }
+
+      const webhookAmount = Number(decodedPayload.data?.amount);
+      const expectedAmountInPaise = Math.round(existingPayment.amount * 100);
+      if (!Number.isFinite(webhookAmount) || webhookAmount !== expectedAmountInPaise) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: 'Webhook amount does not match the payment record.',
+          data: null,
+        });
+      }
+
       // 4. Idempotency Check: If payment is already SUCCESS, return HTTP 200 immediately
       if (existingPayment.status === PaymentStatus.SUCCESS) {
         console.log(`[PhonePeWebhook] Idempotent response: Payment ${merchantTxnId} is already SUCCESS.`);
@@ -260,14 +354,6 @@ export class PaymentController {
    */
   static async handleRedirect(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const status = (req.query.status as string) || (req.body.status as string) || '';
-      const code = (req.query.code as string) || (req.body.code as string) || '';
-      const merchantTransactionId = (req.query.merchantTransactionId as string) || (req.body.merchantTransactionId as string) || (req.query.transactionId as string) || (req.body.transactionId as string) || '';
-
-      console.log(`[PhonePeRedirect] Redirect hit. Transaction: ${merchantTransactionId}, Status: ${status}, Code: ${code}`);
-
-      const isSuccess = status.toUpperCase() === 'SUCCESS' || code.toUpperCase() === 'PAYMENT_SUCCESS';
-
       res.setHeader('Content-Type', 'text/html');
       return res.status(HTTP_STATUS.OK).send(`
         <!DOCTYPE html>
@@ -279,8 +365,7 @@ export class PaymentController {
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; padding: 40px 20px; background-color: #f7f9fa; margin: 0; display: flex; align-items: center; justify-content: center; height: 80vh; }
             .card { max-width: 420px; width: 100%; background: white; padding: 40px 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); box-sizing: border-box; }
             .icon-circle { width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto; }
-            .success-circle { background-color: #e8f5e9; color: #4caf50; }
-            .error-circle { background-color: #ffebee; color: #f44336; }
+            .status-circle { background-color: #e8f0fe; color: #1a73e8; }
             h1 { font-size: 24px; margin: 0 0 12px 0; color: #1a1f36; }
             p { font-size: 16px; line-height: 24px; color: #4f566b; margin: 0 0 24px 0; }
             .details { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: left; margin-bottom: 24px; font-size: 14px; border: 1px solid #e3e8ee; }
@@ -292,31 +377,15 @@ export class PaymentController {
         </head>
         <body>
           <div class="card">
-            <div class="icon-circle ${isSuccess ? 'success-circle' : 'error-circle'}">
-              ${isSuccess ? `
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              ` : `
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              `}
+            <div class="icon-circle status-circle">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 7v5l3 2"></path>
+              </svg>
             </div>
-            <h1>Payment ${isSuccess ? 'Successful' : 'Failed'}</h1>
-            <p>${isSuccess ? 'Your payment has been successfully processed.' : 'Something went wrong during your payment transaction.'}</p>
-            
-            ${merchantTransactionId ? `
-              <div class="details">
-                <div class="details-row">
-                  <span class="details-label">Transaction ID:</span>
-                  <span class="details-value">${merchantTransactionId}</span>
-                </div>
-              </div>
-            ` : ''}
-
-            <p style="font-size: 13px; color: #8792a2; margin: 24px 0 0 0;">You can close this screen or wait to return to the app.</p>
+            <h1>Verifying payment</h1>
+            <p>Return to the app while we securely verify the payment with the gateway.</p>
+            <p style="font-size: 13px; color: #8792a2; margin: 24px 0 0 0;">Do not make another payment until verification finishes.</p>
           </div>
         </body>
         </html>

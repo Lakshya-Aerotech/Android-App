@@ -28,10 +28,16 @@ migrate_working_dir/
 **/ios/Flutter/.last_build_id
 .dart_tool/
 .flutter-plugins-dependencies
+.flutter-plugins
 .pub-cache/
 .pub/
 /build/
 /coverage/
+
+# Local platform credentials and signing material
+/ios/Runner/GoogleService-Info.plist
+/android/key.properties
+/android/keystore/
 
 # Symbolication related
 app.*.symbols
@@ -43,3 +49,4 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/build/

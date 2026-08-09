@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../repository/auth_repository.dart';
 import '../models/user_model.dart';
 import '../../../core/services/file_service.dart';
+import '../../../core/services/account_service.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl();
@@ -280,19 +281,12 @@ class AuthViewModel extends StateNotifier<AuthState> {
 
     var userData = await _repository.getUserData(user.uid);
     
-    if (userData == null && user.email != null) {
-      final employeeRecord = await _repository.findUserByEmail(user.email!);
-      if (employeeRecord != null) {
-        await _repository.linkAuthWithEmployee(employeeRecord.docId!, user.uid);
-        userData = await _repository.getUserData(user.uid);
-      }
-    }
-
     if (userData == null) {
       await _repository.logout();
       state = state.copyWith(
         status: AuthStatus.error,
-        errorMessage: 'User record not found. Please register.',
+        errorMessage:
+            'This account has not been provisioned. Contact an administrator.',
       );
       return;
     } else {
@@ -424,17 +418,9 @@ class AuthViewModel extends StateNotifier<AuthState> {
 
 
   Future<void> cancelFarmerRegistration() async {
-    final user = _ref.read(userModelProvider);
     state = state.copyWith(status: AuthStatus.loading);
     try {
-      if (user != null && user.docId != null) {
-        await _repository.deleteUserDocument(user.docId!);
-        final firebaseUser = FirebaseAuth.instance.currentUser;
-        if (firebaseUser != null) {
-          await firebaseUser.delete();
-        }
-      }
-      await _repository.logout();
+      await _ref.read(accountServiceProvider).deleteCurrentAccount();
       _ref.read(userModelProvider.notifier).state = null;
       state = state.copyWith(status: AuthStatus.unauthenticated);
     } catch (e) {

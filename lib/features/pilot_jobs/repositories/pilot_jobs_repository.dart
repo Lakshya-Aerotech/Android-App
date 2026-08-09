@@ -177,48 +177,12 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
     }
 
     final bookingRef = _firestore.collection('bookings').doc(bookingDocId);
-    final pilotRef = _firestore.collection('users').doc(pilotId);
-
     await _firestore.runTransaction((transaction) async {
-      // 1. Get current pilot data for stats
-      final pilotDoc = await transaction.get(pilotRef);
-      if (!pilotDoc.exists) {
-        throw FirebaseException(
-          plugin: 'cloud_firestore',
-          code: 'not-found',
-          message: 'Pilot profile not found in database.',
-        );
-      }
-
-      final pilotData = pilotDoc.data() ?? {};
-
-      // Ensure numeric fields exist and handle potential type mismatches
-      final int currentMinutes = (pilotData['totalFlightMinutes'] ?? 0) is int
-          ? (pilotData['totalFlightMinutes'] ?? 0)
-          : (pilotData['totalFlightMinutes'] as num?)?.toInt() ?? 0;
-
-      final newMinutes =
-          currentMinutes +
-          (completionData['flightDurationMinutes'] as int? ?? 0);
-      final newHours = double.parse((newMinutes / 60.0).toStringAsFixed(2));
-
-      // 2. Update Booking
       transaction.update(bookingRef, {
         ...completionData,
         'status': BookingStatus.completed.toFirestore(),
         'updatedAt': FieldValue.serverTimestamp(),
         'statusHistory': FieldValue.arrayUnion([historyEntry.toMap()]),
-      });
-
-      // 3. Update Pilot Stats
-      transaction.update(pilotRef, {
-        'completedMissions': FieldValue.increment(1),
-        'totalAcresCovered': FieldValue.increment(
-          completionData['actualAreaCovered'] as num? ?? 0,
-        ),
-        'totalFlightMinutes': newMinutes,
-        'totalFlightHours': newHours,
-        'updatedAt': FieldValue.serverTimestamp(),
       });
     });
 
@@ -420,9 +384,6 @@ class PilotJobsRepositoryImpl implements PilotJobsRepository {
       'cashDeposited': true,
       'cashDepositedBy': pilotId,
       'cashDepositedAt': FieldValue.serverTimestamp(),
-      'paymentStatus': 'SUCCESS',
-      'paymentVerifiedByAdmin': true,
-      'status': BookingStatus.closed.toFirestore(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
 

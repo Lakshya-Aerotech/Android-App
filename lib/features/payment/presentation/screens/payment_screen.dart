@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/primary_button.dart';
-import '../../../auth/viewmodel/auth_viewmodel.dart';
 import '../../../booking/models/booking_model.dart';
 import '../../providers/payment_controller.dart';
 
@@ -24,16 +23,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   }
 
   void _onPayNow() async {
-    final user = ref.read(userModelProvider);
     final booking = widget.booking;
-    
-    final userId = user?.uid;
     final bookingId = booking.docId;
     final amount = booking.payableAmount ?? 0.0;
-    
-    final mobileNumber = user?.phoneNumber ?? booking.farmerPhone ?? '9999999999';
 
-    if (userId == null || bookingId == null) {
+    if (bookingId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error: User or Booking details missing')),
       );
@@ -47,14 +41,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       return;
     }
 
-    final cleanPhone = mobileNumber.replaceAll(RegExp(r'\D'), '');
-    final finalPhone = cleanPhone.length > 10 ? cleanPhone.substring(cleanPhone.length - 10) : cleanPhone;
-
     await ref.read(paymentControllerProvider.notifier).initiatePayment(
           bookingId: bookingId,
-          userId: userId,
-          amount: amount,
-          mobileNumber: finalPhone.isEmpty ? '9999999999' : finalPhone,
         );
 
     final paymentState = ref.read(paymentControllerProvider);
@@ -74,11 +62,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           ),
         );
       }
-    } else if (paymentState.isSuccess && paymentState.paymentUrl != null) {
+    } else if (paymentState.isSuccess &&
+        paymentState.paymentUrl != null &&
+        paymentState.merchantTransactionId != null) {
       if (mounted) {
         context.push('/payment-webview', extra: {
           'booking': booking,
           'paymentUrl': paymentState.paymentUrl,
+          'merchantTransactionId': paymentState.merchantTransactionId,
         });
       }
     }

@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import crypto from 'crypto';
 
 export interface NotificationPayload {
   recipientUid?: string;
@@ -32,17 +33,35 @@ export class NotificationService {
       let targetUid = recipientUid || '';
       const failedTokensToClean: { userDocId: string; tokens: string[] }[] = [];
 
+      const eventId = crypto
+        .createHash('sha256')
+        .update(JSON.stringify({
+          recipientUid: recipientUid || '',
+          recipientRole: payloadRecipientRole || '',
+          title,
+          body,
+          type,
+          bookingId: bookingId || '',
+          additionalData: additionalData || {},
+        }))
+        .digest('hex');
+      const eventRef = admin.firestore().collection('notification_events').doc(eventId);
+      const claimed = await admin.firestore().runTransaction(async (transaction) => {
+        const existing = await transaction.get(eventRef);
+        if (existing.exists) return false;
+        transaction.create(eventRef, {
+          type,
+          bookingId: bookingId || null,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        return true;
+      });
+      if (!claimed) return { success: true, sentCount: 0, failedCount: 0 };
+
       // 1. Fetch tokens and set recipient details depending on input
       if (recipientUid) {
-        // Fetch user document from Firestore by uid field to handle both uid-as-docId and auto-generated docId cases.
-        const usersSnapshot = await admin
-          .firestore()
-          .collection('users')
-          .where('uid', '==', recipientUid)
-          .get();
-
-        if (!usersSnapshot.empty) {
-          const userDoc = usersSnapshot.docs[0];
+        const userDoc = await admin.firestore().collection('users').doc(recipientUid).get();
+        if (userDoc.exists) {
           const userData = userDoc.data();
           const tokens = userData?.fcmTokens || [];
           fcmTokens = [...tokens];
@@ -50,18 +69,6 @@ export class NotificationService {
             targetRole = userData?.role || 'unknown';
           }
           failedTokensToClean.push({ userDocId: userDoc.id, tokens });
-        } else {
-          // Fallback: check if recipientUid matches the document ID directly (just in case)
-          const userDoc = await admin.firestore().collection('users').doc(recipientUid).get();
-          if (userDoc.exists) {
-            const userData = userDoc.data();
-            const tokens = userData?.fcmTokens || [];
-            fcmTokens = [...tokens];
-            if (!targetRole) {
-              targetRole = userData?.role || 'unknown';
-            }
-            failedTokensToClean.push({ userDocId: userDoc.id, tokens });
-          }
         }
       } else if (payloadRecipientRole) {
         // Broadcast to a specific role (e.g. operations, admin)
@@ -81,13 +88,7 @@ export class NotificationService {
         });
       }
 
-      console.log(`[NotificationService] Notification Creation Started:
-        Recipient User ID (UID): ${targetUid || 'N/A'}
-        Recipient Role: ${targetRole || 'N/A'}
-        Priority: ${priority || 'N/A'}
-        Title: "${title}"
-        Body: "${body}"
-        Type: "${type}"`);
+      console.log(`[NotificationService] Creating ${type} notification for ${targetUid ? 'user' : `role ${targetRole}`}.`);
 
       // 2. Write to Firestore 'notifications' collection
       const notificationData = {
@@ -155,58 +156,56 @@ export class NotificationService {
       };
 
       // 4. Send message via Firebase Admin SDK
-      console.log(`[NotificationService] FCM Send Attempt:
-        Recipient Uid: ${targetUid || 'N/A'}
-        Recipient Role: ${targetRole || 'N/A'}
-        Tokens Count: ${uniqueTokens.length}
-        Notification Payload: ${JSON.stringify(message)}`);
-      const response = await admin.messaging().sendEachForMulticast(message);
-      console.log(`[NotificationService] FCM Send RESULT:
-        Success Count: ${response.successCount}
-        Failure Count: ${response.failureCount}`);
-
       const errors: any[] = [];
+      const invalidTokens: string[] = [];
+      let sentCount = 0;
+      let failedCount = 0;
 
-      // 5. Cleanup invalid/stale tokens
-      if (response.failureCount > 0) {
-        const invalidTokens: string[] = [];
+      for (let offset = 0; offset < uniqueTokens.length; offset += 500) {
+        const tokenChunk = uniqueTokens.slice(offset, offset + 500);
+        const response = await admin.messaging().sendEachForMulticast({
+          ...message,
+          tokens: tokenChunk,
+        });
+        sentCount += response.successCount;
+        failedCount += response.failureCount;
         response.responses.forEach((resp, idx) => {
           if (!resp.success) {
             const error = resp.error;
             errors.push(error);
-            console.error(`[NotificationService] Send Failure to Token: ${uniqueTokens[idx]}, Error:`, error);
             const errorCode = error?.code;
             if (
               errorCode === 'messaging/invalid-registration-token' ||
               errorCode === 'messaging/registration-token-not-registered'
             ) {
-              invalidTokens.push(uniqueTokens[idx]);
+              invalidTokens.push(tokenChunk[idx]);
             }
           }
         });
+      }
 
-        if (invalidTokens.length > 0) {
-          for (const clean of failedTokensToClean) {
-            const tokensToRemove = clean.tokens.filter(t => invalidTokens.includes(t));
-            if (tokensToRemove.length > 0) {
-              console.log(`[NotificationService] Cleaning up ${tokensToRemove.length} invalid tokens for user doc ${clean.userDocId}...`);
-              await admin
-                .firestore()
-                .collection('users')
-                .doc(clean.userDocId)
-                .update({
-                  fcmTokens: admin.firestore.FieldValue.arrayRemove(...tokensToRemove),
-                })
-                .catch(err => console.error(`[NotificationService] Failed token cleanup for ${clean.userDocId}:`, err));
-            }
+      console.log(`[NotificationService] ${type} result: ${sentCount} sent, ${failedCount} failed.`);
+
+      if (invalidTokens.length > 0) {
+        for (const clean of failedTokensToClean) {
+          const tokensToRemove = clean.tokens.filter(t => invalidTokens.includes(t));
+          if (tokensToRemove.length > 0) {
+            await admin
+              .firestore()
+              .collection('users')
+              .doc(clean.userDocId)
+              .update({
+                fcmTokens: admin.firestore.FieldValue.arrayRemove(...tokensToRemove),
+              })
+              .catch(err => console.error(`[NotificationService] Failed token cleanup for ${clean.userDocId}:`, err));
           }
         }
       }
 
       return {
         success: true,
-        sentCount: response.successCount,
-        failedCount: response.failureCount,
+        sentCount,
+        failedCount,
         errors: errors.length > 0 ? errors : undefined,
       };
     } catch (error: any) {

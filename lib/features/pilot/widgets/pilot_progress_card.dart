@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/constants/app_radius.dart';
-import '../../../../core/constants/app_shadows.dart';
-import '../../../../core/constants/app_sizes.dart';
-import '../../../../core/constants/app_spacing.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
+import '../../../core/constants/app_radius.dart';
+import '../../../core/constants/app_shadows.dart';
+import '../../../core/constants/app_sizes.dart';
+import '../../../core/constants/app_spacing.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../models/pilot_dashboard_data.dart';
 
 class PilotProgressCard extends StatelessWidget {

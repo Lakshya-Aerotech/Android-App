@@ -37,7 +37,7 @@ import 'package:lakshya_aerotech/features/admin/presentation/payments/admin_paym
 import 'package:lakshya_aerotech/features/pilot/presentation/pilot_dashboard.dart';
 import 'package:lakshya_aerotech/features/pilot_jobs/presentation/job_details/pilot_job_details_screen.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/operations_main_screen.dart';
-import 'package:lakshya_aerotech/features/operations/presentation/placeholders/operations_placeholders.dart';
+import 'package:lakshya_aerotech/features/operations/presentation/tracking/ops_track_jobs_screen.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/pending_bookings/ops_pending_bookings_screen.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/booking_details/ops_booking_details_screen.dart';
 import 'package:lakshya_aerotech/features/operations/presentation/assignments/ops_assignments_screen.dart';
@@ -104,6 +104,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           user.approvalStatus != ApprovalStatus.approved &&
           state.matchedLocation != '/retailer-status') {
         return '/retailer-status';
+      }
+
+      if (!_isRouteAllowedForRole(state.matchedLocation, user.role)) {
+        return _getRoleDashboard(user.role);
       }
 
       return null;
@@ -205,7 +209,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           final extra = state.extra as Map<String, dynamic>;
           final booking = extra['booking'] as BookingModel;
           final paymentUrl = extra['paymentUrl'] as String;
-          return PaymentWebViewScreen(booking: booking, paymentUrl: paymentUrl);
+          final merchantTransactionId = extra['merchantTransactionId'] as String;
+          return PaymentWebViewScreen(
+            booking: booking,
+            paymentUrl: paymentUrl,
+            merchantTransactionId: merchantTransactionId,
+          );
         },
       ),
       GoRoute(
@@ -345,7 +354,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: 'track-jobs',
-            builder: (context, state) => const OpsTrackJobsPlaceholder(),
+            builder: (context, state) => const OpsTrackJobsScreen(),
           ),
           GoRoute(
             path: 'notifications',
@@ -449,6 +458,36 @@ String _getRoleDashboard(UserRole role) {
     case UserRole.admin:
       return '/admin';
   }
+}
+
+bool _isRouteAllowedForRole(String location, UserRole role) {
+  if (location.startsWith('/admin')) {
+    return role == UserRole.admin;
+  }
+  if (location.startsWith('/operations') ||
+      location.startsWith('/ops-')) {
+    return role == UserRole.operations || role == UserRole.admin;
+  }
+  if (location.startsWith('/pilot') || location == '/payment') {
+    return role == UserRole.pilot ||
+        role == UserRole.externalPilot ||
+        role == UserRole.admin;
+  }
+  if (location.startsWith('/retailer')) {
+    return role == UserRole.retailer || role == UserRole.admin;
+  }
+  if (location.startsWith('/farmer')) {
+    return role == UserRole.farmer || role == UserRole.admin;
+  }
+  if (location == '/online-payment' ||
+      location == '/payment-webview' ||
+      location == '/payment-success' ||
+      location == '/payment-failed') {
+    return role == UserRole.farmer ||
+        role == UserRole.retailer ||
+        role == UserRole.admin;
+  }
+  return true;
 }
 
 class _RetailerSimplePage extends StatelessWidget {

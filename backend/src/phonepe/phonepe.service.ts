@@ -1,4 +1,5 @@
 import { phonePeConfig } from './phonepe.config';
+import { config } from '../config';
 import { PhonePeHttpClient } from './phonepe.client';
 import { PhonePeChecksumUtil } from './phonepe.checksum';
 import {
@@ -71,7 +72,7 @@ export class PhonePeService {
       );
       return response.data;
     } catch (err: any) {
-      if (phonePeConfig.merchantId === 'PGTESTPAYUAT' || phonePeConfig.merchantId === 'PGTESTPAYUAT86' || !phonePeConfig.saltKey) {
+      if (config.paymentMocksEnabled && config.nodeEnv !== 'production') {
         console.warn(
           `[PhonePeService] Live Gateway call returned ${err.response?.data?.code || err.message}. Falling back to Development Sandbox Mock Mode.`
         );
@@ -115,7 +116,7 @@ export class PhonePeService {
       const response = await client.get<PhonePeStatusResponse>(apiPath, { headers });
       return response.data;
     } catch (err: any) {
-      if (merchantId === 'PGTESTPAYUAT' || merchantId === 'PGTESTPAYUAT86' || !phonePeConfig.saltKey) {
+      if (config.paymentMocksEnabled && config.nodeEnv !== 'production') {
         console.warn(
           `[PhonePeService] Gateway status check returned ${err.response?.data?.code || err.message}. Returning Development Sandbox Mock Status.`
         );
@@ -144,8 +145,13 @@ export class PhonePeService {
     base64ResponseBody: string,
     receivedXVerify: string
   ): boolean {
-    // In Dev Mock Mode, accept mock verification header
-    if (receivedXVerify === 'MOCK_X_VERIFY' || receivedXVerify === 'SAMPLE_CHECKSUM###1') {
+    // Mock signatures are explicitly opt-in and can never be enabled in production.
+    if (
+      config.paymentMocksEnabled &&
+      config.nodeEnv !== 'production' &&
+      (receivedXVerify === 'MOCK_X_VERIFY' ||
+        receivedXVerify === 'SAMPLE_CHECKSUM###1')
+    ) {
       return true;
     }
     return PhonePeChecksumUtil.verifyWebhookSignature(base64ResponseBody, receivedXVerify);

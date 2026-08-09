@@ -1,0 +1,237 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function roleIs(role) {
+      return signedIn() && profile().role == role && profile().isActive != false;
+    }
+
+    function isAdmin() {
+      return roleIs('admin');
+    }
+
+    function isOperations() {
+      return roleIs('operations') || isAdmin();
+    }
+
+    function isPilot() {
+      return roleIs('pilot') || roleIs('externalPilot');
+    }
+
+    function isOwnerOrRetailer(data) {
+      return signedIn() &&
+        (data.farmerUid == request.auth.uid ||
+         data.createdByRetailerId == request.auth.uid);
+    }
+
+    function ownsFarm(data) {
+      return signedIn() &&
+        (data.farmerUid == request.auth.uid ||
+         (roleIs('retailer') &&
+          get(/databases/$(database)/documents/users/$(data.farmerUid)).data.createdByRetailerId == request.auth.uid));
+    }
+
+    function safeNewUser(data) {
+      return data.email == request.auth.token.email &&
+        data.walletBalance == 0 && data.completedJobs == 0 &&
+        data.totalAcres == 0 && data.totalEarned == 0 &&
+        data.completedMissions == 0 && data.totalAcresCovered == 0 &&
+        data.totalFlightMinutes == 0 && data.totalFlightHours == 0 &&
+        data.authCreated == false && data.fcmTokens.size() == 0 &&
+        data.createdBy == null && data.createdByRetailerId == null;
+    }
+
+    function safeManagedFarmer(userId, data) {
+      return data.uid == userId && data.role == 'farmer' &&
+        data.isActive == true && data.walletBalance == 0 &&
+        data.completedJobs == 0 && data.totalAcres == 0 &&
+        data.totalEarned == 0 && data.completedMissions == 0 &&
+        data.totalAcresCovered == 0 && data.totalFlightMinutes == 0 &&
+        data.totalFlightHours == 0 && data.authCreated == false &&
+        data.fcmTokens.size() == 0 && data.createdBy == request.auth.uid &&
+        data.createdByRetailerId == request.auth.uid;
+    }
+
+    function ownerBookingTransition(before, after) {
+      return before.status == after.status ||
+        (after.status == 'cancelled' &&
+         before.status in ['pending', 'reviewed', 'pilotAssigned']) ||
+        (before.status == 'completed' && after.status == 'farmerConfirmed') ||
+        (before.status in ['completed', 'farmerConfirmed'] &&
+         after.status == 'issueReported');
+    }
+
+    function pilotBookingTransition(before, after) {
+      return before.status == after.status ||
+        (before.status == 'pilotAssigned' && after.status == 'enRoute') ||
+        (before.status == 'enRoute' && after.status == 'arrived') ||
+        (before.status == 'arrived' && after.status == 'inProgress') ||
+        (before.status == 'inProgress' && after.status == 'completed');
+    }
+
+    match /users/{userId} {
+      allow get: if signedIn() &&
+        (userId == request.auth.uid || isOperations() ||
+         (roleIs('retailer') && resource.data.createdByRetailerId == request.auth.uid));
+      allow list: if isOperations() ||
+        (roleIs('retailer') && resource.data.createdByRetailerId == request.auth.uid);
+
+      allow create: if signedIn() && (
+        (userId == request.auth.uid &&
+         request.resource.data.uid == request.auth.uid &&
+         safeNewUser(request.resource.data) &&
+         request.resource.data.role in ['farmer', 'retailer', 'externalPilot'] &&
+         ((request.resource.data.role == 'farmer' &&
+           request.resource.data.isActive == true) ||
+          (request.resource.data.role in ['retailer', 'externalPilot'] &&
+           request.resource.data.isActive == false &&
+           request.resource.data.approvalStatus == 'pending' &&
+           (request.resource.data.role != 'externalPilot' ||
+            request.resource.data.accountStatus == 'inactive')))) ||
+        (roleIs('retailer') &&
+         safeManagedFarmer(userId, request.resource.data))
+      );
+
+      allow update: if isAdmin() ||
+        (signedIn() && userId == request.auth.uid &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+           'name', 'phoneNumber', 'profileImageUrl', 'preferredLanguage',
+           'village', 'district', 'state', 'mandal', 'profileCompleted',
+           'fcmTokens', 'lastLogin', 'updatedAt', 'profilePhotographUrl',
+           'dronePilotCertificateUrl', 'dgcaCertificateUrl'
+         ])) ||
+        (roleIs('retailer') && resource.data.createdByRetailerId == request.auth.uid &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+           'name', 'phoneNumber', 'email', 'village', 'district', 'state',
+           'mandal', 'updatedAt'
+         ]));
+      allow delete: if isAdmin();
+    }
+
+    match /farms/{farmId} {
+      allow read: if ownsFarm(resource.data) || isOperations();
+      allow create: if ownsFarm(request.resource.data);
+      allow update: if isAdmin() ||
+        (ownsFarm(resource.data) &&
+         request.resource.data.farmerUid == resource.data.farmerUid);
+      allow delete: if ownsFarm(resource.data) || isAdmin();
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if isOwnerOrRetailer(resource.data) || isOperations() ||
+        (isPilot() &&
+         (resource.data.assignedPilotId == request.auth.uid ||
+          resource.data.copilotId == request.auth.uid));
+
+      // Creation is server-only so identity, pricing, and coupons cannot be forged.
+      allow create: if false;
+
+      allow update: if isOperations() ||
+        (isOwnerOrRetailer(resource.data) &&
+         ownerBookingTransition(resource.data, request.resource.data) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+           'status', 'statusHistory', 'cancelledAt', 'cancelledBy',
+           'rating', 'feedback', 'issueCategory', 'issueDescription',
+           'issueReportedAt', 'confirmedAt', 'feedbackCreatedAt', 'updatedAt'
+         ])) ||
+        (isPilot() && resource.data.assignedPilotId == request.auth.uid &&
+         pilotBookingTransition(resource.data, request.resource.data) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+           'status', 'statusHistory', 'actualAreaCovered', 'missionStartedAt',
+           'missionCompletedAt', 'serviceProofUrls', 'pilotRemarks',
+           'flightDurationMinutes', 'flightDurationHours', 'chemicalUsed',
+           'missionPhotos', 'couponVerified', 'couponVerificationStatus',
+           'couponVerifiedBy', 'couponVerifiedAt', 'liveLocation',
+           'paymentMethod', 'paymentStatus',
+           'paymentRequestedAt', 'cashCollected', 'cashCollectedBy',
+           'cashCollectedAt', 'cashDeposited', 'cashDepositedBy',
+           'cashDepositedAt', 'updatedAt'
+         ]) &&
+         (request.resource.data.paymentStatus == resource.data.paymentStatus ||
+          request.resource.data.paymentStatus == 'Cash Collected by Pilot') &&
+         (request.resource.data.cashCollected == resource.data.cashCollected ||
+          (request.resource.data.cashCollected == true &&
+           request.resource.data.cashCollectedBy == request.auth.uid)) &&
+         (request.resource.data.cashDeposited == resource.data.cashDeposited ||
+          (request.resource.data.cashDeposited == true &&
+           request.resource.data.cashDepositedBy == request.auth.uid)));
+      allow delete: if isAdmin();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if signedIn() &&
+        (resource.data.userId == request.auth.uid || isOperations());
+      allow write: if false;
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if signedIn() &&
+        (resource.data.recipientUid == request.auth.uid ||
+         resource.data.recipientRole == profile().role ||
+         (isAdmin() && resource.data.priority == 'admin'));
+      allow create, delete: if false;
+      allow update: if signedIn() &&
+        (resource.data.recipientUid == request.auth.uid ||
+         resource.data.recipientRole == profile().role) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'isRead']);
+    }
+
+    match /custom_notifications/{notificationId} {
+      allow read: if isOperations();
+      allow write: if false;
+    }
+
+    match /coupons/{couponId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /system/{documentId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /activities/{activityId} {
+      allow read: if isOperations();
+      allow write: if false;
+    }
+
+    match /walletTransactions/{transactionId} {
+      allow read: if signedIn() &&
+        (resource.data.pilotId == request.auth.uid ||
+         resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /salaryPayments/{paymentId} {
+      allow read: if signedIn() &&
+        (resource.data.pilotId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /job_assignments/{assignmentId} {
+      allow read: if isOperations() ||
+        (isPilot() &&
+         (resource.data.pilotId == request.auth.uid ||
+          resource.data.copilotId == request.auth.uid));
+      allow write: if isOperations();
+    }
+
+    match /drone_operators/{operatorId} {
+      allow read: if isOperations();
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

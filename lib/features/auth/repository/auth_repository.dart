@@ -29,13 +29,10 @@ abstract class AuthRepository {
   Future<void> createFarmerProfile(UserModel user);
   Future<void> createRetailerProfile(UserModel user);
   Future<void> updateProfile(String docId, Map<String, dynamic> data);
-  Future<UserModel?> findUserByEmail(String email);
-  Future<void> linkAuthWithEmployee(String docId, String uid);
   Future<void> updateLastLogin(String docId);
   Future<void> sendPasswordResetEmail(String email);
   Future<void> registerExternalPilot(UserModel user, String password);
   Future<void> registerFarmer(UserModel user, String password);
-  Future<void> deleteUserDocument(String docId);
 }
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -104,19 +101,10 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<UserModel?> getUserData(String uid) async {
-    final query = await _firestore
-        .collection('users')
-        .where('uid', isEqualTo: uid)
-        .limit(1)
-        .get();
-
-    if (query.docs.isNotEmpty) {
-      return UserModel.fromMap(
-        query.docs.first.data(),
-        docId: query.docs.first.id,
-      );
-    }
-    return null;
+    final document = await _firestore.collection('users').doc(uid).get();
+    return document.exists
+        ? UserModel.fromMap(document.data()!, docId: document.id)
+        : null;
   }
 
   @override
@@ -181,45 +169,8 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> updateProfile(String docId, Map<String, dynamic> data) async {
-    if (data.containsKey('email')) {
-      try {
-        final firebaseUser = FirebaseAuth.instance.currentUser;
-        if (firebaseUser != null && firebaseUser.email != data['email']) {
-          await firebaseUser.updateEmail(data['email']);
-        }
-      } catch (e) {
-        print('Error updating auth email: $e');
-      }
-    }
-
     await _firestore.collection('users').doc(docId).update({
       ...data,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-  }
-
-  @override
-  Future<UserModel?> findUserByEmail(String email) async {
-    final query = await _firestore
-        .collection('users')
-        .where('email', isEqualTo: email.trim().toLowerCase())
-        .limit(1)
-        .get();
-    if (query.docs.isNotEmpty) {
-      return UserModel.fromMap(
-        query.docs.first.data(),
-        docId: query.docs.first.id,
-      );
-    }
-    return null;
-  }
-
-  @override
-  Future<void> linkAuthWithEmployee(String docId, String uid) async {
-    await _firestore.collection('users').doc(docId).update({
-      'uid': uid,
-      'authCreated': true,
-      'lastLogin': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
@@ -255,7 +206,11 @@ class AuthRepositoryImpl implements AuthRepository {
     final uid = credential.user!.uid;
 
     // 2. Create Firestore user document
-    final userWithUid = user.copyWith(uid: uid, docId: uid);
+    final userWithUid = user.copyWith(
+      uid: uid,
+      docId: uid,
+      email: credential.user!.email,
+    );
     await _firestore.collection('users').doc(uid).set(userWithUid.toMap());
 
     // 3. Log Activity
@@ -298,7 +253,11 @@ class AuthRepositoryImpl implements AuthRepository {
     final uid = credential.user!.uid;
 
     // 2. Create Firestore user document
-    final userWithUid = user.copyWith(uid: uid, docId: uid);
+    final userWithUid = user.copyWith(
+      uid: uid,
+      docId: uid,
+      email: credential.user!.email,
+    );
     await _firestore.collection('users').doc(uid).set(userWithUid.toMap());
 
     // 3. Log Activity
@@ -323,8 +282,4 @@ class AuthRepositoryImpl implements AuthRepository {
     );
   }
 
-  @override
-  Future<void> deleteUserDocument(String docId) async {
-    await _firestore.collection('users').doc(docId).delete();
-  }
 }

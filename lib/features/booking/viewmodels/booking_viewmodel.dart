@@ -1,6 +1,4 @@
-import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../../shared/enums/booking_status.dart';
 import '../../auth/models/user_model.dart';
 import '../../auth/viewmodel/auth_viewmodel.dart';
@@ -78,14 +76,12 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
       return;
     }
 
-    final bookingId = _generateBookingId();
-
     final actingAsRetailer =
         user.role == UserRole.retailer && farmerOverride != null;
     final farmer = farmerOverride ?? user;
 
     final booking = BookingModel(
-      bookingId: bookingId,
+      bookingId: '',
       farmerUid: farmer.uid!,
       farmerName: farmer.name,
       farmerPhone: farmer.phoneNumber,
@@ -120,7 +116,7 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
     );
 
     try {
-      await _repository.createBooking(booking);
+      final bookingId = await _repository.createBooking(booking);
       state = AsyncData(bookingId);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -202,9 +198,6 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
   Future<void> requestPayment({
     required String docId,
     required String method,
-    required double originalAmount,
-    required double finalAmount,
-    double? discountAmount,
     String? pilotId,
   }) async {
     state = const AsyncLoading();
@@ -212,9 +205,6 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
       await _repository.requestPayment(
         docId: docId,
         method: method,
-        originalAmount: originalAmount,
-        finalAmount: finalAmount,
-        discountAmount: discountAmount,
         pilotId: pilotId,
       );
       state = const AsyncData(null);
@@ -223,11 +213,6 @@ class BookingViewModel extends StateNotifier<AsyncValue<String?>> {
     }
   }
 
-  String _generateBookingId() {
-    final now = DateTime.now();
-    final random = Random().nextInt(9000) + 1000;
-    return 'LA-${DateFormat('yyyyMMdd').format(now)}-$random';
-  }
 }
 
 final bookingViewModelProvider =

@@ -1,0 +1,4 @@
+storePassword=ci-not-secret
+keyPassword=ci-not-secret
+keyAlias=ci-upload
+storeFile=../keystore/ci-upload.jks

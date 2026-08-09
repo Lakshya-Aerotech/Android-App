@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/step_indicator.dart';
 import '../../../../core/widgets/section_header.dart';
@@ -104,7 +105,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
         '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}';
 
     final double area = double.tryParse(_areaController.text) ?? 0.0;
-    final double ratePerAcre = 800.0;
+    final double ratePerAcre = AppConfig.bookingRatePerAcre;
     final double originalAmount = area * ratePerAcre;
 
     double discountAmount = 0.0;
@@ -470,7 +471,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
     final couponsAsync = ref.watch(couponsStreamProvider);
 
     final double area = double.tryParse(_areaController.text) ?? 0.0;
-    final double ratePerAcre = 800.0;
+    final double ratePerAcre = AppConfig.bookingRatePerAcre;
     final double originalAmount = area * ratePerAcre;
 
     double discountAmount = 0.0;

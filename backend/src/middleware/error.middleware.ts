@@ -7,12 +7,12 @@ import { NotificationService } from '../services/notification.service';
 /**
  * Helper to broadcast system errors to all Admins.
  */
-async function notifyAdminsOfSystemError(errorMsg: string): Promise<void> {
+async function notifyAdminsOfSystemError(requestId: string | undefined): Promise<void> {
   try {
     await NotificationService.sendNotification({
       recipientRole: 'admin',
       title: 'System Error Alert',
-      body: `A system exception has occurred: ${errorMsg}`,
+      body: `A server error occurred. Reference: ${requestId || 'unavailable'}`,
       type: 'SYSTEM_ERROR',
     });
   } catch (error) {
@@ -44,12 +44,16 @@ export function errorHandler(
 
   // Asynchronously notify admins of system exceptions for server-level 500 errors
   if (statusCode >= 500) {
-    notifyAdminsOfSystemError(errorMsg).catch(console.error);
+    notifyAdminsOfSystemError(req.id).catch(console.error);
   }
+
+  const responseMessage = statusCode >= 500
+    ? RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR
+    : errorMsg;
 
   return res.status(statusCode).json({
     success: false,
-    message: errorMsg,
+    message: responseMessage,
     data: null,
     requestId: req.id,
   });

@@ -68,9 +68,11 @@ export class PhonePeChecksumUtil {
     const sha256Hash = this.sha256(stringToHash);
     const expectedChecksum = `${sha256Hash}###${phonePeConfig.saltIndex}`;
 
-    return crypto.timingSafeEqual(
-      Buffer.from(expectedChecksum, 'utf-8'),
-      Buffer.from(receivedXVerify, 'utf-8')
-    );
+    const expectedBuffer = Buffer.from(expectedChecksum, 'utf-8');
+    const receivedBuffer = Buffer.from(receivedXVerify, 'utf-8');
+    if (expectedBuffer.length !== receivedBuffer.length) {
+      return false;
+    }
+    return crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
   }
 }

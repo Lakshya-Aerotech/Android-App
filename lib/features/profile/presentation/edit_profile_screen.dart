@@ -51,7 +51,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   void _onSave() async {
     await ref.read(authViewModelProvider.notifier).updateProfile(
       name: _nameController.text.trim(),
-      email: _emailController.text.trim(),
       phoneNumber: _phoneController.text.trim(),
       village: _villageController.text.trim(),
       district: _districtController.text.trim(),
@@ -121,7 +120,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 label: 'Email',
                 hintText: 'Enter email',
                 controller: _emailController,
-                enabled: user?.role == UserRole.retailer,
+                enabled: false,
               ),
               const SizedBox(height: 16),
               if (user?.role != UserRole.retailer) ...[

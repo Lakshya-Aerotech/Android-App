@@ -5,6 +5,8 @@ export const HTTP_STATUS = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
+  TOO_MANY_REQUESTS: 429,
+  BAD_GATEWAY: 502,
   INTERNAL_SERVER_ERROR: 500,
 } as const;
 
@@ -19,5 +21,5 @@ export const USER_ROLES = {
   FARMER: 'farmer',
   RETAILER: 'retailer',
   PILOT: 'pilot',
-  EXTERNAL_PILOT: 'external_pilot',
+  EXTERNAL_PILOT: 'externalPilot',
 } as const;

@@ -131,8 +131,12 @@ Specialized interface for mission execution and tracking:
     ```bash
     flutter pub get
     # For Android testing with local backend
-    flutter run --dart-define=PAYMENT_BASE_URL=http://10.0.2.2:3000/api/payment
+    flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/api --dart-define=BOOKING_RATE_PER_ACRE=800
     ```
+
+Production builds require an HTTPS `API_BASE_URL`. See
+[`PRODUCTION_RELEASE.md`](PRODUCTION_RELEASE.md) for signing, Firebase rules,
+store disclosures, and release validation.
 
 ---
 

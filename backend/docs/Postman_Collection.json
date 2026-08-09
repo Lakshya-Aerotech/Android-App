@@ -22,8 +22,13 @@
       "type": "string"
     },
     {
-      "key": "userId",
-      "value": "USER_FARMER_501",
+      "key": "idToken",
+      "value": "FIREBASE_ID_TOKEN",
+      "type": "string"
+    },
+    {
+      "key": "appCheckToken",
+      "value": "FIREBASE_APP_CHECK_TOKEN",
       "type": "string"
     }
   ],
@@ -50,11 +55,21 @@
             "key": "Content-Type",
             "value": "application/json",
             "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{idToken}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Firebase-AppCheck",
+            "value": "{{appCheckToken}}",
+            "type": "text"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"userId\": \"{{userId}}\",\n  \"amount\": 500,\n  \"mobileNumber\": \"9876543210\"\n}"
+          "raw": "{\n  \"bookingId\": \"{{bookingId}}\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/payment/create",
@@ -68,7 +83,18 @@
       "name": "Check Payment Status",
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{idToken}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Firebase-AppCheck",
+            "value": "{{appCheckToken}}",
+            "type": "text"
+          }
+        ],
         "url": {
           "raw": "{{baseUrl}}/api/payment/status/{{merchantTransactionId}}",
           "host": ["{{baseUrl}}"],
