@@ -20,6 +20,7 @@ export interface EnvConfig {
     timeout: number;
   };
   firebase: {
+    useApplicationDefaultCredentials: boolean;
     projectId: string;
     clientEmail: string;
     privateKey: string;
@@ -59,6 +60,10 @@ export const config: EnvConfig = {
     timeout: parseInt(getEnvVar('PHONEPE_TIMEOUT', '10000'), 10),
   },
   firebase: {
+    useApplicationDefaultCredentials: getBooleanEnvVar(
+      'FIREBASE_USE_APPLICATION_DEFAULT',
+      false
+    ),
     projectId: getEnvVar('FIREBASE_PROJECT_ID'),
     clientEmail: getEnvVar('FIREBASE_CLIENT_EMAIL'),
     privateKey: getEnvVar('FIREBASE_PRIVATE_KEY') ? getEnvVar('FIREBASE_PRIVATE_KEY').replace(/\\n/g, '\n') : '',
@@ -83,7 +88,8 @@ function validateStartupEnv(cfg: EnvConfig): void {
         '[CRITICAL STARTUP FAILURE] ENFORCE_APP_CHECK must be true in production.'
       );
     }
-    if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    if (!cfg.firebase.useApplicationDefaultCredentials &&
+        !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       if (!cfg.firebase.projectId) missing.push('FIREBASE_PROJECT_ID');
       if (!cfg.firebase.clientEmail) missing.push('FIREBASE_CLIENT_EMAIL');
       if (!cfg.firebase.privateKey) missing.push('FIREBASE_PRIVATE_KEY');

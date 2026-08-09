@@ -25,7 +25,7 @@ Set all values through the deployment platform's secret manager:
 ```text
 NODE_ENV=production
 PORT=3000
-CORS_ALLOWED_ORIGINS=https://your-approved-web-origin.example
+CORS_ALLOWED_ORIGINS=https://www.lakshyaaerotech.com,https://lakshyaaerotech.com
 ENABLE_PAYMENT_MOCKS=false
 ENFORCE_APP_CHECK=true
 BOOKING_RATE_PER_ACRE=800
@@ -33,11 +33,12 @@ PHONEPE_MERCHANT_ID=...
 PHONEPE_SALT_KEY=...
 PHONEPE_SALT_INDEX=...
 PHONEPE_BASE_URL=https://...
-PHONEPE_CALLBACK_URL=https://api.example.com/api/payment/webhook
-FIREBASE_PROJECT_ID=...
+PHONEPE_CALLBACK_URL=https://api.lakshyaaerotech.com/api/payment/webhook
+FIREBASE_USE_APPLICATION_DEFAULT=true
+FIREBASE_PROJECT_ID=lakshya-aerotech
 FIREBASE_CLIENT_EMAIL=...
 FIREBASE_PRIVATE_KEY=...
-FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+FIREBASE_STORAGE_BUCKET=lakshya-aerotech.firebasestorage.app
 ```
 
 Deploy Firebase authorization before enabling production clients:
@@ -67,7 +68,7 @@ flutter pub get
 flutter analyze
 flutter test
 flutter build appbundle --release \
-  --dart-define=API_BASE_URL=https://api.example.com/api \
+  --dart-define=API_BASE_URL=https://api.lakshyaaerotech.com/api \
   --dart-define=BOOKING_RATE_PER_ACRE=800 \
   --obfuscate --split-debug-info=build/symbols/android
 ```
@@ -87,7 +88,7 @@ flutter pub get
 flutter analyze
 flutter test
 flutter build ipa --release \
-  --dart-define=API_BASE_URL=https://api.example.com/api \
+  --dart-define=API_BASE_URL=https://api.lakshyaaerotech.com/api \
   --dart-define=BOOKING_RATE_PER_ACRE=800 \
   --obfuscate --split-debug-info=build/symbols/ios
 ```
