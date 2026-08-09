@@ -15,7 +15,7 @@ export const createPaymentRateLimiter = rateLimit({
     message: 'Too many payment creation attempts. Please try again after 15 minutes.',
     data: null,
   },
-  statusCode: HTTP_STATUS.BAD_REQUEST,
+  statusCode: HTTP_STATUS.TOO_MANY_REQUESTS,
 });
 
 /**
@@ -32,7 +32,7 @@ export const statusCheckRateLimiter = rateLimit({
     message: 'Too many status check requests. Please slow down.',
     data: null,
   },
-  statusCode: HTTP_STATUS.BAD_REQUEST,
+  statusCode: HTTP_STATUS.TOO_MANY_REQUESTS,
 });
 
 /**
@@ -41,7 +41,7 @@ export const statusCheckRateLimiter = rateLimit({
  */
 export const webhookRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 120,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -49,5 +49,29 @@ export const webhookRateLimiter = rateLimit({
     message: 'Too many webhook calls.',
     data: null,
   },
-  statusCode: HTTP_STATUS.BAD_REQUEST,
+  statusCode: HTTP_STATUS.TOO_MANY_REQUESTS,
+});
+
+export const accountMutationRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  statusCode: HTTP_STATUS.TOO_MANY_REQUESTS,
+});
+
+export const bookingCreationRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  statusCode: HTTP_STATUS.TOO_MANY_REQUESTS,
+});
+
+export const notificationSendRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  statusCode: HTTP_STATUS.TOO_MANY_REQUESTS,
 });

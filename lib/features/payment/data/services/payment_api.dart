@@ -1,17 +1,19 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/payment_model.dart';
+import '../../../../core/config/app_config.dart';
+import '../../../../core/services/api_auth_headers.dart';
 
 class PaymentApiService {
   final Dio _dio;
 
   PaymentApiService(this._dio);
 
-  static const String _defaultBaseUrl = String.fromEnvironment(
-    'PAYMENT_BASE_URL',
-    defaultValue: 'http://192.168.1.11:3000/api/payment',
-  );
+  String get _baseUrl => AppConfig.paymentBaseUrl;
+
+  Future<Options> _authenticatedOptions() async {
+    return Options(headers: await ApiAuthHeaders.create());
+  }
 
   String _getHealthUrl(String paymentBaseUrl) {
     if (paymentBaseUrl.endsWith('/api/payment')) {
@@ -26,11 +28,7 @@ class PaymentApiService {
   }
 
   Future<bool> isServerReachable() async {
-    final healthUrl = _getHealthUrl(_defaultBaseUrl);
-    
-    debugPrint('--- SERVER CONNECTIVITY CHECK ---');
-    debugPrint('Checking connectivity to: $healthUrl');
-    debugPrint('Dio Options - connectTimeout: ${_dio.options.connectTimeout}, receiveTimeout: ${_dio.options.receiveTimeout}');
+    final healthUrl = _getHealthUrl(_baseUrl);
     
     try {
       final response = await _dio.get(
@@ -40,50 +38,29 @@ class PaymentApiService {
           sendTimeout: const Duration(seconds: 5),
         ),
       );
-      debugPrint('Connectivity Check Status: ${response.statusCode}');
-      debugPrint('Connectivity Check Response: ${response.data}');
-      debugPrint('---------------------------------');
       if (response.statusCode == 200 && response.data != null) {
         return response.data['success'] == true;
       }
       return false;
-    } catch (e, st) {
-      debugPrint('Connectivity Check Exception: $e');
-      debugPrint('Stack Trace: $st');
-      debugPrint('---------------------------------');
+    } catch (_) {
       return false;
     }
   }
 
   Future<PaymentInitiationResponse> createPayment({
     required String bookingId,
-    required String userId,
-    required double amount,
-    required String mobileNumber,
   }) async {
-    final endpointUrl = '$_defaultBaseUrl/create';
+    final endpointUrl = '$_baseUrl/create';
     final requestBody = {
       'bookingId': bookingId,
-      'userId': userId,
-      'amount': amount,
-      'mobileNumber': mobileNumber,
     };
-
-    debugPrint('--- PAYMENT INITIATION DEBUG LOGS ---');
-    debugPrint('Base URL: $_defaultBaseUrl');
-    debugPrint('Endpoint: $endpointUrl');
-    debugPrint('Request Payload: $requestBody');
-    debugPrint('Timeout Values - connectTimeout: ${_dio.options.connectTimeout}, receiveTimeout: ${_dio.options.receiveTimeout}, sendTimeout: ${_dio.options.sendTimeout}');
 
     try {
       final response = await _dio.post(
         endpointUrl,
         data: requestBody,
+        options: await _authenticatedOptions(),
       );
-
-      debugPrint('Response Status: ${response.statusCode}');
-      debugPrint('Response Body: ${response.data}');
-      debugPrint('-------------------------------------');
 
       if (response.statusCode == 200 && response.data != null) {
         final success = response.data['success'] as bool? ?? false;
@@ -96,45 +73,29 @@ class PaymentApiService {
         }
       }
       throw Exception(response.data?['message'] ?? 'Failed to initiate payment. Invalid response.');
-    } on DioException catch (e, st) {
-      debugPrint('Full Dio Exception: $e');
-      debugPrint('Stack Trace: $st');
-      debugPrint('-------------------------------------');
+    } on DioException catch (e) {
       throw Exception(_handleDioError(e));
-    } catch (e, st) {
-      debugPrint('Unexpected Exception: $e');
-      debugPrint('Stack Trace: $st');
-      debugPrint('-------------------------------------');
+    } catch (e) {
       throw Exception('An unexpected error occurred during payment setup: $e');
     }
   }
 
   Future<Map<String, dynamic>> getPaymentStatus(String merchantTransactionId) async {
-    final endpointUrl = '$_defaultBaseUrl/status/$merchantTransactionId';
-    
-    debugPrint('--- PAYMENT STATUS CHECK LOGS ---');
-    debugPrint('Base URL: $_defaultBaseUrl');
-    debugPrint('Endpoint: $endpointUrl');
+    final endpointUrl = '$_baseUrl/status/$merchantTransactionId';
     
     try {
-      final response = await _dio.get(endpointUrl);
-      debugPrint('Response Status: ${response.statusCode}');
-      debugPrint('Response Body: ${response.data}');
-      debugPrint('----------------------------------');
+      final response = await _dio.get(
+        endpointUrl,
+        options: await _authenticatedOptions(),
+      );
       
       if (response.statusCode == 200 && response.data != null) {
         return response.data;
       }
       throw Exception(response.data?['message'] ?? 'Failed to check payment status.');
-    } on DioException catch (e, st) {
-      debugPrint('Full Dio Exception checking status: $e');
-      debugPrint('Stack Trace: $st');
-      debugPrint('----------------------------------');
+    } on DioException catch (e) {
       throw Exception(_handleDioError(e));
-    } catch (e, st) {
-      debugPrint('Unexpected Exception checking status: $e');
-      debugPrint('Stack Trace: $st');
-      debugPrint('----------------------------------');
+    } catch (e) {
       throw Exception('An unexpected error occurred checking payment status: $e');
     }
   }

@@ -9,6 +9,7 @@ if (admin.apps.length === 0) {
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     admin.initializeApp({
       credential: admin.credential.applicationDefault(),
+      storageBucket: config.firebase.storageBucket,
     });
   } else if (config.firebase.projectId && config.firebase.clientEmail && config.firebase.privateKey) {
     admin.initializeApp({
@@ -17,11 +18,13 @@ if (admin.apps.length === 0) {
         clientEmail: config.firebase.clientEmail,
         privateKey: config.firebase.privateKey,
       }),
+      storageBucket: config.firebase.storageBucket,
     });
   } else {
     // Fallback: Default application credentials with configured project ID
     admin.initializeApp({
       projectId: config.firebase.projectId || 'lakshya-aerotech',
+      storageBucket: config.firebase.storageBucket || undefined,
     });
   }
 }

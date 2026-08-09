@@ -40,9 +40,6 @@ class PaymentController extends StateNotifier<PaymentState> {
 
   Future<void> initiatePayment({
     required String bookingId,
-    required String userId,
-    required double amount,
-    required String mobileNumber,
   }) async {
     state = state.copyWith(isLoading: true, error: null, isSuccess: false);
 
@@ -59,9 +56,6 @@ class PaymentController extends StateNotifier<PaymentState> {
     try {
       final response = await _repository.initiatePayment(
         bookingId: bookingId,
-        userId: userId,
-        amount: amount,
-        mobileNumber: mobileNumber,
       );
 
       if (response.success && response.paymentUrl.isNotEmpty) {

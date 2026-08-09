@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../shared/models/activity_model.dart';
 import '../../../shared/repositories/activity_repository.dart';
 import '../models/admin_statistic.dart';
@@ -12,6 +13,7 @@ import '../../auth/viewmodel/auth_viewmodel.dart';
 import '../../booking/models/booking_model.dart';
 import '../../wallet/models/wallet_transaction_model.dart';
 import '../../wallet/models/salary_payment_model.dart';
+import '../services/admin_user_api_service.dart';
 
 final adminRepositoryProvider = Provider<AdminRepository>((ref) {
   return AdminRepositoryImpl();
@@ -143,34 +145,24 @@ class AdminViewModel extends StateNotifier<AsyncValue<void>> {
     required UserRole role,
     required String language,
     required bool isActive,
-    required String createdBy,
   }) async {
     state = const AsyncValue.loading();
     try {
-      final exists = await _repository.checkIfEmailExists(email);
-      if (exists) {
-        state = const AsyncValue.data(null);
-        return 'Employee with this email already exists.';
-      }
-
-      final employee = UserModel(
+      await _ref.read(adminUserApiServiceProvider).createEmployee(
         name: name,
         email: email,
         phoneNumber: phone,
         role: role,
         preferredLanguage: language,
         isActive: isActive,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        createdBy: createdBy,
-        profileCompleted: true,
-        mustChangePassword: true,
-        authCreated: false,
-        uid: null,
-        fcmTokens: [],
       );
-
-      await _repository.createEmployee(employee);
+      try {
+        await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      } catch (_) {
+        state = const AsyncValue.data(null);
+        return 'Employee created, but the setup email could not be sent. '
+            'Use Firebase Authentication to resend a password reset email.';
+      }
       state = const AsyncValue.data(null);
       return null;
     } catch (e, st) {
@@ -190,22 +182,13 @@ class AdminViewModel extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      final exists = await _repository.checkIfEmailExists(
-        email,
-        excludingDocId: docId,
-      );
-      if (exists) {
-        state = const AsyncValue.data(null);
-        return 'Employee with this email already exists.';
-      }
-
-      await _repository.updateEmployee(
-        docId: docId,
+      await _ref.read(adminUserApiServiceProvider).updateEmployee(
+        documentId: docId,
         name: name,
         email: email,
-        phone: phone,
+        phoneNumber: phone,
         role: role,
-        language: language,
+        preferredLanguage: language,
         isActive: isActive,
       );
       state = const AsyncValue.data(null);
@@ -219,7 +202,10 @@ class AdminViewModel extends StateNotifier<AsyncValue<void>> {
   Future<String?> updateStatus(String docId, bool isActive) async {
     state = const AsyncValue.loading();
     try {
-      await _repository.updateEmployeeStatus(docId, isActive);
+      await _ref.read(adminUserApiServiceProvider).updateEmployee(
+        documentId: docId,
+        isActive: isActive,
+      );
       state = const AsyncValue.data(null);
       return null;
     } catch (e, st) {
@@ -249,10 +235,12 @@ class AdminViewModel extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<void> deleteEmployee(String docId) async {
+    state = const AsyncValue.loading();
     try {
-      await _repository.deleteEmployee(docId);
-    } catch (e) {
-      // Handle error
+      await _ref.read(adminUserApiServiceProvider).deleteEmployee(docId);
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
     }
   }
 

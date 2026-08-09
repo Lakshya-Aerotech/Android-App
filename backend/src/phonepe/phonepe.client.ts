@@ -5,30 +5,6 @@ export class PhonePeHttpClient {
   private static instance: AxiosInstance;
 
   /**
-   * Safe log sanitizer to strip or mask credentials before logging.
-   */
-  private static sanitizeLog(obj: unknown): string {
-    try {
-      const logStr = JSON.stringify(obj, (key, value) => {
-        const lowerKey = key.toLowerCase();
-        if (
-          lowerKey.includes('salt') ||
-          lowerKey.includes('secret') ||
-          lowerKey.includes('key') ||
-          lowerKey.includes('authorization') ||
-          lowerKey.includes('x-verify')
-        ) {
-          return '[REDACTED]';
-        }
-        return value;
-      });
-      return logStr;
-    } catch {
-      return '[Unparseable Data]';
-    }
-  }
-
-  /**
    * Initializes or returns the singleton Axios instance configured for PhonePe API calls.
    */
   public static getClient(): AxiosInstance {
@@ -45,11 +21,9 @@ export class PhonePeHttpClient {
       // Request Interceptor for logging
       this.instance.interceptors.request.use(
         (config: InternalAxiosRequestConfig) => {
-          const sanitizedHeaders = this.sanitizeLog(config.headers);
-          const sanitizedData = this.sanitizeLog(config.data);
-          console.log(`[PhonePeHttpClient] [OUTGOING REQUEST] ${config.method?.toUpperCase()} ${config.url}
-            Headers: ${sanitizedHeaders}
-            Payload: ${sanitizedData}`);
+          console.log(
+            `[PhonePeHttpClient] [OUTGOING REQUEST] ${config.method?.toUpperCase()} ${config.url}`
+          );
           return config;
         },
         (error: AxiosError) => {
@@ -61,16 +35,18 @@ export class PhonePeHttpClient {
       // Response Interceptor for logging
       this.instance.interceptors.response.use(
         (response: AxiosResponse) => {
-          console.log(`[PhonePeHttpClient] [INCOMING RESPONSE] ${response.status} ${response.config.url}
-            Response Data: ${this.sanitizeLog(response.data)}`);
+          console.log(
+            `[PhonePeHttpClient] [INCOMING RESPONSE] ${response.status} ${response.config.url}`
+          );
           return response;
         },
         (error: AxiosError) => {
           if (error.code === 'ECONNABORTED') {
             console.error(`[PhonePeHttpClient] [TIMEOUT ERROR] Request timed out after ${phonePeConfig.timeout}ms on ${error.config?.url}`);
           } else if (error.response) {
-            console.error(`[PhonePeHttpClient] [HTTP ERROR RESPONSE] Status: ${error.response.status} on ${error.config?.url}
-              Data: ${this.sanitizeLog(error.response.data)}`);
+            console.error(
+              `[PhonePeHttpClient] [HTTP ERROR RESPONSE] Status: ${error.response.status} on ${error.config?.url}`
+            );
           } else {
             console.error(`[PhonePeHttpClient] [NETWORK ERROR] ${error.message}`);
           }

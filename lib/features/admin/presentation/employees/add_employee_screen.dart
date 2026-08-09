@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../features/auth/viewmodel/auth_viewmodel.dart';
 import '../../../../features/auth/models/user_model.dart';
 import '../../viewmodels/admin_viewmodel.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -61,8 +60,6 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
       return;
     }
 
-    final admin = ref.read(userModelProvider);
-
     final error = await ref
         .read(adminViewModelProvider.notifier)
         .createEmployee(
@@ -72,7 +69,6 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
           role: _selectedRole,
           language: _selectedLanguage == 'English' ? 'en' : 'te',
           isActive: _isActive,
-          createdBy: admin?.name ?? 'Admin',
         );
 
     if (mounted) {

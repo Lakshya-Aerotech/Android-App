@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../shared/components/dashboard_header.dart';
+import '../../../shared/components/dashboard_header.dart';
 
 class PilotHomeHeader extends StatelessWidget {
   final String pilotName;

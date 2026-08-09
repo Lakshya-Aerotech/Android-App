@@ -8,6 +8,7 @@ import '../../auth/models/user_model.dart';
 import '../../farm/viewmodels/farm_viewmodel.dart';
 import '../../booking/viewmodels/booking_viewmodel.dart';
 import '../../pilot_jobs/viewmodels/pilot_jobs_viewmodel.dart';
+import '../../operations/viewmodels/operations_viewmodel.dart';
 import '../../../shared/enums/booking_status.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -16,6 +17,7 @@ import '../../../core/localization/app_localizations.dart';
 import '../../../core/localization/locale_viewmodel.dart';
 import '../../../core/widgets/logout_confirmation.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/services/account_service.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -177,11 +179,63 @@ class ProfileScreen extends ConsumerWidget {
               backgroundColor: Colors.white,
               foregroundColor: Colors.red,
             ),
+            if (user.role == UserRole.farmer ||
+                user.role == UserRole.retailer ||
+                user.role == UserRole.externalPilot)
+              TextButton.icon(
+                onPressed: () => _confirmAccountDeletion(context, ref),
+                icon: const Icon(Icons.delete_forever_outlined),
+                label: const Text('Delete account and personal data'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+              ),
             const SizedBox(height: 40),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _confirmAccountDeletion(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Permanently delete account?'),
+        content: const Text(
+          'Your profile, uploaded files, farms, and notifications will be '
+          'deleted. Completed booking and payment records may be retained in '
+          'anonymized form where required for operational or legal records.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Delete permanently'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await ref.read(accountServiceProvider).deleteCurrentAccount();
+      ref.read(userModelProvider.notifier).state = null;
+      if (context.mounted) context.go('/login');
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   Widget _buildRoleSpecificSection(
@@ -448,6 +502,7 @@ class _PilotStatsSection extends ConsumerWidget {
 class _OperationsStatsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final bookings = ref.watch(allOperationsBookingsStreamProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -463,7 +518,11 @@ class _OperationsStatsSection extends ConsumerWidget {
             Expanded(
               child: _StatCard(
                 label: context.tr('Bookings Handled'),
-                value: '124', // Placeholder
+                value: bookings.when(
+                  data: (items) => items.length.toString(),
+                  loading: () => '...',
+                  error: (_, __) => '0',
+                ),
               ),
             ),
           ],

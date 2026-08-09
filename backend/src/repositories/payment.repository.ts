@@ -246,6 +246,7 @@ export class PaymentRepository {
       if (bookingDocRef && bookingDocExists) {
         transaction.update(bookingDocRef, {
           paymentStatus: status,
+          activePaymentStatus: status,
           paymentId: paymentData.paymentId,
           merchantTransactionId: paymentData.merchantTransactionId,
           transactionId: transactionId || paymentData.transactionId || '',

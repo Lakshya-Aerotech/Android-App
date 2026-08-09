@@ -27,7 +27,7 @@ class RetailerRepositoryImpl implements RetailerRepository {
   Stream<List<UserModel>> getRetailerFarmersStream(String retailerUid) {
     return _firestore
         .collection('users')
-        .where('createdBy', isEqualTo: retailerUid)
+        .where('createdByRetailerId', isEqualTo: retailerUid)
         .snapshots()
         .map((snapshot) {
           final farmers = snapshot.docs

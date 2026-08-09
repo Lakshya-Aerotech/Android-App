@@ -1,33 +1,19 @@
 import 'package:dio/dio.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import '../../features/payment/data/services/payment_api.dart'; // import dioProvider
+import '../config/app_config.dart';
+import '../services/api_auth_headers.dart';
 
 class NotificationApiService {
   final Dio _dio;
 
   NotificationApiService(this._dio);
 
-  static const String _paymentBaseUrl = String.fromEnvironment(
-    'PAYMENT_BASE_URL',
-    defaultValue: 'http://192.168.1.11:3000/api/payment',
-  );
-
-  String get _baseUrl {
-    if (_paymentBaseUrl.endsWith('/api/payment')) {
-      return _paymentBaseUrl.replaceAll('/api/payment', '/api/notifications');
-    }
-    return _paymentBaseUrl.replaceAll('/payment', '/notifications');
-  }
+  String get _baseUrl => AppConfig.notificationBaseUrl;
 
   Future<Options> _getOptions() async {
-    final token = await FirebaseAuth.instance.currentUser?.getIdToken();
-    return Options(
-      headers: {
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
-    );
+    return Options(headers: await ApiAuthHeaders.create());
   }
 
   Future<void> sendCustomNotification({
@@ -45,22 +31,12 @@ class NotificationApiService {
       'recipientUserIds': recipientUserIds,
     };
 
-    debugPrint('--- [NotificationApiService] SEND CUSTOM NOTIFICATION ---');
-    debugPrint('Request URL: $url');
-    debugPrint('HTTP Method: POST');
-    debugPrint('Request Headers: ${options.headers}');
-    debugPrint('Request Body: $requestBody');
-
     try {
       final response = await _dio.post(
         url,
         data: requestBody,
         options: options,
       );
-
-      debugPrint('Response Status Code: ${response.statusCode}');
-      debugPrint('Response Body: ${response.data}');
-      debugPrint('------------------------------------------------------');
 
       if (response.statusCode != 200 || response.data['success'] != true) {
         throw Exception(response.data['error'] ?? 'Failed to send custom notification.');
@@ -86,20 +62,11 @@ class NotificationApiService {
     final url = '$_baseUrl/history';
     final options = await _getOptions();
 
-    debugPrint('--- [NotificationApiService] GET NOTIFICATION HISTORY ---');
-    debugPrint('Request URL: $url');
-    debugPrint('HTTP Method: GET');
-    debugPrint('Request Headers: ${options.headers}');
-
     try {
       final response = await _dio.get(
         url,
         options: options,
       );
-
-      debugPrint('Response Status Code: ${response.statusCode}');
-      debugPrint('Response Body: ${response.data}');
-      debugPrint('------------------------------------------------------');
 
       if (response.statusCode == 200 && response.data['success'] == true) {
         final List historyList = response.data['history'] ?? [];

@@ -1,11 +1,13 @@
 import { Router, Response, NextFunction } from 'express';
 import * as admin from 'firebase-admin';
 import { AuthenticatedRequest, requireAuth, requireRole } from '../middleware/auth.middleware';
+import { requireAppCheck } from '../middleware/app-check.middleware';
 import { HTTP_STATUS } from '../config';
+import { notificationSendRateLimiter } from '../middleware/rate-limit.middleware';
 
 const router = Router();
 
-router.post('/send', requireAuth, requireRole(['operations', 'admin']), async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+router.post('/send', requireAppCheck, requireAuth, requireRole(['operations', 'admin']), notificationSendRateLimiter, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { title, message, recipientRoles, recipientUserIds } = req.body;
 
@@ -35,8 +37,23 @@ router.post('/send', requireAuth, requireRole(['operations', 'admin']), async (r
       });
     }
 
-    const rolesList = recipientRoles || [];
-    const userIdsList = recipientUserIds || [];
+    if ((!Array.isArray(recipientRoles) && recipientRoles != null) ||
+        (!Array.isArray(recipientUserIds) && recipientUserIds != null)) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Recipient roles and user IDs must be arrays.',
+      });
+    }
+
+    const allowedRoles = new Set([
+      'farmer', 'retailer', 'pilot', 'externalPilot', 'operations', 'everyone',
+    ]);
+    const rolesList = (recipientRoles || [])
+      .map((role: unknown) => role === 'external_pilot' ? 'externalPilot' : role)
+      .filter((role: unknown): role is string => typeof role === 'string' && allowedRoles.has(role));
+    const userIdsList = (recipientUserIds || [])
+      .filter((uid: unknown): uid is string => typeof uid === 'string' && uid.trim().length > 0)
+      .map((uid: string) => uid.trim());
 
     if (rolesList.length === 0 && userIdsList.length === 0) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -59,7 +76,7 @@ router.post('/send', requireAuth, requireRole(['operations', 'admin']), async (r
     if (rolesList.length > 0) {
       let queryRoles = [...rolesList];
       if (rolesList.includes('everyone')) {
-        queryRoles = ['farmer', 'retailer', 'pilot', 'external_pilot', 'operations'];
+        queryRoles = ['farmer', 'retailer', 'pilot', 'externalPilot', 'operations'];
       }
 
       // Query firestore in batches or directly if we use an 'in' query
@@ -112,8 +129,8 @@ router.post('/send', requireAuth, requireRole(['operations', 'admin']), async (r
     };
     await customNotificationRef.set(customNotificationData);
 
-    // 5. Send notifications in chunked batches of 500
-    const chunkSize = 500;
+    // Firestore `in` queries accept at most 30 comparison values.
+    const chunkSize = 30;
     let totalSent = 0;
     let totalFailed = 0;
 
@@ -201,34 +218,35 @@ router.post('/send', requireAuth, requireRole(['operations', 'admin']), async (r
         };
 
         try {
-          const fcmResponse = await admin.messaging().sendEachForMulticast(fcmMessage);
-          totalSent += fcmResponse.successCount;
-          totalFailed += fcmResponse.failureCount;
+          const invalidTokens = new Set<string>();
+          for (let tokenIndex = 0; tokenIndex < uniqueTokens.length; tokenIndex += 500) {
+            const tokenChunk = uniqueTokens.slice(tokenIndex, tokenIndex + 500);
+            const fcmResponse = await admin.messaging().sendEachForMulticast({
+              ...fcmMessage,
+              tokens: tokenChunk,
+            });
+            totalSent += fcmResponse.successCount;
+            totalFailed += fcmResponse.failureCount;
 
-          if (fcmResponse.failureCount > 0) {
-            const invalidTokens: string[] = [];
-            fcmResponse.responses.forEach((resp, idx) => {
-              if (!resp.success) {
-                const errorCode = resp.error?.code;
-                if (
-                  errorCode === 'messaging/invalid-registration-token' ||
-                  errorCode === 'messaging/registration-token-not-registered'
-                ) {
-                  invalidTokens.push(uniqueTokens[idx]);
-                }
+            fcmResponse.responses.forEach((response, responseIndex) => {
+              const errorCode = response.error?.code;
+              if (!response.success &&
+                  (errorCode === 'messaging/invalid-registration-token' ||
+                   errorCode === 'messaging/registration-token-not-registered')) {
+                invalidTokens.add(tokenChunk[responseIndex]);
               }
             });
+          }
 
-            if (invalidTokens.length > 0) {
-              for (const doc of userDocsSnapshot.docs) {
-                const userData = doc.data();
-                const tokens = userData?.fcmTokens || [];
-                const tokensToRemove = tokens.filter((t: string) => invalidTokens.includes(t));
-                if (tokensToRemove.length > 0) {
-                  await doc.ref.update({
-                    fcmTokens: admin.firestore.FieldValue.arrayRemove(...tokensToRemove),
-                  }).catch(err => console.error(`Failed token cleanup for user ${doc.id}:`, err));
-                }
+          if (invalidTokens.size > 0) {
+            for (const doc of userDocsSnapshot.docs) {
+              const userData = doc.data();
+              const tokens = userData?.fcmTokens || [];
+              const tokensToRemove = tokens.filter((token: string) => invalidTokens.has(token));
+              if (tokensToRemove.length > 0) {
+                await doc.ref.update({
+                  fcmTokens: admin.firestore.FieldValue.arrayRemove(...tokensToRemove),
+                }).catch(err => console.error(`Failed token cleanup for user ${doc.id}:`, err));
               }
             }
           }
@@ -259,7 +277,7 @@ router.post('/send', requireAuth, requireRole(['operations', 'admin']), async (r
   }
 });
 
-router.get('/history', requireAuth, requireRole(['operations', 'admin']), async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+router.get('/history', requireAppCheck, requireAuth, requireRole(['operations', 'admin']), async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const historySnapshot = await admin
       .firestore()

@@ -1,17 +1,17 @@
 import '../models/payment_model.dart';
 import '../services/payment_api.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+enum PaymentVerificationStatus { success, failed, pending }
 
 abstract class PaymentRepository {
   Future<PaymentInitiationResponse> initiatePayment({
     required String bookingId,
-    required String userId,
-    required double amount,
-    required String mobileNumber,
   });
 
-  Future<bool> checkPaymentStatus(String merchantTransactionId);
+  Future<PaymentVerificationStatus> checkPaymentStatus(
+    String merchantTransactionId,
+  );
 
   Future<bool> isServerReachable();
 }
@@ -24,16 +24,9 @@ class PaymentRepositoryImpl implements PaymentRepository {
   @override
   Future<PaymentInitiationResponse> initiatePayment({
     required String bookingId,
-    required String userId,
-    required double amount,
-    required String mobileNumber,
   }) {
-    debugPrint('[PaymentRepository] initiatePayment: bookingId=$bookingId, userId=$userId, amount=$amount');
     return _apiService.createPayment(
       bookingId: bookingId,
-      userId: userId,
-      amount: amount,
-      mobileNumber: mobileNumber,
     );
   }
 
@@ -43,27 +36,26 @@ class PaymentRepositoryImpl implements PaymentRepository {
   }
 
   @override
-  Future<bool> checkPaymentStatus(String merchantTransactionId) async {
-    debugPrint('[PaymentRepository] checkPaymentStatus: merchantTransactionId=$merchantTransactionId');
+  Future<PaymentVerificationStatus> checkPaymentStatus(
+    String merchantTransactionId,
+  ) async {
     try {
       final responseMap = await _apiService.getPaymentStatus(merchantTransactionId);
       if (responseMap['success'] == true) {
-        final gatewayData = responseMap['data'];
-        if (gatewayData != null) {
-          final success = gatewayData['success'] == true;
-          final code = gatewayData['code'] as String?;
-          final data = gatewayData['data'];
-          final state = data?['state'] as String?;
-          
-          if (success && (code == 'PAYMENT_SUCCESS' || state == 'COMPLETED' || state == 'SUCCESS')) {
-            return true;
-          }
+        final data = responseMap['data'];
+        final state = data is Map
+            ? data['paymentState']?.toString().toUpperCase()
+            : null;
+        if (state == 'SUCCESS') {
+          return PaymentVerificationStatus.success;
+        }
+        if (state == 'FAILED' || state == 'CANCELLED') {
+          return PaymentVerificationStatus.failed;
         }
       }
-      return false;
-    } catch (e) {
-      debugPrint('[PaymentRepository] Error checking status: $e');
-      return false;
+      return PaymentVerificationStatus.pending;
+    } catch (_) {
+      return PaymentVerificationStatus.pending;
     }
   }
 }
